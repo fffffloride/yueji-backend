@@ -429,6 +429,7 @@ export class MenuService {
             keepAlive: menu.keepAlive === 1,
             alwaysShow: menu.alwaysShow === 1,
             params: this.parseMenuParams(menu.params),
+            externalUrl: menu.externalUrl || "",
           },
           children: this.buildRoutes(menus, menu.id),
         };

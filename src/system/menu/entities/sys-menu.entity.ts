@@ -26,7 +26,7 @@ export class SysMenu {
   @Column({ length: 64, comment: "菜单名称" })
   name: string;
 
-  @Column({ type: "char", length: 1, comment: "菜单类型（C-目录 M-菜单 B-按钮）" })
+  @Column({ type: "char", length: 1, comment: "菜单类型（C-目录 M-菜单 E-外链 B-按钮）" })
   type: string;
 
   @Column({
@@ -44,6 +44,14 @@ export class SysMenu {
     comment: "路由路径（Vue Router 中定义的 URL 路径）",
   })
   routePath: string;
+
+  @Column({
+    name: "external_url",
+    length: 512,
+    nullable: true,
+    comment: "外链地址",
+  })
+  externalUrl: string;
 
   @Column({
     length: 128,

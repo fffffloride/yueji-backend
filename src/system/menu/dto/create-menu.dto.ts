@@ -18,15 +18,20 @@ export class CreateMenuDto {
   @IsString()
   parentId?: string;
 
-  /** 菜单类型: C-目录 M-菜单 B-按钮 */
+  /** 菜单类型: C-目录 M-菜单 E-外链 B-按钮 */
   @IsString()
-  @IsIn(["C", "M", "B"])
+  @IsIn(["C", "M", "E", "B"])
   type: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(50)
   icon?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  externalUrl?: string;
 
   @IsOptional()
   @IsString()

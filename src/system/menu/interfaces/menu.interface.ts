@@ -6,6 +6,7 @@ export interface MenuItem {
   routeName: string | null;
   routePath: string;
   component: string | null;
+  externalUrl: string | null;
   alwaysShow: number;
   keepAlive: number;
   visible: number;
@@ -27,6 +28,7 @@ export interface Route {
     alwaysShow: boolean;
     keepAlive: boolean;
     params: Record<string, string> | null;
+    externalUrl: string;
   };
   children?: Route[];
 }
