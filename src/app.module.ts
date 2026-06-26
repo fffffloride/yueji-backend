@@ -27,11 +27,11 @@ import { NoticeModule } from "./system/notice/notice.module";
 
 import { LoggerMiddleware } from "./common/middleware/logger.middleware";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
-import { RateLimitMiddleware } from "./common/middleware/rate-limit.middleware";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { XRequestInterceptor } from "./common/interceptors/request.interceptor";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { RedisTokenAuthGuard } from "./auth/guards/redis-token.guard";
+import { RateLimitGuard } from "./common/guards/rate-limit.guard";
 
 import jwtConfig from "./config/jwt.config";
 import typeormConfig from "./config/typeorm.config";
@@ -109,8 +109,14 @@ const envPath = `.env.${process.env.NODE_ENV || "dev"}`;
   ],
   controllers: [],
   providers: [
+    RateLimitGuard,
     JwtAuthGuard,
     RedisTokenAuthGuard,
+    // 接口限流守卫
+    {
+      provide: APP_GUARD,
+      useClass: RateLimitGuard,
+    },
     // 会话认证守卫：根据 SESSION_TYPE 选择 JWT 模式或 Redis 会话模式
     {
       provide: APP_GUARD,
@@ -160,7 +166,6 @@ export class AppModule implements NestModule, OnModuleInit {
   configure(consumer: MiddlewareConsumer) {
     // 请求上下文中间件必须在最前面，确保 AsyncLocalStorage 正确初始化
     consumer.apply(RequestContextMiddleware).forRoutes({ path: "*", method: RequestMethod.ALL });
-    consumer.apply(RateLimitMiddleware).forRoutes({ path: "*", method: RequestMethod.ALL });
     consumer.apply(LoggerMiddleware).forRoutes({ path: "*", method: RequestMethod.ALL });
   }
 }

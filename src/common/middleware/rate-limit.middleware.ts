@@ -4,10 +4,16 @@ import { RedisService } from "../redis/redis.service";
 import { BusinessException } from "../exceptions/business.exception";
 import { ErrorCode } from "../enums/error-code.enum";
 import { LoggerUtils } from "../utils/logger.utils";
+import * as crypto from "crypto";
 
-const DEFAULT_IP_LIMIT = 10;
-const RATE_LIMIT_WINDOW_SEC = 1;
-const RATE_LIMIT_KEY_PREFIX = "rate_limiter:ip:";
+// 仅对以下路径限流
+const RATE_LIMIT_PATHS: Record<string, { limit: number; windowSec: number }> = {
+  "POST /api/v1/auth/login": { limit: 5, windowSec: 60 },
+  "POST /api/v1/auth/sms/code": { limit: 1, windowSec: 60 },
+  "POST /api/v1/auth/login/sms": { limit: 5, windowSec: 60 },
+};
+
+const RATE_LIMIT_KEY_PREFIX = "rate_limit:";
 
 @Injectable()
 export class RateLimitMiddleware implements NestMiddleware {
@@ -16,25 +22,33 @@ export class RateLimitMiddleware implements NestMiddleware {
   constructor(private readonly redisService: RedisService) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
-    // OPTIONS 预检请求跳过限流
     if (req.method === "OPTIONS") {
       return next();
     }
 
-    const ip = LoggerUtils.parseClientIP(req);
-    if (!ip) {
+    // 仅对匹配的接口限流，其他接口直接放行
+    const routeKey = `${req.method} ${req.originalUrl?.split("?")[0]}`;
+    const config = RATE_LIMIT_PATHS[routeKey];
+    if (!config) {
       return next();
     }
 
+    // 按用户 token + URI 构造 key，无 token 时回退 IP
+    const token = req.headers.authorization?.replace("Bearer ", "") || "";
+    const identity = token
+      ? crypto.createHash("sha256").update(token).digest("hex").slice(0, 16)
+      : LoggerUtils.parseClientIP(req) || "unknown";
+
+    const key = `${RATE_LIMIT_KEY_PREFIX}${identity}:${routeKey}`;
+
     try {
-      const key = `${RATE_LIMIT_KEY_PREFIX}${ip}`;
       const count = await this.redisService.getClient().incr(key);
 
       if (count === 1) {
-        await this.redisService.getClient().expire(key, RATE_LIMIT_WINDOW_SEC);
+        await this.redisService.getClient().expire(key, config.windowSec);
       }
 
-      if (count > DEFAULT_IP_LIMIT) {
+      if (count > config.limit) {
         throw new BusinessException({
           code: ErrorCode.REQUEST_CONCURRENCY_LIMIT_EXCEEDED.code,
           msg: ErrorCode.REQUEST_CONCURRENCY_LIMIT_EXCEEDED.msg,
@@ -52,4 +66,3 @@ export class RateLimitMiddleware implements NestMiddleware {
   }
 
 }
-

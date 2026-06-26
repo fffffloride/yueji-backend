@@ -23,6 +23,7 @@ import { BusinessException } from "../common/exceptions/business.exception";
 import { v4 as uuidv4 } from "uuid";
 import { RedisService } from "../common/redis/redis.service";
 import { ErrorCode } from "../common/enums/error-code.enum";
+import { RateLimit } from "../common/decorators/rate-limit.decorator";
 
 /**
  * 认证接口控制器
@@ -40,6 +41,7 @@ export class AuthController {
   @ApiOperation({ summary: "登录接口" })
   @ApiOkResponse({ type: LoginResultDto })
   @Public()
+  @RateLimit({ limit: 5, windowSec: 60 })
   @Post("login")
   async login(@Body() loginDto: LoginRequestDto) {
     const { captchaCode, captchaId } = loginDto;
@@ -60,6 +62,7 @@ export class AuthController {
 
   @ApiOperation({ summary: "短信验证码登录" })
   @Public()
+  @RateLimit({ limit: 5, windowSec: 60 })
   @Post("login/sms")
   async loginBySms(@Query("mobile") mobile: string, @Query("code") code: string) {
     return await this.authService.loginBySms(mobile, code);
@@ -67,6 +70,7 @@ export class AuthController {
 
   @ApiOperation({ summary: "发送登录短信验证码" })
   @Public()
+  @RateLimit({ limit: 1, windowSec: 60 })
   @Post("sms/code")
   async sendLoginVerifyCode(@Query("mobile") mobile: string) {
     await this.authService.sendSmsLoginCode(mobile);
@@ -101,6 +105,7 @@ export class AuthController {
     return {
       captchaBase64: svgCaptcha.base64,
       captchaId,
+      captchaCode: svgCaptcha.captcha.text,
     };
   }
 
