@@ -162,20 +162,16 @@ export class MenuService {
   async create(createMenuDto: CreateMenuDto) {
     const { type, routePath, parentId } = createMenuDto;
 
-    // 判断是否为外链菜单
-    const isExternalLink =
-      type === "M" && (routePath?.startsWith("http://") || routePath?.startsWith("https://"));
+    const isExternal = type === "E";
+    const isEmbedded = isExternal && createMenuDto.component === "iframe";
 
-    // 目录类型处理
     let component = createMenuDto.component;
     if (type === "C") {
-      // 一级目录需以 / 开头
       if ((!parentId || parentId === "0") && routePath && !routePath.startsWith("/")) {
         createMenuDto.routePath = "/" + routePath;
       }
       component = "Layout";
-    } else if (isExternalLink) {
-      // 外链菜单组件设为 null
+    } else if (isExternal && !isEmbedded) {
       component = null;
     }
 
@@ -254,19 +250,16 @@ export class MenuService {
 
     const { type, routePath, parentId } = updateMenuDto;
 
-    // 判断是否为外链菜单
-    const isExternalLink =
-      type === "M" && (routePath?.startsWith("http://") || routePath?.startsWith("https://"));
+    const isExternal = type === "E";
+    const isEmbedded = isExternal && updateMenuDto.component === "iframe";
 
-    // 目录类型处理
     let component = updateMenuDto.component ?? menu.component;
     if (type === "C") {
-      // 一级目录需以 / 开头
       if ((!parentId || parentId === "0") && routePath && !routePath.startsWith("/")) {
         updateMenuDto.routePath = "/" + routePath;
       }
       component = "Layout";
-    } else if (isExternalLink) {
+    } else if (isExternal && !isEmbedded) {
       component = null;
     }
 
@@ -418,18 +411,24 @@ export class MenuService {
 
     menus.forEach((menu) => {
       if (menu.parentId === parentId) {
+        const isExternal = menu.type === "E";
+        const isEmbedded = isExternal && menu.component === "iframe";
+        const routePath = isExternal && !isEmbedded && menu.externalUrl
+          ? menu.externalUrl
+          : (menu.routePath || "");
+
         const route: Route = {
-          path: menu.routePath || "",
-          component: menu.component || "",
-          name: menu.routeName || "",
+          path: routePath,
+          component: isEmbedded ? "iframe" : (isExternal ? null : menu.component || ""),
+          name: isExternal ? (menu.routeName || "") : (menu.routeName || ""),
           meta: {
             title: menu.name,
             icon: menu.icon || "",
             hidden: menu.visible === 0,
-            keepAlive: menu.keepAlive === 1,
+            keepAlive: (menu.type === "M" || isEmbedded) ? menu.keepAlive === 1 : false,
             alwaysShow: menu.alwaysShow === 1,
             params: this.parseMenuParams(menu.params),
-            externalUrl: menu.externalUrl || "",
+            externalUrl: isEmbedded && menu.externalUrl ? menu.externalUrl : "",
           },
           children: this.buildRoutes(menus, menu.id),
         };
