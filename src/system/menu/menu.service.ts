@@ -2,7 +2,7 @@
 import { CreateMenuDto } from "./dto/create-menu.dto";
 import { UpdateMenuDto } from "./dto/update-menu.dto";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, In } from "typeorm";
+import { Repository, In, Not } from "typeorm";
 import { SysMenu } from "./entities/sys-menu.entity";
 import { UserService } from "../user/user.service";
 import { RolePermService } from "../role/role-permission.service";
@@ -82,11 +82,11 @@ export class MenuService {
     if (userId === "1") {
       // 后端路由用于前端注册，不仅决定侧边栏显示；因此这里会包含 visible=0 的隐藏菜单
       const menuList = await this.menuRepository.find({
-        where: { type: In(["C", "M"]) },
-        order: { sort: "ASC" },
-      });
-      return this.buildRoutes(menuList);
-    }
+      where: { type: Not("B") },
+      order: { sort: "ASC" },
+    });
+    return this.buildRoutes(menuList);
+  }
 
     // 其他用户返回其角色对应的菜单
     const menuIds = await this.userService.getUserMenuIds(userId);
@@ -96,7 +96,7 @@ export class MenuService {
 
     // 保持路由完整，防止路由未注册问题
     const menuList = await this.menuRepository.find({
-      where: { id: In(menuIds.map((id) => id.toString())), type: In(["C", "M"]) },
+      where: { id: In(menuIds.map((id) => id.toString())), type: Not("B") },
       order: { sort: "ASC" },
     });
     return this.buildRoutes(menuList);
@@ -277,15 +277,17 @@ export class MenuService {
       newTreePath = await this.generateMenuTreePath(newParentId);
     }
 
-    const updatedMenu = {
-      ...updateMenuDto,
-      component,
-      parentId: newParentId,
-      treePath: newTreePath,
-      updateTime: new Date(),
-    };
+    // clearable 字段未传时置为 null
+    const dto: Record<string, any> = { ...updateMenuDto };
+    for (const field of ['icon', 'redirect', 'routeName', 'perm', 'externalUrl']) {
+      if (dto[field] === undefined) dto[field] = null;
+    }
+    dto.component = component;
+    dto.parentId = newParentId;
+    dto.treePath = newTreePath;
+    dto.updateTime = new Date();
 
-    await this.menuRepository.update(idStr, updatedMenu as any);
+    await this.menuRepository.update(idStr, dto as any);
 
     // 更新子菜单的 treePath
     if (newParentId !== menu.parentId) {

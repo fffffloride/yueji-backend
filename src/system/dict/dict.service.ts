@@ -322,8 +322,12 @@ export class DictService {
       }
     }
 
+    const dto: Record<string, any> = { ...(updateData as any) };
+    for (const field of ['remark', 'tagType']) {
+      if (dto[field] === undefined) dto[field] = null;
+    }
     await this.dictItemRepository.update(idStr, {
-      ...(updateData as any),
+      ...dto,
       updateBy: updateData.updateBy?.toString(),
     });
     this.sseService.sendDictChange(dictItem.dictCode);

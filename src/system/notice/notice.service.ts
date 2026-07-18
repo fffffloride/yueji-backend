@@ -162,7 +162,11 @@ export class NoticeService {
 
     const normalizedTargetUserIds = this.normalizeTargetUserIds(form.targetUserIds);
 
-    Object.assign(notice, form, {
+    const dto: Record<string, any> = { ...form };
+    for (const field of ['targetUserIds']) {
+      if (dto[field] === undefined) dto[field] = null;
+    }
+    Object.assign(notice, dto, {
       targetUserIds: normalizedTargetUserIds,
       updateBy: form.updateBy.toString(),
       updateTime: new Date(),

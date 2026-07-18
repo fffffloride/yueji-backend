@@ -161,62 +161,6 @@ export class UserController {
     return await this.userService.create(createUserDto);
   }
 
-  @ApiOperation({ summary: "获取用户表单数据" })
-  @Get(":id/form")
-  @Permissions("sys:user:update")
-  async getUserFormData(@Param("id") id: string) {
-    return await this.userService.getUserFormData(id);
-  }
-
-  @ApiOperation({ summary: "修改用户" })
-  @Log(LogModuleValue.USER, ActionTypeValue.UPDATE)
-  @Put(":id")
-  @Permissions("sys:user:update")
-  async updateUser(@Param("id") id: string, @Body() updateUserDto: UpdateUserDto) {
-    return await this.userService.update(id, updateUserDto);
-  }
-
-  @ApiOperation({ summary: "删除用户" })
-  @Log(LogModuleValue.USER, ActionTypeValue.DELETE)
-  @Delete(":ids")
-  @Permissions("sys:user:delete")
-  async deleteUsers(@Param("ids") ids: string) {
-    const idArray = ids
-      .split(",")
-      .map((v) => v.trim())
-      .filter(Boolean);
-    const results = await Promise.all(
-      idArray.map(async (id) => {
-        const success = await this.userService.deleteUser(id);
-        if (!success) {
-          throw new BusinessException(`删除用户失败: ${id}`);
-        }
-        return success;
-      })
-    );
-
-    return {
-      success: true,
-      message: `成功删除 ${results.filter(Boolean).length} 个用户`,
-    };
-  }
-
-  @ApiOperation({ summary: "修改用户状态" })
-  @Log(LogModuleValue.USER, ActionTypeValue.UPDATE)
-  @Patch(":userId/status")
-  @Permissions("sys:user:update")
-  async updateUserStatus(@Param("userId") userId: string, @Query("status") status: number) {
-    return await this.userService.updateUserStatus(userId, status);
-  }
-
-  @ApiOperation({ summary: "重置指定用户密码" })
-  @Log(LogModuleValue.USER, ActionTypeValue.RESET_PASSWORD)
-  @Put(":userId/password/reset")
-  @Permissions("sys:user:reset-password")
-  async resetUserPassword(@Param("userId") userId: string, @Query("password") password: string) {
-    return await this.userService.resetUserPassword(userId, password);
-  }
-
   @ApiOperation({ summary: "当前用户修改密码" })
   @Log(LogModuleValue.USER, ActionTypeValue.CHANGE_PASSWORD)
   @Put("password")
@@ -306,5 +250,63 @@ export class UserController {
       query.status,
       query.createTime
     );
+  }
+
+  // :param 路由
+
+  @ApiOperation({ summary: "获取用户表单数据" })
+  @Get(":id/form")
+  @Permissions("sys:user:update")
+  async getUserFormData(@Param("id") id: string) {
+    return await this.userService.getUserFormData(id);
+  }
+
+  @ApiOperation({ summary: "修改用户" })
+  @Log(LogModuleValue.USER, ActionTypeValue.UPDATE)
+  @Put(":id")
+  @Permissions("sys:user:update")
+  async updateUser(@Param("id") id: string, @Body() updateUserDto: UpdateUserDto) {
+    return await this.userService.update(id, updateUserDto);
+  }
+
+  @ApiOperation({ summary: "删除用户" })
+  @Log(LogModuleValue.USER, ActionTypeValue.DELETE)
+  @Delete(":ids")
+  @Permissions("sys:user:delete")
+  async deleteUsers(@Param("ids") ids: string) {
+    const idArray = ids
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    const results = await Promise.all(
+      idArray.map(async (id) => {
+        const success = await this.userService.deleteUser(id);
+        if (!success) {
+          throw new BusinessException(`删除用户失败: ${id}`);
+        }
+        return success;
+      })
+    );
+
+    return {
+      success: true,
+      message: `成功删除 ${results.filter(Boolean).length} 个用户`,
+    };
+  }
+
+  @ApiOperation({ summary: "修改用户状态" })
+  @Log(LogModuleValue.USER, ActionTypeValue.UPDATE)
+  @Patch(":userId/status")
+  @Permissions("sys:user:update")
+  async updateUserStatus(@Param("userId") userId: string, @Query("status") status: number) {
+    return await this.userService.updateUserStatus(userId, status);
+  }
+
+  @ApiOperation({ summary: "重置指定用户密码" })
+  @Log(LogModuleValue.USER, ActionTypeValue.RESET_PASSWORD)
+  @Put(":userId/password/reset")
+  @Permissions("sys:user:reset-password")
+  async resetUserPassword(@Param("userId") userId: string, @Query("password") password: string) {
+    return await this.userService.resetUserPassword(userId, password);
   }
 }

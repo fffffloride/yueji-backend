@@ -255,9 +255,21 @@ export class FileService {
 
   async uploadFile(file: any): Promise<{ name: string; url: string }> {
     const originalName: string = file?.originalname || file?.originalName || "file";
-    const ext = path.extname(originalName);
+
+    // 扩展名 + 大小白名单校验
+    const rawExt = originalName.includes(".") ? originalName.split(".").pop()! : "";
+    const ext = rawExt.toLowerCase();
+    const allowed = this.ossConf.upload?.allowedExtensions || [];
+    if (allowed.length > 0 && !allowed.includes(ext)) {
+      throw new Error(`不支持的文件类型: .${ext || "未知"}`);
+    }
+    const maxSize = this.ossConf.upload?.maxFileSize || 50 * 1024 * 1024;
+    if (file?.size && file.size > maxSize) {
+      throw new Error(`文件大小超过限制: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
+    }
+
     const dateFolder = dayjs().format("YYYYMMDD");
-    const objectName = `${dateFolder}/${uuidv4()}${ext}`;
+    const objectName = `${dateFolder}/${uuidv4()}.${ext}`;
 
     const getFileContent = async () => {
       if (file?.buffer) {

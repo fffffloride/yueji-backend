@@ -968,11 +968,16 @@ export class UserService {
       hashedPassword = await bcrypt.hash(password, 10);
     }
 
+    const dto: Record<string, any> = { ...updateUserDto };
+    // clearable 字段未传时置为 null
+    for (const field of ['avatar', 'mobile', 'email']) {
+      if (dto[field] === undefined) dto[field] = null;
+    }
     Object.assign(user, {
-      ...updateUserDto,
+      ...dto,
       deptId: deptId?.toString() ?? null,
       updateBy: (updateUserDto as any).updateBy?.toString() ?? null,
-      password: hashedPassword || user.password, // 如果没有新密码，保留原密码
+      password: hashedPassword || user.password,
     });
 
     const currentUserRoles = await this.userRoleRepository.find({ where: { userId: userIdStr } });

@@ -227,7 +227,10 @@ export class RoleService {
 
     const roleMenus = await this.roleMenuRepository
       .createQueryBuilder("roleMenu")
+      .innerJoin("sys_role", "role", "roleMenu.roleId = role.id")
       .where("roleMenu.roleId IN (:...roleIds)", { roleIds: ids })
+      .andWhere("role.status = :status", { status: 1 })
+      .andWhere("role.is_deleted = :isDeleted", { isDeleted: 0 })
       .getMany();
 
     return [...new Set(roleMenus.map((rm) => rm.menuId))];

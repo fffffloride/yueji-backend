@@ -119,8 +119,12 @@ export class ConfigService {
       }
     }
 
+    const dto: Record<string, any> = { ...formData };
+    for (const field of ['remark']) {
+      if (dto[field] === undefined) dto[field] = null;
+    }
     Object.assign(config, {
-      ...formData,
+      ...dto,
       updateBy: (formData as any).updateBy?.toString() ?? null,
     });
     config.updateTime = new Date();

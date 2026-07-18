@@ -24,12 +24,9 @@ import { CodegenModule } from "./codegen/codegen.module";
 import { FileModule } from "./file/file.module";
 import { LogModule } from "./system/log/log.module";
 import { NoticeModule } from "./system/notice/notice.module";
-import { TenantModule } from "./system/tenant/tenant.module";
-import { SystemAppModule } from "./system/app/app.module";
 
 import { LoggerMiddleware } from "./common/middleware/logger.middleware";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
-import { TenantContextMiddleware } from "./common/middleware/tenant-context.middleware";
 import { RateLimitMiddleware } from "./common/middleware/rate-limit.middleware";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { XRequestInterceptor } from "./common/interceptors/request.interceptor";
@@ -41,14 +38,10 @@ import jwtConfig from "./config/jwt.config";
 import typeormConfig from "./config/typeorm.config";
 import ossConfig from "./config/oss.config";
 import redisConfig from "./config/redis.config";
-import tenantConfig from "./config/tenant.config";
 import { DataScopeGuard } from "./common/guards/data-scope.guard";
 import { PermissionGuard } from "./common/guards/permission.guard";
 import { DataPermissionInterceptor } from "./common/interceptors/data-permission.interceptor";
-import { TenantInterceptor } from "./common/interceptors/tenant.interceptor";
 import { initDataPermissionPlugin } from "./common/plugins/data-permission.plugin";
-import { initTenantPlugin } from "./common/plugins/tenant.plugin";
-import { TenantConfigService } from "./common/config/tenant-config.service";
 import { AuditSubscriber } from "./common/subscribers/audit.subscriber";
 
 const envPath = `.env.${process.env.NODE_ENV || "dev"}`;
@@ -58,7 +51,7 @@ const envPath = `.env.${process.env.NODE_ENV || "dev"}`;
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [".env", envPath],
-      load: [typeormConfig, redisConfig, ossConfig, jwtConfig, tenantConfig],
+      load: [typeormConfig, redisConfig, ossConfig, jwtConfig],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -114,15 +107,12 @@ const envPath = `.env.${process.env.NODE_ENV || "dev"}`;
     CodegenModule,
     LogModule,
     NoticeModule,
-    TenantModule,
-    SystemAppModule,
   ],
   controllers: [],
   providers: [
     RateLimitGuard,
     JwtAuthGuard,
     RedisTokenAuthGuard,
-    TenantConfigService,
     // 接口限流守卫
     {
       provide: APP_GUARD,
@@ -161,11 +151,6 @@ const envPath = `.env.${process.env.NODE_ENV || "dev"}`;
       provide: APP_INTERCEPTOR,
       useClass: XRequestInterceptor,
     },
-    // 租户隔离拦截器 - 必须在 DataScopeGuard 之后执行
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: TenantInterceptor,
-    },
     // 数据权限拦截器 - 必须在 DataScopeGuard 之后执行
     {
       provide: APP_INTERCEPTOR,
@@ -174,19 +159,14 @@ const envPath = `.env.${process.env.NODE_ENV || "dev"}`;
   ],
 })
 export class AppModule implements NestModule, OnModuleInit {
-  constructor(private readonly tenantConfigService: TenantConfigService) {}
-
   onModuleInit() {
     // 初始化数据权限插件
     initDataPermissionPlugin();
-    // 初始化租户隔离插件
-    initTenantPlugin(this.tenantConfigService);
   }
 
   configure(consumer: MiddlewareConsumer) {
     // 请求上下文中间件必须在最前面，确保 AsyncLocalStorage 正确初始化
     consumer.apply(RequestContextMiddleware).forRoutes({ path: "*", method: RequestMethod.ALL });
-    consumer.apply(TenantContextMiddleware).forRoutes({ path: "*", method: RequestMethod.ALL });
     consumer.apply(LoggerMiddleware).forRoutes({ path: "*", method: RequestMethod.ALL });
     // IP 全局限流 + 特定接口限流中间件，对所有请求生效
     consumer.apply(RateLimitMiddleware).forRoutes({ path: "*", method: RequestMethod.ALL });
