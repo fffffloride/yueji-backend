@@ -22,7 +22,7 @@
 
 </div>
 
-## 简介
+## 项目简介
 
 **youlai-nest** 是一套基于 NestJS 11 的企业级权限管理系统后端，配套前端 [vue3-element-admin](https://gitee.com/youlaiorg/vue3-element-admin) 和移动端 [youlai-app](https://gitee.com/youlaiorg/youlai-app)，并提供 **6 种语言实现**（Java / Node.js / Go / Python / PHP / C#），共享同一套 API 规范与数据库结构。适用于企业中后台管理系统的学习参考与二次开发。
 
@@ -78,17 +78,6 @@
 
 详细指南：[部署文档](https://www.youlai.tech/docs/server/nestjs/deploy)
 
-## 技术栈
-
-| 技术 | 版本 | 说明 |
-|:-----|:-----|:-----|
-| Node.js | 20+ / 24 LTS | 运行时 |
-| NestJS | 11 | Web 框架 |
-| TypeORM | — | ORM 框架 |
-| MySQL | 5.7+ / 8.x | 数据库 |
-| Redis | 7.x+ | 缓存 · 会话 |
-| Swagger | — | API 文档 |
-
 ## 目录结构
 
 ```
@@ -134,23 +123,11 @@ youlai-nest/
 >
 > 六种后端共享同一套 **RESTful API 规范** 和 **数据库结构**，前端可无缝切换。
 
-## 文档资源
+## 交流合作
 
-| 资源 | 地址 |
-|:-----|:-----|
-| 📖 完整文档站 | [www.youlai.tech](https://www.youlai.tech/) |
-| �️ PC 端在线预览 | [vue.youlai.tech](https://vue.youlai.tech) |
-| 📱 移动端在线预览 | [app.youlai.tech](https://app.youlai.tech) |
-| 🔗 Apifox 接口文档 | [apifox.com](https://www.apifox.cn/apidoc/shared-195e783f-4d85-4235-a038-eec696de4ea5) |
-| 🔗 本地接口文档 | [localhost:8000/api-docs](http://localhost:8000/api-docs) |
+欢迎在 [Issue](https://gitee.com/youlaiorg/youlai-nest/issues) 提交问题或反馈，也欢迎提交 Pull Request，支持与合作见[支持指南](https://www.youlai.tech/faq/help)。
 
-## 参与贡献
-
-欢迎提交 Issue 和 Pull Request！详见 [贡献指南](https://www.youlai.tech/faq/help)。
-
-## 开源协议
-
-本项目基于 [Apache License 2.0](LICENSE) 开源，可免费用于商业项目。
+本项目基于 [Apache License 2.0](LICENSE) 开源，可免费用于商业项目。如需商务合作、二次开发、项目定制或部署支持，可联系作者微信（见下方二维码）。
 
 ---
 
