@@ -236,6 +236,25 @@ export class AuthService {
   }
 
   /**
+   * 扫码登录换发会话令牌：按用户 ID 查认证信息并复用既有令牌签发逻辑。
+   */
+  async loginByQr(userId: string): Promise<LoginResultDto> {
+    const uid = Number(userId);
+    if (isNaN(uid)) {
+      throw new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND);
+    }
+    const user = await this.userService.getAuthInfoByUserId(uid);
+    if (!user) {
+      throw new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND);
+    }
+    if (user.status === 0) {
+      throw new BusinessException(ErrorCode.ACCOUNT_FROZEN);
+    }
+    const result = await this.issueTokens(user);
+    return result;
+  }
+
+  /**
    * 刷新访问令牌
    */
   async refreshToken(refreshToken: string) {

@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
+import { QrCodeAuthService } from "./qr-code-auth.service";
 import { WxMaAuthService } from "./wxma-auth.service";
 import { WxMaAuthController } from "./wxma-auth.controller";
 import { UserModule } from "../system/user/user.module";
@@ -38,7 +39,7 @@ import { SysUserSocial } from "../system/user/entities/sys-user-social.entity";
     }),
   ],
   controllers: [AuthController, WxMaAuthController],
-  providers: [AuthService, WxMaAuthService, JwtStrategy, RedisService, ToolsService],
+  providers: [AuthService, QrCodeAuthService, WxMaAuthService, JwtStrategy, RedisService, ToolsService],
   exports: [AuthService, WxMaAuthService],
 })
 export class AuthModule {}

@@ -38,6 +38,11 @@ export interface UserAuthInfo {
   deptId: string;
 
   /**
+   * 头像 URL
+   */
+  avatar?: string;
+
+  /**
    * 部门树路径
    */
   deptTreePath?: string;

@@ -329,6 +329,39 @@ export class UserService {
       id: user.id.toString(),
       username: user.username,
       nickname: user.nickname,
+      avatar: user.avatar,
+      password: user.password,
+      status: user.status,
+      deptId: user.deptId?.toString() || "",
+      deptTreePath,
+      roles: roleCodes,
+      dataScopes,
+    };
+  }
+
+  /**
+   * 根据用户 ID 获取认证信息（含昵称与头像），供扫码登录使用。
+   */
+  async getAuthInfoByUserId(userId: number): Promise<UserAuthInfo | null> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId as any, isDeleted: 0 },
+      relations: ["roles"],
+    });
+    if (!user) return null;
+    const roleIds = user.roles.map((role) => role.id);
+    const roles = await this.roleService.findRolesByIds(roleIds);
+    const roleCodes = roles.map((r) => r.code);
+    const dataScopes = await this.roleService.getRoleDataScopes(roleCodes);
+    let deptTreePath = "";
+    if (user.deptId) {
+      const depts = await this.deptService.findByIds([user.deptId]);
+      deptTreePath = depts?.[0]?.treePath || "";
+    }
+    return {
+      id: user.id.toString(),
+      username: user.username,
+      nickname: user.nickname,
+      avatar: user.avatar,
       password: user.password,
       status: user.status,
       deptId: user.deptId?.toString() || "",

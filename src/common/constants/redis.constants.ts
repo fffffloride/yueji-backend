@@ -41,5 +41,10 @@ export const RedisConstants = {
      * Token 黑名单
      */
     TOKEN_BLACKLIST: "auth:token:blacklist",
+
+    /**
+     * 扫码登录票据 Key 前缀，完整 Key 为 auth:qr_code:{ticket}
+     */
+    QR_CODE: "auth:qr_code",
   },
 } as const;
