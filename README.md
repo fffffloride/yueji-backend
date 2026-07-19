@@ -1,8 +1,6 @@
 <div align="center">
 
-<img alt="youlai-nest" width="80" src="./docs/images/logo/logo.png">
-
-# youlai-nest
+# <img alt="youlai-nest" width="28" valign="middle" src="./docs/images/logo/logo.png"> youlai-nest
 
 **NestJS 企业级权限管理系统后端**
 
@@ -134,7 +132,7 @@ youlai-nest/
 <table align="center">
   <tr>
     <td align="center">
-      <img src="./docs/images/qr/wechat-offical.png" height="180" alt="公众号「有来技术」"><br>
+      <img src="./docs/images/qr/wechat-official.jpg" height="180" alt="公众号「有来技术」"><br>
       <sub>公众号「有来技术」</sub>
     </td>
     <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
