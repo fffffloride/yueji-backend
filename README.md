@@ -132,17 +132,17 @@ youlai-nest/
 <table align="center">
   <tr>
     <td align="center">
-      <img src="./docs/images/qr/wechat-official.jpg" height="180" alt="公众号「有来技术」"><br>
+      <img src="./docs/images/qrcode/wechat-official.jpg" height="180" alt="公众号「有来技术」"><br>
       <sub>公众号「有来技术」</sub>
     </td>
     <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
     <td align="center">
-      <img src="./docs/images/qr/wechat-mp.jpg" height="180" alt="小程序「有来技术」"><br>
+      <img src="./docs/images/qrcode/wechat-mp.jpg" height="180" alt="小程序「有来技术」"><br>
       <sub>小程序「有来技术」</sub>
     </td>
     <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
     <td align="center">
-      <img src="./docs/images/qr/wechat-personal.png" height="180" alt="添加作者微信"><br>
+      <img src="./docs/images/qrcode/wechat-personal.png" height="180" alt="添加作者微信"><br>
       <sub>添加作者微信</sub>
     </td>
   </tr>
