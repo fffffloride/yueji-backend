@@ -16,13 +16,15 @@
 
 <div align="center">
 
-[🖥️ 在线预览](https://vue.youlai.tech) | [📲 移动端预览](https://app.youlai.tech) | [📖 文档](https://www.youlai.tech/docs/server/nestjs/)
+[![在线预览](https://img.shields.io/badge/在线预览-2D8CF0?style=for-the-badge&logo=google-chrome&logoColor=white)](https://vue.youlai.tech)
+[![移动端预览](https://img.shields.io/badge/移动端预览-19BE6B?style=for-the-badge&logo=android&logoColor=white)](https://app.youlai.tech)
+[![阅读文档](https://img.shields.io/badge/阅读文档-8B5CF6?style=for-the-badge&logo=gitbook&logoColor=white)](https://www.youlai.tech/docs/server/nestjs/)
 
 </div>
 
 ## 项目简介
 
-**youlai-nest** 是一套基于 NestJS 11 的企业级权限管理系统后端，配套前端 [vue3-element-admin](https://gitee.com/youlaiorg/vue3-element-admin) 和移动端 [youlai-app](https://gitee.com/youlaiorg/youlai-app)，并提供 **6 种语言实现**（Java / Node.js / Go / Python / PHP / C#），共享同一套 API 规范与数据库结构。适用于企业中后台管理系统的学习参考与二次开发。
+**youlai-nest** 是一套基于 NestJS 11 的企业级权限管理系统后端，配套前端 [vue3-element-admin](https://gitee.com/youlaiorg/vue3-element-admin) 和移动端 [youlai-app](https://gitee.com/youlaiorg/youlai-app)，并提供 **7 种语言实现**（Java / Node.js / Go / Python / PHP / C# / Rust），共享同一套 API 规范与数据库结构。适用于企业中后台管理系统的学习参考与二次开发。
 
 ## 核心特性
 
@@ -31,6 +33,7 @@
 - ⚡ **代码生成器** — 一键生成前后端 CRUD 代码
 - 📦 **模块齐全** — 用户、角色、菜单、部门、字典、文件、消息中心、操作日志
 - 🔌 **实时通信** — SSE 推送：在线用户数、字典同步、通知广播
+- 🌐 **多语言生态** — 与其它语言版本共享 API 规范与数据库结构
 
 ## 系统预览
 
@@ -112,14 +115,16 @@ youlai-nest/
 | 项目 | 技术栈 | 说明 |
 |:-----|:-------|:-----|
 | [youlai-boot](https://gitee.com/youlaiorg/youlai-boot) | Spring Boot 4 + MyBatis-Plus | Java（主推） |
+| [youlai-nest](https://gitee.com/youlaiorg/youlai-nest) | NestJS + TypeORM | Node.js |
 | [youlai-gin](https://gitee.com/youlaiorg/youlai-gin) | Go + Gorm | Go |
 | [youlai-django](https://gitee.com/youlaiorg/youlai-django) | Django + DRF | Python |
-| [youlai-thinkphp](https://gitee.com/youlaiorg/youlai-thinkphp) | ThinkPHP 8 | PHP |
+| [youlai-think](https://gitee.com/youlaiorg/youlai-think) | ThinkPHP 8 | PHP |
 | [youlai-aspnet](https://gitee.com/youlaiorg/youlai-aspnet) | ASP.NET Core | C# |
+| [youlai-axum](https://gitee.com/youlaiorg/youlai-axum) | Axum + SeaORM | Rust |
 
 > **youlai-boot** 还提供以下变种和分支版本：[多租户](https://gitee.com/youlaiorg/youlai-boot-tenant)（Spring Boot 4）· [MyBatis-Flex](https://gitee.com/youlaiorg/youlai-boot-flex)（Spring Boot 4）· [Spring Boot 3](https://gitee.com/youlaiorg/youlai-boot/tree/spring-boot-3) · [PostgreSQL](https://gitee.com/youlaiorg/youlai-boot/tree/db-pg) · [多模块](https://gitee.com/youlaiorg/youlai-boot/tree/multi-module)
 >
-> 六种后端共享同一套 **RESTful API 规范** 和 **数据库结构**，前端可无缝切换。
+> 七种后端共享同一套 **RESTful API 规范** 和 **数据库结构**，前端可无缝切换。
 
 ## 交流合作
 
