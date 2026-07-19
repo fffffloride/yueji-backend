@@ -129,9 +129,9 @@ youlai-nest/
 
 ## 技术合作
 
-本项目采用 [Apache License 2.0](LICENSE) 开源，可免费用于商业项目。欢迎在 [Issue](https://gitee.com/youlaiorg/youlai-nest/issues) 提交问题或反馈，也欢迎提交 [Pull Request](https://gitee.com/youlaiorg/youlai-nest/pulls) 共建项目。
+本项目采用 [Apache License 2.0](LICENSE) 开源，可免费商用。欢迎在 [Issue](https://gitee.com/youlaiorg/youlai-nest/issues) 提交问题或反馈，也欢迎提交 [Pull Request](https://gitee.com/youlaiorg/youlai-nest/pulls) 共建。
 
-在开源之外，作者承接技术支持、二次开发、项目定制与私有化部署等有偿服务。如需合作，可联系作者微信（见下方二维码）。
+如需技术支持、商务合作、二次开发、项目定制或私有化部署，可联系作者微信（见下方二维码）。
 
 <table align="center">
   <tr>
