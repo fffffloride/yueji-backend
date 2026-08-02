@@ -4,7 +4,7 @@ import { Observable, Subject } from "rxjs";
 
 export const SSE_TOPICS = {
   DICT: "dict",
-  ONLINE_COUNT: "online-count",
+  ONLINE_COUNT: "online-users",
   SYSTEM: "system",
 } as const;
 

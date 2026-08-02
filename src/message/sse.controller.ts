@@ -61,7 +61,7 @@ export class SseController {
       const registry = (this.sseService as any).sessionRegistry;
       registry.userConnected(username, emitter);
 
-      sendEvent("online-count", registry.getOnlineUserCount());
+      sendEvent("online-users", registry.getOnlineUserCount());
 
       const heartbeatInterval = setInterval(() => {
         try {

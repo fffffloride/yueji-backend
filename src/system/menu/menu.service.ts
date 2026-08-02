@@ -175,6 +175,20 @@ export class MenuService {
       component = null;
     }
 
+    // 菜单(M)和内嵌外链(E+iframe)需要路由名称唯一
+    const needsRouteName = type === "M" || isEmbedded;
+    if (needsRouteName) {
+      const existing = await this.menuRepository.findOne({
+        where: { routeName: createMenuDto.routeName },
+      });
+      if (existing) {
+        throw new Error("路由名称已存在");
+      }
+    } else {
+      // C 类型（目录）、E 类型（外链非 iframe）不需要 routeName，清空
+      createMenuDto.routeName = null;
+    }
+
     // 生成 treePath
     const treePath = await this.generateMenuTreePath(parentId || "0");
 
@@ -279,9 +293,24 @@ export class MenuService {
 
     // clearable 字段未传时置为 null
     const dto: Record<string, any> = { ...updateMenuDto };
-    for (const field of ['icon', 'redirect', 'routeName', 'perm', 'externalUrl']) {
+    for (const field of ['icon', 'redirect', 'perm', 'externalUrl']) {
       if (dto[field] === undefined) dto[field] = null;
     }
+
+    // 菜单(M)和内嵌外链(E+iframe)需要路由名称唯一
+    const needsRouteName = type === "M" || isEmbedded;
+    if (needsRouteName) {
+      const existing = await this.menuRepository.findOne({
+        where: { routeName: dto.routeName },
+      });
+      if (existing && existing.id !== idStr) {
+        throw new Error("路由名称已存在");
+      }
+    } else {
+      // C 类型（目录）、E 类型（外链非 iframe）不需要 routeName，强制清空
+      dto.routeName = null;
+    }
+
     dto.component = component;
     dto.parentId = newParentId;
     dto.treePath = newTreePath;

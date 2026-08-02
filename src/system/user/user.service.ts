@@ -462,6 +462,11 @@ export class UserService {
         perms = await this.rolePermService.getPermsByRoleCodes(roleCodes);
       }
     }
+    // 缓存未命中时触发全量刷新（防止 DB 数据已更新但缓存未同步）
+    if (perms.length === 0 && roleCodes.length && !roleCodes.includes(ROOT_ROLE_CODE)) {
+      await this.rolePermService.refreshAllRolePermsCache();
+      perms = await this.rolePermService.getPermsByRoleCodes(roleCodes);
+    }
 
     let deptName: string | undefined;
     if (user.deptId) {
