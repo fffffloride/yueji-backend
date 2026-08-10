@@ -1,0 +1,5 @@
+allowBuilds:
+  '@alicloud/openapi-core': true
+  '@nestjs/core': true
+  '@scarf/scarf': true
+  bcrypt: true
