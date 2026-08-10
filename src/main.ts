@@ -72,15 +72,39 @@ async function bootstrap() {
   );
 
   // Swagger 配置
+  // 接口约定：B 端管理接口走 /api/v1/**，C 端小程序接口统一走 /api/v1/app/**
+  const APP_API_PREFIX = "/api/v1/app";
+
   const config = new DocumentBuilder()
-    .setTitle("youlai-nest")
-    .setDescription(`youlai 全家桶（Node/Nest 11）权限管理后台接口文档`)
+    .setTitle("悦己DLumière 管理后台")
+    .setDescription("B 端管理接口文档（/api/v1/**，不含 C 端 /api/v1/app/**）")
     .setVersion("1.0")
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
+  // B 端文档排除 C 端路径
+  document.paths = Object.fromEntries(
+    Object.entries(document.paths).filter(([path]) => !path.startsWith(APP_API_PREFIX))
+  );
   // 使用 alpha 排序
   SwaggerModule.setup("api-docs", app, document, {
+    swaggerOptions: {
+      tagsSorter: "alpha",
+    },
+  });
+
+  // C 端（微信小程序）接口文档
+  const appApiConfig = new DocumentBuilder()
+    .setTitle("悦己DLumière 小程序")
+    .setDescription("C 端小程序接口文档（/api/v1/app/**）")
+    .setVersion("1.0")
+    .addBearerAuth()
+    .build();
+  const appApiDocument = SwaggerModule.createDocument(app, appApiConfig);
+  appApiDocument.paths = Object.fromEntries(
+    Object.entries(appApiDocument.paths).filter(([path]) => path.startsWith(APP_API_PREFIX))
+  );
+  SwaggerModule.setup("app-api-docs", app, appApiDocument, {
     swaggerOptions: {
       tagsSorter: "alpha",
     },
@@ -103,7 +127,8 @@ async function bootstrap() {
   const port = Number(portRaw) || 8000;
   await app.listen(port);
   logger.log(`应用已启动: http://localhost:${port}`);
-  logger.log(`接口文档: http://localhost:${port}/api-docs`);
+  logger.log(`B端接口文档: http://localhost:${port}/api-docs`);
+  logger.log(`C端接口文档: http://localhost:${port}/app-api-docs`);
 }
 
 void bootstrap();
