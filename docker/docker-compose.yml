@@ -6,19 +6,30 @@ networks:
     driver: bridge
 
 services:
-  # MongoDB 数据库
-  mongodb:
-    image: mongo:7.0
-    container_name: youlai-nest-mongodb
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: youlai-nest-mysql
     restart: unless-stopped
     environment:
       - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD=123456
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     volumes:
-      - ./mongodb/data:/data/db
+      - ./mysql/data:/var/lib/mysql
+      # 首次启动自动执行初始化脚本（脚本内含 CREATE DATABASE youlai_admin）
+      - ../sql/mysql/youlai_admin.sql:/docker-entrypoint-initdb.d/youlai_admin.sql:ro
     ports:
-      - 27017:27017
+      - 3306:3306
     networks:
       - youlai-nest
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis 缓存
   redis:
