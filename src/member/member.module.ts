@@ -1,0 +1,15 @@
+import { Module } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
+
+import { Member } from "./entities/member.entity";
+import { MemberService } from "./member.service";
+import { MemberAdminController } from "./admin/member-admin.controller";
+import { MemberAppController } from "./app/member-app.controller";
+
+@Module({
+  imports: [TypeOrmModule.forFeature([Member])],
+  controllers: [MemberAdminController, MemberAppController],
+  providers: [MemberService],
+  exports: [MemberService],
+})
+export class MemberModule {}

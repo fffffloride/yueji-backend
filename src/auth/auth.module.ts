@@ -2,11 +2,12 @@ import { Module } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
 import { QrCodeAuthService } from "./qr-code-auth.service";
-import { WxMaAuthService } from "./wxma-auth.service";
-import { WxMaAuthController } from "./wxma-auth.controller";
+import { MemberAuthService } from "./app/member-auth.service";
+import { MemberAuthController } from "./app/member-auth.controller";
 import { UserModule } from "../system/user/user.module";
 import { RoleModule } from "../system/role/role.module";
 import { LogModule } from "../system/log/log.module";
+import { MemberModule } from "../member/member.module";
 import { PassportModule } from "@nestjs/passport";
 import { JwtModule } from "@nestjs/jwt";
 import { ConfigModule, ConfigService } from "@nestjs/config";
@@ -23,10 +24,13 @@ import { SysUserSocial } from "../system/user/entities/sys-user-social.entity";
     UserModule,
     RoleModule,
     LogModule,
+    MemberModule,
     RedisSharedModule,
     TypeOrmModule.forFeature([SysUser, SysUserSocial]),
     PassportModule.register({ defaultStrategy: "jwt" }),
+    // global: true 使 JwtService 全局可用（MemberJwtGuard 等依赖）
     JwtModule.registerAsync({
+      global: true,
       imports: [ConfigModule],
       useFactory: async (config: ConfigService) => ({
         secret: config.getOrThrow<string>("jwt.secretKey"),
@@ -38,8 +42,15 @@ import { SysUserSocial } from "../system/user/entities/sys-user-social.entity";
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController, WxMaAuthController],
-  providers: [AuthService, QrCodeAuthService, WxMaAuthService, JwtStrategy, RedisService, ToolsService],
-  exports: [AuthService, WxMaAuthService],
+  controllers: [AuthController, MemberAuthController],
+  providers: [
+    AuthService,
+    QrCodeAuthService,
+    MemberAuthService,
+    JwtStrategy,
+    RedisService,
+    ToolsService,
+  ],
+  exports: [AuthService, MemberAuthService],
 })
 export class AuthModule {}
