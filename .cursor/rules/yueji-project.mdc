@@ -1,0 +1,22 @@
+---
+description: 悦己医美小程序服务端改造的进度、约定与阶段纪律
+alwaysApply: true
+---
+
+# 悦己项目（youlai-nest）
+
+完整计划与进度：`docs/改造计划.md`。换对话后先读该文档。
+
+## 进度
+
+阶段 0（环境）、1（会员）、2（商品）已完成。当前做 **阶段 3：购物车 + 订单 + 核销**。
+
+阶段内顺序：本仓库服务端自测通过 → `E:\CODE\vue3-element-admin` → `E:\CODE\yueji-web`。不要三端交叉开发。
+
+## 约定
+
+- C 端：`/api/v1/app/**`，JWT `{ typ: "member", sub: memberId }`，`@MemberAuth()` / `@CurrentMember()`
+- B 端：现有 RBAC；`member` 与 `sys_user` 隔离
+- 金额：整数分；表结构以 `sql/mysql/biz_p0.sql` 为准
+- 不改模板系统层核心逻辑；业务模块新建
+- 回复使用简体中文

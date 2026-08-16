@@ -26,6 +26,8 @@
 
 **youlai-nest** 是一套基于 NestJS 的企业级权限管理系统后端，配套前端 [vue3-element-admin](https://gitee.com/youlaiorg/vue3-element-admin) 和移动端 [youlai-app](https://gitee.com/youlaiorg/youlai-app)，并提供 **7 种语言实现**（Java / Node.js / Go / Python / PHP / C# / Rust），共享同一套 API 规范与数据库结构。适用于企业中后台管理系统的学习参考与二次开发。
 
+> **本仓库当前用途**：改造为「悦己 DLumière」医美小程序服务端。进度与阶段计划见 [docs/改造计划.md](docs/改造计划.md)，AI 入口见 [AGENTS.md](AGENTS.md)。
+
 ## 核心特性
 
 - 🔐 **安全体系** — JWT + Redis Token 双会话模式、令牌续期、多端互斥
