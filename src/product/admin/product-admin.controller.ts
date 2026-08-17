@@ -28,6 +28,12 @@ export class ProductAdminController {
     return this.productService.pageQuery(query);
   }
 
+  @ApiOperation({ summary: "商品SKU选项" })
+  @Get("sku-options")
+  async skuOptions() {
+    return this.productService.skuOptions();
+  }
+
   @ApiOperation({ summary: "商品表单数据(含SKU)" })
   @Get(":id/form")
   async form(@Param("id") id: string) {

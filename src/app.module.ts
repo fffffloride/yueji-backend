@@ -29,6 +29,7 @@ import { ProductModule } from "./product/product.module";
 import { CartModule } from "./cart/cart.module";
 import { OrderModule } from "./order/order.module";
 import { PaymentModule } from "./payment/payment.module";
+import { MarketingModule } from "./marketing/marketing.module";
 
 import { LoggerMiddleware } from "./common/middleware/logger.middleware";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
@@ -117,6 +118,7 @@ const envPath = `.env.${process.env.NODE_ENV || "dev"}`;
     CartModule,
     OrderModule,
     PaymentModule,
+    MarketingModule,
   ],
   controllers: [],
   providers: [

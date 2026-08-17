@@ -30,6 +30,9 @@ export class Member extends BaseEntity {
   @Column({ name: "level_id", type: "bigint", nullable: true, comment: "会员等级ID" })
   levelId?: string | null;
 
+  @Column({ name: "total_spent", type: "int", default: 0, comment: "累计完成订单实付(分)" })
+  totalSpent: number;
+
   @Column({ name: "last_login_time", type: "datetime", nullable: true, comment: "最后登录时间" })
   lastLoginTime?: Date | null;
 

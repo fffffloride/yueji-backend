@@ -11,6 +11,7 @@ import { BizOrder } from "@/order/entities/order.entity";
 import { ORDER_STATUS_LABEL } from "@/order/order-status";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
+import { MemberLevel } from "@/marketing/entities/member-level.entity";
 
 @Injectable()
 export class MemberService {
@@ -20,7 +21,9 @@ export class MemberService {
     @InjectRepository(Member)
     private readonly memberRepository: Repository<Member>,
     @InjectRepository(BizOrder)
-    private readonly orderRepository: Repository<BizOrder>
+    private readonly orderRepository: Repository<BizOrder>,
+    @InjectRepository(MemberLevel)
+    private readonly levelRepository: Repository<MemberLevel>
   ) {}
 
   async findById(id: string): Promise<Member | null> {
@@ -56,12 +59,17 @@ export class MemberService {
       return existing;
     }
 
+    const defaultLevel = await this.levelRepository.findOne({
+      where: { thresholdAmount: 0, status: 1, isDeleted: 0 },
+    });
     const member = this.memberRepository.create({
       openid,
       unionid: unionid || null,
       nickname: "微信用户",
       status: 1,
       points: 0,
+      totalSpent: 0,
+      levelId: defaultLevel?.id ?? null,
       isDeleted: 0,
     });
     await this.memberRepository.save(member);
@@ -134,7 +142,7 @@ export class MemberService {
 
   async get360(id: string) {
     const profile = await this.getById(id);
-    const [aggregate, statusRows, recent] = await Promise.all([
+    const [aggregate, statusRows, recent, level] = await Promise.all([
       this.orderRepository
         .createQueryBuilder("o")
         .select("COUNT(*)", "orderCount")
@@ -160,10 +168,13 @@ export class MemberService {
         order: { createTime: "DESC" },
         take: 10,
       }),
+      profile.levelId
+        ? this.levelRepository.findOne({ where: { id: profile.levelId, isDeleted: 0 } })
+        : Promise.resolve(null),
     ]);
 
     return {
-      profile,
+      profile: { ...profile, levelName: level?.name ?? "普通会员" },
       stats: buildMemberStats(aggregate, statusRows),
       recentOrders: recent.map((order) => ({
         id: order.id,

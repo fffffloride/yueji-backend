@@ -15,6 +15,18 @@ import type { CurrentMemberInfo } from "@/common/interfaces/current-member.inter
 export class OrderAppController {
   constructor(private readonly orderService: OrderService) {}
 
+  @ApiOperation({ summary: "订单优惠试算" })
+  @Post("quote")
+  async quote(@CurrentMember() member: CurrentMemberInfo, @Body() dto: OrderCreateDto) {
+    return this.orderService.quote(member.memberId, dto);
+  }
+
+  @ApiOperation({ summary: "查询当前商品可用优惠券" })
+  @Post("available-coupons")
+  async availableCoupons(@CurrentMember() member: CurrentMemberInfo, @Body() dto: OrderCreateDto) {
+    return this.orderService.availableCoupons(member.memberId, dto);
+  }
+
   @ApiOperation({ summary: "创建订单(扣库存)" })
   @Post()
   async create(@CurrentMember() member: CurrentMemberInfo, @Body() dto: OrderCreateDto) {

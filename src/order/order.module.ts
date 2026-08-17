@@ -11,9 +11,15 @@ import { CartModule } from "@/cart/cart.module";
 import { ProductModule } from "@/product/product.module";
 import { Member } from "@/member/entities/member.entity";
 import { DomainEvents } from "@/common/events/domain-events";
+import { MarketingModule } from "@/marketing/marketing.module";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([BizOrder, BizOrderItem, Member]), CartModule, ProductModule],
+  imports: [
+    TypeOrmModule.forFeature([BizOrder, BizOrderItem, Member]),
+    CartModule,
+    ProductModule,
+    MarketingModule,
+  ],
   controllers: [OrderAdminController, OrderAppController],
   providers: [OrderService, OrderTimeoutTask, DomainEvents],
   exports: [OrderService],

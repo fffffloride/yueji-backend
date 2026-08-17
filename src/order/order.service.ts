@@ -9,7 +9,6 @@ import { OrderCreateDto } from "./dto/order-create.dto";
 import { AppOrderQueryDto, OrderQueryDto } from "./dto/order-query.dto";
 import { OrderStatus, ORDER_STATUS_LABEL } from "./order-status";
 import { assertTransition } from "./order-state";
-import { calcPricing } from "./pricing";
 import { ORDER_EVENTS, type OrderEventPayload } from "./order.events";
 import { CartService } from "@/cart/cart.service";
 import { ProductService } from "@/product/product.service";
@@ -17,6 +16,8 @@ import { Member } from "@/member/entities/member.entity";
 import { DomainEvents } from "@/common/events/domain-events";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
+import { OrderBenefitsService } from "@/marketing/order-benefits.service";
+import { PointsBizType } from "@/marketing/marketing.constants";
 
 @Injectable()
 export class OrderService {
@@ -32,12 +33,13 @@ export class OrderService {
     private readonly dataSource: DataSource,
     private readonly productService: ProductService,
     private readonly cartService: CartService,
+    private readonly orderBenefits: OrderBenefitsService,
     private readonly domainEvents: DomainEvents,
     private readonly configService: ConfigService
   ) {}
 
   async create(memberId: string, dto: OrderCreateDto) {
-    const order = await this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const lines = await this.resolveCreateLines(manager, memberId, dto);
       if (lines.length === 0) {
         throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "请选择要结算的商品" });
@@ -46,6 +48,7 @@ export class OrderService {
       const pricedLines: {
         skuId: string;
         productId: string;
+        categoryId: string;
         productName: string;
         productImage: string | null;
         skuName: string;
@@ -64,6 +67,7 @@ export class OrderService {
         pricedLines.push({
           skuId: sku.id,
           productId: product.id,
+          categoryId: product.categoryId,
           productName: product.name,
           productImage: product.mainImage ?? null,
           skuName: sku.name,
@@ -77,7 +81,14 @@ export class OrderService {
         await this.cartService.lockOwnedByIds(manager, memberId, dto.cartIds);
       }
 
-      const pricing = calcPricing(pricedLines);
+      const pricing = await this.orderBenefits.quote(
+        manager,
+        memberId,
+        pricedLines,
+        dto.memberCouponId,
+        dto.pointsToUse ?? 0,
+        true
+      );
       const created = manager.create(BizOrder, {
         orderNo: this.nextOrderNo(),
         memberId,
@@ -85,12 +96,19 @@ export class OrderService {
         totalAmount: pricing.totalAmount,
         discountAmount: pricing.discountAmount,
         payAmount: pricing.payAmount,
+        memberLevelId: pricing.memberLevelId,
+        memberDiscount: pricing.memberDiscount,
+        memberCouponId: pricing.memberCouponId,
+        couponAmount: pricing.couponAmount,
+        pointsUsed: pricing.pointsUsed,
+        pointsDeduct: pricing.pointsDeduct,
         contactName: dto.contactName ?? null,
         contactMobile: dto.contactMobile ?? null,
         remark: dto.remark ?? null,
         isDeleted: 0,
       });
       await manager.save(created);
+      await this.orderBenefits.reserveOrder(manager, created);
 
       const items = pricedLines.map((line) =>
         manager.create(BizOrderItem, {
@@ -116,10 +134,61 @@ export class OrderService {
         await this.cartService.removeOwnedByIds(manager, memberId, dto.cartIds);
       }
 
-      return created;
+      const autoPaid = created.payAmount === 0;
+      if (autoPaid) await this.markPaid(manager, created, new Date(), 2);
+      return { order: created, autoPaid };
     });
 
-    return this.getDetail(order.id, memberId);
+    if (result.autoPaid) this.publishPaid(result.order);
+    return this.getDetail(result.order.id, memberId);
+  }
+
+  async quote(memberId: string, dto: OrderCreateDto) {
+    return this.dataSource.transaction(async (manager) => {
+      const lines = await this.resolveCreateLines(manager, memberId, dto);
+      const pricedLines = [];
+      for (const line of lines) {
+        const { sku, product } = await this.productService.getSkuForOrder(manager, line.skuId);
+        if (sku.stock < line.quantity) {
+          throw new BusinessException({
+            ...ErrorCode.USER_ERROR,
+            msg: `库存不足：${product.name}`,
+          });
+        }
+        pricedLines.push({
+          skuId: sku.id,
+          productId: product.id,
+          categoryId: product.categoryId,
+          price: sku.price,
+          quantity: line.quantity,
+        });
+      }
+      return this.orderBenefits.quote(
+        manager,
+        memberId,
+        pricedLines,
+        dto.memberCouponId,
+        dto.pointsToUse ?? 0
+      );
+    });
+  }
+
+  async availableCoupons(memberId: string, dto: OrderCreateDto) {
+    return this.dataSource.transaction(async (manager) => {
+      const lines = await this.resolveCreateLines(manager, memberId, dto);
+      const pricedLines = [];
+      for (const line of lines) {
+        const { sku, product } = await this.productService.getSkuForOrder(manager, line.skuId);
+        pricedLines.push({
+          skuId: sku.id,
+          productId: product.id,
+          categoryId: product.categoryId,
+          price: sku.price,
+          quantity: line.quantity,
+        });
+      }
+      return this.orderBenefits.availableCoupons(manager, memberId, pricedLines);
+    });
   }
 
   async appPage(memberId: string, query: AppOrderQueryDto) {
@@ -185,9 +254,12 @@ export class OrderService {
       items,
       pricing: {
         totalAmount: order.totalAmount,
-        memberDiscount: 0,
-        couponAmount: 0,
-        pointsDeduct: 0,
+        memberLevelId: order.memberLevelId,
+        memberDiscount: order.memberDiscount,
+        memberCouponId: order.memberCouponId,
+        couponAmount: order.couponAmount,
+        pointsUsed: order.pointsUsed,
+        pointsDeduct: order.pointsDeduct,
         discountAmount: order.discountAmount,
         payAmount: order.payAmount,
       },
@@ -225,6 +297,7 @@ export class OrderService {
     for (const [productId, qty] of salesByProduct) {
       await this.productService.increaseSales(manager, productId, qty);
     }
+    await this.orderBenefits.markPaid(manager, order);
     return order;
   }
 
@@ -246,6 +319,7 @@ export class OrderService {
     for (const [productId, qty] of salesByProduct) {
       await this.productService.increaseSales(manager, productId, -qty);
     }
+    await this.orderBenefits.releaseOrder(manager, order, PointsBizType.ORDER_REFUND_RETURN);
     return order;
   }
 
@@ -379,6 +453,7 @@ export class OrderService {
       this.safeTransition(current.status, OrderStatus.COMPLETED);
       current.status = OrderStatus.COMPLETED;
       await manager.save(current);
+      await this.orderBenefits.completeOrder(manager, current);
       return current;
     });
 
@@ -403,6 +478,7 @@ export class OrderService {
       for (const item of items) {
         await this.productService.adjustStock(manager, item.skuId, item.quantity);
       }
+      await this.orderBenefits.releaseOrder(manager, current, PointsBizType.ORDER_CANCEL_RETURN);
       return current;
     });
 

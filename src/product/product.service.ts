@@ -76,6 +76,26 @@ export class ProductService {
     return { ...this.toVo(product), skus };
   }
 
+  async skuOptions() {
+    const skus = await this.skuRepository.find({
+      where: { isDeleted: 0, status: 1 },
+      order: { productId: "ASC", id: "ASC" },
+    });
+    const productIds = [...new Set(skus.map((sku) => sku.productId))];
+    const products = productIds.length
+      ? await this.productRepository.find({ where: { id: In(productIds), isDeleted: 0 } })
+      : [];
+    const productMap = new Map(products.map((product) => [String(product.id), product]));
+    return skus
+      .filter((sku) => productMap.get(String(sku.productId))?.status === 1)
+      .map((sku) => ({
+        id: sku.id,
+        productId: sku.productId,
+        label: `${productMap.get(String(sku.productId))?.name ?? ""} / ${sku.name}`,
+        price: sku.price,
+      }));
+  }
+
   async create(dto: ProductFormDto): Promise<Product> {
     await this.ensureCategoryExists(dto.categoryId);
 

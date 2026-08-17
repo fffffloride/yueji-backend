@@ -22,6 +22,24 @@ export class BizOrder extends BaseEntity {
   @Column({ name: "discount_amount", type: "int", default: 0, comment: "优惠金额(分)" })
   discountAmount: number;
 
+  @Column({ name: "member_level_id", type: "bigint", nullable: true, comment: "下单会员等级" })
+  memberLevelId?: string | null;
+
+  @Column({ name: "member_discount", type: "int", default: 0, comment: "会员优惠(分)" })
+  memberDiscount: number;
+
+  @Column({ name: "member_coupon_id", type: "bigint", nullable: true, comment: "会员券ID" })
+  memberCouponId?: string | null;
+
+  @Column({ name: "coupon_amount", type: "int", default: 0, comment: "优惠券抵扣(分)" })
+  couponAmount: number;
+
+  @Column({ name: "points_used", type: "int", default: 0, comment: "使用积分" })
+  pointsUsed: number;
+
+  @Column({ name: "points_deduct", type: "int", default: 0, comment: "积分抵扣(分)" })
+  pointsDeduct: number;
+
   @Column({ name: "pay_amount", type: "int", default: 0, comment: "实付金额(分)" })
   payAmount: number;
 

@@ -39,6 +39,18 @@ export class OrderCreateDto {
   @Type(() => OrderCreateItemDto)
   items?: OrderCreateItemDto[];
 
+  @ApiProperty({ description: "会员券ID", required: false })
+  @IsOptional()
+  @Transform(({ value }) => (value ? String(value) : undefined))
+  memberCouponId?: string;
+
+  @ApiProperty({ description: "计划使用积分", required: false, default: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  pointsToUse?: number;
+
   @ApiProperty({ description: "联系人姓名", required: false })
   @IsOptional()
   @IsString()
