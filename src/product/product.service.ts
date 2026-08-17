@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, In, Repository } from "typeorm";
+import { DataSource, EntityManager, In, Repository } from "typeorm";
 
 import { Product } from "./entities/product.entity";
 import { ProductSku } from "./entities/product-sku.entity";
@@ -265,6 +265,75 @@ export class ProductService {
         stock: s.stock,
       })),
     };
+  }
+
+  async getSellableSku(skuId: string) {
+    const sku = await this.skuRepository.findOne({ where: { id: skuId, isDeleted: 0 } });
+    if (!sku || sku.status !== 1) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "规格不存在或已停用" });
+    }
+    const product = await this.productRepository.findOne({
+      where: { id: sku.productId, isDeleted: 0 },
+    });
+    if (!product || product.status !== 1) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "商品不存在或已下架" });
+    }
+    return { sku, product };
+  }
+
+  async getSkuForOrder(manager: EntityManager, skuId: string) {
+    const sku = await manager.findOne(ProductSku, {
+      where: { id: skuId, isDeleted: 0 },
+      lock: { mode: "pessimistic_write" },
+    });
+    if (!sku || sku.status !== 1) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "规格不存在或已停用" });
+    }
+    const product = await manager.findOne(Product, {
+      where: { id: sku.productId, isDeleted: 0 },
+      lock: { mode: "pessimistic_write" },
+    });
+    if (!product || product.status !== 1) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "商品不存在或已下架" });
+    }
+    return { sku, product };
+  }
+
+  async adjustStock(manager: EntityManager, skuId: string, delta: number) {
+    const sku = await manager.findOne(ProductSku, {
+      where: { id: skuId, isDeleted: 0 },
+      lock: { mode: "pessimistic_write" },
+    });
+    if (!sku) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "规格不存在" });
+    }
+    const next = sku.stock + delta;
+    if (next < 0) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "库存不足" });
+    }
+    sku.stock = next;
+    await manager.save(sku);
+
+    const product = await manager.findOne(Product, {
+      where: { id: sku.productId },
+      lock: { mode: "pessimistic_write" },
+    });
+    if (product) {
+      product.stock = Math.max(0, product.stock + delta);
+      await manager.save(product);
+    }
+    return sku;
+  }
+
+  async increaseSales(manager: EntityManager, productId: string, qty: number) {
+    const product = await manager.findOne(Product, {
+      where: { id: productId },
+      lock: { mode: "pessimistic_write" },
+    });
+    if (product) {
+      product.sales = Math.max(0, product.sales + qty);
+      await manager.save(product);
+    }
   }
 
   // ==================== 私有方法 ====================

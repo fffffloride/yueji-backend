@@ -26,6 +26,8 @@ import { LogModule } from "./system/log/log.module";
 import { NoticeModule } from "./system/notice/notice.module";
 import { MemberModule } from "./member/member.module";
 import { ProductModule } from "./product/product.module";
+import { CartModule } from "./cart/cart.module";
+import { OrderModule } from "./order/order.module";
 
 import { LoggerMiddleware } from "./common/middleware/logger.middleware";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
@@ -111,6 +113,8 @@ const envPath = `.env.${process.env.NODE_ENV || "dev"}`;
     NoticeModule,
     MemberModule,
     ProductModule,
+    CartModule,
+    OrderModule,
   ],
   controllers: [],
   providers: [
