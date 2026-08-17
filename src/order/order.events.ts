@@ -3,6 +3,7 @@ export const ORDER_EVENTS = {
   VERIFIED: "order.verified",
   COMPLETED: "order.completed",
   CANCELLED: "order.cancelled",
+  REFUNDED: "order.refunded",
 } as const;
 
 export interface OrderEventPayload {

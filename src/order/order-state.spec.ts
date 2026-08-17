@@ -8,8 +8,9 @@ describe("order-state", () => {
     expect(canTransition(OrderStatus.UNPAID, OrderStatus.VERIFIED)).toBe(false);
   });
 
-  it("已付款只能核销，不能直接取消", () => {
+  it("已付款可核销或退款，不能直接取消", () => {
     expect(canTransition(OrderStatus.PAID, OrderStatus.VERIFIED)).toBe(true);
+    expect(canTransition(OrderStatus.PAID, OrderStatus.REFUNDED)).toBe(true);
     expect(canTransition(OrderStatus.PAID, OrderStatus.CANCELLED)).toBe(false);
   });
 
@@ -20,6 +21,8 @@ describe("order-state", () => {
 
   it("终态不可再流转", () => {
     expect(canTransition(OrderStatus.CANCELLED, OrderStatus.PAID)).toBe(false);
+    expect(canTransition(OrderStatus.REFUNDED, OrderStatus.PAID)).toBe(false);
+    expect(canTransition(OrderStatus.VERIFIED, OrderStatus.REFUNDED)).toBe(false);
     expect(() => assertTransition(OrderStatus.COMPLETED, OrderStatus.PAID)).toThrow(
       /非法订单状态流转/
     );

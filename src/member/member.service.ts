@@ -5,6 +5,10 @@ import { Repository } from "typeorm";
 import { Member } from "./entities/member.entity";
 import { MemberQueryDto } from "./dto/member-query.dto";
 import { MemberProfileDto } from "./dto/member-profile.dto";
+import { MemberUpdateDto } from "./dto/member-update.dto";
+import { buildMemberStats, PAID_MEMBER_ORDER_STATUSES } from "./member-stats";
+import { BizOrder } from "@/order/entities/order.entity";
+import { ORDER_STATUS_LABEL } from "@/order/order-status";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
 
@@ -14,7 +18,9 @@ export class MemberService {
 
   constructor(
     @InjectRepository(Member)
-    private readonly memberRepository: Repository<Member>
+    private readonly memberRepository: Repository<Member>,
+    @InjectRepository(BizOrder)
+    private readonly orderRepository: Repository<BizOrder>
   ) {}
 
   async findById(id: string): Promise<Member | null> {
@@ -116,6 +122,57 @@ export class MemberService {
     return {
       data: list,
       page: { pageNum, pageSize, total },
+    };
+  }
+
+  async updateByAdmin(id: string, dto: MemberUpdateDto): Promise<Member> {
+    const member = await this.getById(id);
+    if (dto.tags !== undefined) member.tags = dto.tags || null;
+    if (dto.remark !== undefined) member.remark = dto.remark || null;
+    return this.memberRepository.save(member);
+  }
+
+  async get360(id: string) {
+    const profile = await this.getById(id);
+    const [aggregate, statusRows, recent] = await Promise.all([
+      this.orderRepository
+        .createQueryBuilder("o")
+        .select("COUNT(*)", "orderCount")
+        .addSelect(
+          "COALESCE(SUM(CASE WHEN o.status IN (:...paidStatuses) THEN o.payAmount ELSE 0 END), 0)",
+          "totalPaid"
+        )
+        .addSelect("SUM(CASE WHEN o.status IN (:...paidStatuses) THEN 1 ELSE 0 END)", "paidCount")
+        .where("o.memberId = :id", { id })
+        .andWhere("o.isDeleted = 0")
+        .setParameter("paidStatuses", PAID_MEMBER_ORDER_STATUSES)
+        .getRawOne<{ orderCount: string; totalPaid: string; paidCount: string }>(),
+      this.orderRepository
+        .createQueryBuilder("o")
+        .select("o.status", "status")
+        .addSelect("COUNT(*)", "count")
+        .where("o.memberId = :id", { id })
+        .andWhere("o.isDeleted = 0")
+        .groupBy("o.status")
+        .getRawMany<{ status: string; count: string }>(),
+      this.orderRepository.find({
+        where: { memberId: id, isDeleted: 0 },
+        order: { createTime: "DESC" },
+        take: 10,
+      }),
+    ]);
+
+    return {
+      profile,
+      stats: buildMemberStats(aggregate, statusRows),
+      recentOrders: recent.map((order) => ({
+        id: order.id,
+        orderNo: order.orderNo,
+        status: order.status,
+        statusLabel: ORDER_STATUS_LABEL[order.status] ?? String(order.status),
+        payAmount: order.payAmount,
+        createTime: order.createTime,
+      })),
     };
   }
 }

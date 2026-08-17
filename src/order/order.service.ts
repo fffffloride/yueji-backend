@@ -194,35 +194,67 @@ export class OrderService {
     };
   }
 
-  async mockPay(memberId: string, id: string) {
-    const order = await this.dataSource.transaction(async (manager) => {
-      const current = await this.lockOrder(manager, id);
-      if (String(current.memberId) !== String(memberId)) {
-        throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "订单不存在" });
-      }
-      this.safeTransition(current.status, OrderStatus.PAID);
-      current.status = OrderStatus.PAID;
-      current.payType = 1;
-      current.payTime = new Date();
-      current.verifyCode = await this.nextVerifyCode(manager);
-      await manager.save(current);
+  async lockForPayment(manager: EntityManager, id: string, memberId?: string): Promise<BizOrder> {
+    const order = await this.lockOrder(manager, id);
+    if (memberId && String(order.memberId) !== String(memberId)) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "订单不存在" });
+    }
+    return order;
+  }
 
-      const items = await manager.find(BizOrderItem, { where: { orderId: id, isDeleted: 0 } });
-      const salesByProduct = new Map<string, number>();
-      for (const item of items) {
-        salesByProduct.set(
-          item.productId,
-          (salesByProduct.get(item.productId) ?? 0) + item.quantity
-        );
-      }
-      for (const [productId, qty] of salesByProduct) {
-        await this.productService.increaseSales(manager, productId, qty);
-      }
-      return current;
+  async markPaid(
+    manager: EntityManager,
+    order: BizOrder,
+    paidAt: Date,
+    payType: number
+  ): Promise<BizOrder> {
+    this.safeTransition(order.status, OrderStatus.PAID);
+    order.status = OrderStatus.PAID;
+    order.payType = payType;
+    order.payTime = paidAt;
+    order.verifyCode = await this.nextVerifyCode(manager);
+    await manager.save(order);
+
+    const items = await manager.find(BizOrderItem, {
+      where: { orderId: order.id, isDeleted: 0 },
     });
+    const salesByProduct = new Map<string, number>();
+    for (const item of items) {
+      salesByProduct.set(item.productId, (salesByProduct.get(item.productId) ?? 0) + item.quantity);
+    }
+    for (const [productId, qty] of salesByProduct) {
+      await this.productService.increaseSales(manager, productId, qty);
+    }
+    return order;
+  }
 
+  async markRefunded(manager: EntityManager, order: BizOrder): Promise<BizOrder> {
+    this.safeTransition(order.status, OrderStatus.REFUNDED);
+    order.status = OrderStatus.REFUNDED;
+    await manager.save(order);
+
+    const items = await manager.find(BizOrderItem, {
+      where: { orderId: order.id, isDeleted: 0 },
+    });
+    for (const item of items) {
+      await this.productService.adjustStock(manager, item.skuId, item.quantity);
+    }
+    const salesByProduct = new Map<string, number>();
+    for (const item of items) {
+      salesByProduct.set(item.productId, (salesByProduct.get(item.productId) ?? 0) + item.quantity);
+    }
+    for (const [productId, qty] of salesByProduct) {
+      await this.productService.increaseSales(manager, productId, -qty);
+    }
+    return order;
+  }
+
+  publishPaid(order: BizOrder): void {
     this.emit(ORDER_EVENTS.PAID, order);
-    return this.getDetail(order.id, memberId);
+  }
+
+  publishRefunded(order: BizOrder): void {
+    this.emit(ORDER_EVENTS.REFUNDED, order);
   }
 
   async cancelByMember(memberId: string, id: string, reason?: string) {
@@ -328,6 +360,9 @@ export class OrderService {
         "(o.orderNo LIKE :kw OR o.contactMobile LIKE :kw OR m.nickname LIKE :kw OR m.mobile LIKE :kw)",
         { kw: `%${query.keywords}%` }
       );
+    }
+    if (query.memberId) {
+      qb.andWhere("o.memberId = :memberId", { memberId: query.memberId });
     }
     return qb;
   }

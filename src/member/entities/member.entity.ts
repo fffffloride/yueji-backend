@@ -32,4 +32,10 @@ export class Member extends BaseEntity {
 
   @Column({ name: "last_login_time", type: "datetime", nullable: true, comment: "最后登录时间" })
   lastLoginTime?: Date | null;
+
+  @Column({ length: 255, nullable: true, comment: "会员标签(逗号分隔)" })
+  tags?: string | null;
+
+  @Column({ length: 255, nullable: true, comment: "管理员备注" })
+  remark?: string | null;
 }

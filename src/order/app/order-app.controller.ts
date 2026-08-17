@@ -42,10 +42,4 @@ export class OrderAppController {
   ) {
     return this.orderService.cancelByMember(member.memberId, id, dto.reason);
   }
-
-  @ApiOperation({ summary: "Mock 支付(推进到待核销，阶段4再抽支付驱动)" })
-  @Post(":id/pay")
-  async pay(@CurrentMember() member: CurrentMemberInfo, @Param("id") id: string) {
-    return this.orderService.mockPay(member.memberId, id);
-  }
 }

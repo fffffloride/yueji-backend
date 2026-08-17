@@ -12,7 +12,7 @@ export class BizOrder extends BaseEntity {
   @Column({
     type: "tinyint",
     default: 0,
-    comment: "订单状态(0-待付款 1-已付款/待核销 2-已核销 3-已完成 4-已取消)",
+    comment: "订单状态(0-待付款 1-已付款/待核销 2-已核销 3-已完成 4-已取消 5-已退款)",
   })
   status: number;
 
@@ -25,7 +25,12 @@ export class BizOrder extends BaseEntity {
   @Column({ name: "pay_amount", type: "int", default: 0, comment: "实付金额(分)" })
   payAmount: number;
 
-  @Column({ name: "pay_type", type: "tinyint", nullable: true, comment: "支付方式(1-微信支付)" })
+  @Column({
+    name: "pay_type",
+    type: "tinyint",
+    nullable: true,
+    comment: "支付方式(1-微信支付 2-Mock支付)",
+  })
   payType?: number | null;
 
   @Column({ name: "pay_time", type: "datetime", nullable: true, comment: "支付时间" })

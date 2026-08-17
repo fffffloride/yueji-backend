@@ -17,6 +17,11 @@ export class OrderQueryDto extends BaseQueryDto {
   @Transform(toOptionalInt)
   @IsInt()
   status?: number;
+
+  @ApiProperty({ description: "会员ID", required: false })
+  @IsOptional()
+  @IsString()
+  memberId?: string;
 }
 
 export class AppOrderQueryDto extends BaseQueryDto {
