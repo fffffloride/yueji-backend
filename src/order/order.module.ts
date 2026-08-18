@@ -22,6 +22,6 @@ import { MarketingModule } from "@/marketing/marketing.module";
   ],
   controllers: [OrderAdminController, OrderAppController],
   providers: [OrderService, OrderTimeoutTask, DomainEvents],
-  exports: [OrderService],
+  exports: [OrderService, DomainEvents],
 })
 export class OrderModule {}

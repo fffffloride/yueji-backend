@@ -1,6 +1,6 @@
 -- 悦己 DLumière 本地测试环境业务数据
--- 警告：会清空阶段 1–6 的业务表；保留全部 sys_* 系统表。
--- 依赖：MySQL 8，已执行 biz_p0.sql、biz_phase4.sql、biz_phase5.sql、biz_phase6.sql。
+-- 警告：会清空阶段 1–7 的业务表；保留全部 sys_* 系统表。
+-- 依赖：MySQL 8，已执行 biz_p0.sql、biz_phase4.sql、biz_phase5.sql、biz_phase6.sql、biz_phase7.sql。
 
 USE youlai_admin;
 SET NAMES utf8mb4;
@@ -27,6 +27,12 @@ CREATE TEMPORARY TABLE `_seed_guard` (
 
 START TRANSACTION;
 
+DELETE FROM `group_buy_member`;
+DELETE FROM `group_buy_group`;
+DELETE FROM `group_buy_activity`;
+DELETE FROM `decoration_banner`;
+DELETE FROM `decoration_notice`;
+DELETE FROM `decoration_brand`;
 DELETE FROM `appointment`;
 DELETE FROM `member_coupon`;
 DELETE FROM `coupon_scope`;
@@ -42,6 +48,25 @@ DELETE FROM `product`;
 DELETE FROM `product_category`;
 DELETE FROM `member`;
 DELETE FROM `member_level`;
+
+INSERT INTO `decoration_banner`
+  (`id`,`image_url`,`link_url`,`sort`,`status`,`create_time`,`update_time`,`is_deleted`)
+VALUES
+  (1,'https://picsum.photos/seed/yueji-banner-1/1500/640','/pages/product/index',1,1,NOW(),NOW(),0),
+  (2,'https://picsum.photos/seed/yueji-banner-2/1500/640','/pages-sub/marketing/group-buy-list/index',2,1,NOW(),NOW(),0),
+  (3,'https://picsum.photos/seed/yueji-banner-3/1500/640',NULL,3,0,NOW(),NOW(),0);
+
+INSERT INTO `decoration_notice`
+  (`id`,`title`,`content`,`sort`,`status`,`create_time`,`update_time`,`is_deleted`)
+VALUES
+  (1,'夏日焕肤季活动开启','活动期间指定皮肤管理项目享专属优惠。',1,1,NOW(),NOW(),0),
+  (2,'到店预约温馨提示','请按预约时间提前十分钟到店完成登记。',2,1,NOW(),NOW(),0),
+  (3,'内部测试公告','仅用于验证下线状态。',3,0,NOW(),NOW(),0);
+
+INSERT INTO `decoration_brand`
+  (`id`,`content`,`create_time`,`update_time`,`is_deleted`)
+VALUES
+  (1,'<h2>悦己 DLumière</h2><p>坚持合理定价、正品保障与标准化服务流程。</p>',NOW(),NOW(),0);
 
 INSERT INTO `member_level`
   (`id`, `name`, `threshold_amount`, `discount_rate`, `status`, `sort`, `create_time`, `update_time`, `is_deleted`)
@@ -197,6 +222,13 @@ LEFT JOIN (
 ) s ON s.product_id = p.id
 SET p.price = COALESCE(s.min_price, p.price),
     p.stock = COALESCE(s.total_stock, 0);
+
+INSERT INTO `group_buy_activity`
+  (`id`,`sku_id`,`name`,`group_price`,`required_people`,`start_time`,`end_time`,`group_duration_minutes`,`status`,`create_time`,`update_time`,`is_deleted`)
+VALUES
+  (1,1,'双人小气泡体验团',6800,2,DATE_SUB(NOW(),INTERVAL 2 DAY),DATE_ADD(NOW(),INTERVAL 30 DAY),1440,1,NOW(),NOW(),0),
+  (2,3,'三人舒缓修护团',9800,3,DATE_SUB(NOW(),INTERVAL 1 DAY),DATE_ADD(NOW(),INTERVAL 20 DAY),720,1,NOW(),NOW(),0),
+  (3,5,'水光焕亮测试活动',10800,2,DATE_SUB(NOW(),INTERVAL 30 DAY),DATE_SUB(NOW(),INTERVAL 1 DAY),60,0,NOW(),NOW(),0);
 
 INSERT INTO `cart`
   (`id`, `member_id`, `product_id`, `sku_id`, `quantity`, `checked`, `create_time`, `update_time`, `is_deleted`)
@@ -530,10 +562,33 @@ LEFT JOIN (
 ) sold ON sold.product_id = p.id
 SET p.sales = COALESCE(sold.sales, 0);
 
+INSERT INTO `group_buy_group`
+  (`id`,`activity_id`,`leader_member_id`,`required_people`,`group_price`,`expire_time`,`status`,
+   `success_time`,`fail_time`,`create_time`,`update_time`,`is_deleted`)
+VALUES
+  (1,1,(SELECT member_id FROM biz_order WHERE id=1),2,6800,DATE_ADD(NOW(),INTERVAL 1 DAY),0,NULL,NULL,NOW(),NOW(),0),
+  (2,1,(SELECT member_id FROM biz_order WHERE id=2),2,6800,DATE_ADD(NOW(),INTERVAL 1 DAY),1,NOW(),NULL,DATE_SUB(NOW(),INTERVAL 1 HOUR),NOW(),0),
+  (3,2,(SELECT member_id FROM biz_order WHERE id=6),3,9800,DATE_SUB(NOW(),INTERVAL 1 DAY),2,NULL,DATE_SUB(NOW(),INTERVAL 1 DAY),DATE_SUB(NOW(),INTERVAL 2 DAY),NOW(),0);
+
+INSERT INTO `group_buy_member`
+  (`id`,`group_id`,`member_id`,`order_id`,`status`,`paid_time`,`refund_time`,`create_time`,`update_time`,`is_deleted`)
+SELECT 1,1,member_id,id,0,NULL,NULL,create_time,NOW(),0 FROM `biz_order` WHERE id=1
+UNION ALL SELECT 2,2,member_id,id,1,pay_time,NULL,create_time,NOW(),0 FROM `biz_order` WHERE id=2
+UNION ALL SELECT 3,2,member_id,id,1,pay_time,NULL,create_time,NOW(),0 FROM `biz_order` WHERE id=8
+UNION ALL SELECT 4,3,member_id,id,2,pay_time,DATE_ADD(pay_time,INTERVAL 2 DAY),create_time,NOW(),0 FROM `biz_order` WHERE id=6
+UNION ALL SELECT 5,3,member_id,id,2,pay_time,DATE_ADD(pay_time,INTERVAL 2 DAY),create_time,NOW(),0 FROM `biz_order` WHERE id=12
+UNION ALL SELECT 6,3,member_id,id,2,pay_time,DATE_ADD(pay_time,INTERVAL 2 DAY),create_time,NOW(),0 FROM `biz_order` WHERE id=18;
+
 DELETE FROM `_seed_guard`;
 INSERT INTO `_seed_guard` (`failures`)
 SELECT
   (SELECT COUNT(*) <> 60 FROM `member`) +
+  (SELECT COUNT(*) <> 3 FROM `decoration_banner`) +
+  (SELECT COUNT(*) <> 3 FROM `decoration_notice`) +
+  (SELECT COUNT(*) <> 1 FROM `decoration_brand`) +
+  (SELECT COUNT(*) <> 3 FROM `group_buy_activity`) +
+  (SELECT COUNT(*) <> 3 FROM `group_buy_group`) +
+  (SELECT COUNT(*) <> 6 FROM `group_buy_member`) +
   (SELECT COUNT(*) <> 90 FROM `appointment`) +
   (SELECT COUNT(*) <> 4 FROM `member_level`) +
   (SELECT COUNT(*) <> 20 FROM `product_category`) +
@@ -572,6 +627,9 @@ SELECT
   (SELECT COUNT(*) FROM `biz_order_item` i LEFT JOIN `product` p ON p.id = i.product_id LEFT JOIN `product_sku` s ON s.id = i.sku_id WHERE p.id IS NULL OR s.id IS NULL) +
   (SELECT COUNT(*) FROM `cart` c LEFT JOIN `member` m ON m.id = c.member_id LEFT JOIN `product` p ON p.id = c.product_id LEFT JOIN `product_sku` s ON s.id = c.sku_id WHERE m.id IS NULL OR p.id IS NULL OR s.id IS NULL) +
   (SELECT COUNT(*) FROM `appointment` a LEFT JOIN `member` m ON m.id = a.member_id WHERE m.id IS NULL) +
+  (SELECT COUNT(*) FROM `group_buy_activity` a LEFT JOIN `product_sku` s ON s.id = a.sku_id WHERE s.id IS NULL) +
+  (SELECT COUNT(*) FROM `group_buy_group` g LEFT JOIN `group_buy_activity` a ON a.id = g.activity_id LEFT JOIN `member` m ON m.id = g.leader_member_id WHERE a.id IS NULL OR m.id IS NULL) +
+  (SELECT COUNT(*) FROM `group_buy_member` gm LEFT JOIN `group_buy_group` g ON g.id = gm.group_id LEFT JOIN `member` m ON m.id = gm.member_id LEFT JOIN `biz_order` o ON o.id = gm.order_id WHERE g.id IS NULL OR m.id IS NULL OR o.id IS NULL) +
   (SELECT COUNT(*) FROM `biz_payment` p LEFT JOIN `biz_order` o ON o.id = p.order_id WHERE o.id IS NULL) +
   (SELECT COUNT(*) FROM `biz_refund` r LEFT JOIN `biz_payment` p ON p.id = r.payment_id LEFT JOIN `biz_order` o ON o.id = r.order_id LEFT JOIN `member` m ON m.id = r.member_id WHERE p.id IS NULL OR o.id IS NULL OR m.id IS NULL) +
   (SELECT COUNT(*) FROM `member_points_log` l LEFT JOIN `member` m ON m.id = l.member_id LEFT JOIN `biz_order` o ON o.id = l.order_id WHERE m.id IS NULL OR (l.order_id IS NOT NULL AND o.id IS NULL)) +
@@ -582,6 +640,10 @@ SELECT
 COMMIT;
 
 SELECT 'member' AS module, COUNT(*) AS rows_count FROM `member`
+UNION ALL SELECT 'decoration_banner', COUNT(*) FROM `decoration_banner`
+UNION ALL SELECT 'decoration_notice', COUNT(*) FROM `decoration_notice`
+UNION ALL SELECT 'group_buy_activity', COUNT(*) FROM `group_buy_activity`
+UNION ALL SELECT 'group_buy_group', COUNT(*) FROM `group_buy_group`
 UNION ALL SELECT 'appointment', COUNT(*) FROM `appointment`
 UNION ALL SELECT 'product', COUNT(*) FROM `product`
 UNION ALL SELECT 'product_sku', COUNT(*) FROM `product_sku`

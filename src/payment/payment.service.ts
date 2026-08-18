@@ -215,6 +215,12 @@ export class PaymentService {
     return result.refund;
   }
 
+  async refundByOrder(orderId: string, reason: string) {
+    const payment = await this.paymentRepository.findOne({ where: { orderId, isDeleted: 0 } });
+    if (!payment) throw this.userError("支付单不存在");
+    return this.refund(payment.paymentNo, reason);
+  }
+
   private driverName(): string {
     return this.configService.get<string>("PAYMENT_DRIVER", "mock").toLowerCase();
   }

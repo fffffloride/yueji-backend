@@ -173,6 +173,63 @@ export class OrderService {
     });
   }
 
+  /** 创建一件固定拼团价订单；优惠字段固定为零，由拼团模块在同一事务中调用。 */
+  async createGroupBuyOrder(
+    manager: EntityManager,
+    memberId: string,
+    skuId: string,
+    groupPrice: number,
+    remark: string
+  ): Promise<BizOrder> {
+    if (groupPrice <= 0) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "拼团价无效" });
+    }
+    const member = await manager.findOne(Member, {
+      where: { id: memberId, status: 1, isDeleted: 0 },
+      lock: { mode: "pessimistic_read" },
+    });
+    if (!member) throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "会员不可用" });
+
+    const { sku, product } = await this.productService.getSkuForOrder(manager, skuId);
+    if (sku.stock < 1) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: `库存不足：${product.name}` });
+    }
+
+    const order = manager.create(BizOrder, {
+      orderNo: this.nextOrderNo(),
+      memberId,
+      status: OrderStatus.UNPAID,
+      totalAmount: groupPrice,
+      discountAmount: 0,
+      memberLevelId: null,
+      memberDiscount: 0,
+      memberCouponId: null,
+      couponAmount: 0,
+      pointsUsed: 0,
+      pointsDeduct: 0,
+      payAmount: groupPrice,
+      remark,
+      isDeleted: 0,
+    });
+    await manager.save(order);
+    await manager.save(
+      manager.create(BizOrderItem, {
+        orderId: order.id,
+        productId: product.id,
+        skuId: sku.id,
+        productName: product.name,
+        productImage: product.mainImage ?? null,
+        skuName: sku.name,
+        price: groupPrice,
+        quantity: 1,
+        subtotal: groupPrice,
+        isDeleted: 0,
+      })
+    );
+    await this.productService.adjustStock(manager, sku.id, -1);
+    return order;
+  }
+
   async availableCoupons(memberId: string, dto: OrderCreateDto) {
     return this.dataSource.transaction(async (manager) => {
       const lines = await this.resolveCreateLines(manager, memberId, dto);
@@ -334,6 +391,18 @@ export class OrderService {
   async cancelByMember(memberId: string, id: string, reason?: string) {
     const order = await this.cancelInternal(id, reason || "用户取消", memberId);
     return this.getDetail(order.id, memberId);
+  }
+
+  async cancelUnpaidBySystem(id: string, reason: string): Promise<void> {
+    const order = await this.orderRepository.findOne({ where: { id, isDeleted: 0 } });
+    if (!order || order.status !== OrderStatus.UNPAID) return;
+    try {
+      await this.cancelInternal(id, reason);
+    } catch (error) {
+      const latest = await this.orderRepository.findOne({ where: { id, isDeleted: 0 } });
+      if (latest && latest.status !== OrderStatus.UNPAID) return;
+      throw error;
+    }
   }
 
   async cancelExpiredUnpaid(): Promise<number> {
