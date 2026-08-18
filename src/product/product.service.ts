@@ -10,6 +10,11 @@ import { ProductFormDto, SkuFormDto } from "./dto/product-form.dto";
 import { AppProductQueryDto, ProductQueryDto } from "./dto/product-query.dto";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
+import { BizOrder } from "@/order/entities/order.entity";
+import { BizOrderItem } from "@/order/entities/order-item.entity";
+import { OrderStatus } from "@/order/order-status";
+
+const ACTIVE_ORDER_STATUSES = [OrderStatus.UNPAID, OrderStatus.PAID, OrderStatus.VERIFIED];
 
 @Injectable()
 export class ProductService {
@@ -97,6 +102,7 @@ export class ProductService {
   }
 
   async create(dto: ProductFormDto): Promise<Product> {
+    this.ensureOnSaleHasEnabledSku(dto);
     await this.ensureCategoryExists(dto.categoryId);
 
     return this.dataSource.transaction(async (manager) => {
@@ -131,26 +137,37 @@ export class ProductService {
   }
 
   async update(id: string, dto: ProductFormDto): Promise<Product> {
-    const product = await this.getById(id);
+    this.ensureOnSaleHasEnabledSku(dto);
     await this.ensureCategoryExists(dto.categoryId);
 
     return this.dataSource.transaction(async (manager) => {
+      const existingSkus = await manager.find(ProductSku, {
+        where: { productId: id, isDeleted: 0 },
+        lock: { mode: "pessimistic_write" },
+      });
+      const product = await manager.findOne(Product, {
+        where: { id, isDeleted: 0 },
+        lock: { mode: "pessimistic_write" },
+      });
+      if (!product) {
+        throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "商品不存在" });
+      }
+
+      const incomingIds = new Set(dto.skus.filter((s) => s.id).map((s) => String(s.id)));
+      const removedSkus = existingSkus.filter((sku) => !incomingIds.has(String(sku.id)));
+      await this.ensureNoActiveOrderReferences(manager, {
+        skuIds: removedSkus.map((sku) => sku.id),
+      });
+
       Object.assign(product, this.formToEntityFields(dto));
       product.stock = this.sumStock(dto.skus);
       product.price = this.minEnabledPrice(dto.skus);
       await manager.save(product);
 
-      const existingSkus = await manager.find(ProductSku, {
-        where: { productId: id, isDeleted: 0 },
-      });
-      const incomingIds = new Set(dto.skus.filter((s) => s.id).map((s) => String(s.id)));
-
       // 删除表单中已移除的SKU
-      for (const sku of existingSkus) {
-        if (!incomingIds.has(String(sku.id))) {
-          sku.isDeleted = 1;
-          await manager.save(sku);
-        }
+      for (const sku of removedSkus) {
+        sku.isDeleted = 1;
+        await manager.save(sku);
       }
 
       // 更新或新增
@@ -189,13 +206,44 @@ export class ProductService {
   }
 
   async updateStatus(id: string, status: number): Promise<void> {
-    await this.getById(id);
-    await this.productRepository.update(id, { status });
+    await this.dataSource.transaction(async (manager) => {
+      const product = await manager.findOne(Product, {
+        where: { id, isDeleted: 0 },
+        lock: { mode: "pessimistic_write" },
+      });
+      if (!product) {
+        throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "商品不存在" });
+      }
+      if (status === 1) {
+        const enabledSkuCount = await manager.count(ProductSku, {
+          where: { productId: id, status: 1, isDeleted: 0 },
+        });
+        if (enabledSkuCount === 0) {
+          throw new BusinessException({
+            ...ErrorCode.USER_ERROR,
+            msg: "上架商品至少需要一个启用的SKU",
+          });
+        }
+      }
+      product.status = status;
+      await manager.save(product);
+    });
   }
 
   async remove(id: string): Promise<void> {
-    await this.getById(id);
     await this.dataSource.transaction(async (manager) => {
+      await manager.find(ProductSku, {
+        where: { productId: id, isDeleted: 0 },
+        lock: { mode: "pessimistic_write" },
+      });
+      const product = await manager.findOne(Product, {
+        where: { id, isDeleted: 0 },
+        lock: { mode: "pessimistic_write" },
+      });
+      if (!product) {
+        throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "商品不存在" });
+      }
+      await this.ensureNoActiveOrderReferences(manager, { productId: id });
       await manager.update(Product, id, { isDeleted: 1 });
       await manager.update(ProductSku, { productId: id }, { isDeleted: 1 });
     });
@@ -321,7 +369,7 @@ export class ProductService {
 
   async adjustStock(manager: EntityManager, skuId: string, delta: number) {
     const sku = await manager.findOne(ProductSku, {
-      where: { id: skuId, isDeleted: 0 },
+      where: { id: skuId },
       lock: { mode: "pessimistic_write" },
     });
     if (!sku) {
@@ -339,7 +387,12 @@ export class ProductService {
       lock: { mode: "pessimistic_write" },
     });
     if (product) {
-      product.stock = Math.max(0, product.stock + delta);
+      product.stock =
+        (await manager.sum(ProductSku, "stock", {
+          productId: sku.productId,
+          status: 1,
+          isDeleted: 0,
+        })) ?? 0;
       await manager.save(product);
     }
     return sku;
@@ -372,6 +425,38 @@ export class ProductService {
     });
     if (count === 0) {
       throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "商品分类不存在" });
+    }
+  }
+
+  private ensureOnSaleHasEnabledSku(dto: ProductFormDto): void {
+    if (dto.status === 1 && !dto.skus.some((sku) => (sku.status ?? 1) === 1)) {
+      throw new BusinessException({
+        ...ErrorCode.USER_ERROR,
+        msg: "上架商品至少需要一个启用的SKU",
+      });
+    }
+  }
+
+  private async ensureNoActiveOrderReferences(
+    manager: EntityManager,
+    filter: { productId?: string; skuIds?: string[] }
+  ): Promise<void> {
+    if (!filter.productId && !filter.skuIds?.length) return;
+
+    const query = manager
+      .createQueryBuilder(BizOrderItem, "item")
+      .innerJoin(BizOrder, "orders", "orders.id = item.orderId AND orders.isDeleted = 0")
+      .where("item.isDeleted = 0")
+      .andWhere("orders.status IN (:...statuses)", { statuses: ACTIVE_ORDER_STATUSES });
+
+    if (filter.productId) query.andWhere("item.productId = :productId", filter);
+    if (filter.skuIds?.length) query.andWhere("item.skuId IN (:...skuIds)", filter);
+
+    if ((await query.getCount()) > 0) {
+      throw new BusinessException({
+        ...ErrorCode.USER_ERROR,
+        msg: "商品或SKU仍被未完成订单使用，不能删除",
+      });
     }
   }
 
