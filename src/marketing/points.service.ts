@@ -10,12 +10,12 @@ import {
 } from "./marketing.constants";
 import { PointsLogQueryDto, PointsRuleDto } from "./dto/marketing.dto";
 import { MemberPointsLog } from "./entities/member-points-log.entity";
-import { MemberLevel } from "./entities/member-level.entity";
 import { Member } from "@/member/entities/member.entity";
 import { SysConfig } from "@/system/config/entities/sys-config.entity";
 import { ConfigService as SystemConfigService } from "@/system/config/config.service";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
+import { resolveEffectiveMemberLevel } from "./member-level-resolver";
 
 @Injectable()
 export class PointsService {
@@ -106,11 +106,7 @@ export class PointsService {
       where: { id: memberId, isDeleted: 0 },
     });
     if (!member) throw this.userError("会员不存在");
-    const level = member.levelId
-      ? await this.logRepository.manager.findOne(MemberLevel, {
-          where: { id: member.levelId, isDeleted: 0 },
-        })
-      : null;
+    const level = await resolveEffectiveMemberLevel(this.logRepository.manager, member);
     return {
       points: member.points,
       totalSpent: member.totalSpent,

@@ -12,6 +12,7 @@ import { ORDER_STATUS_LABEL } from "@/order/order-status";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
 import { MemberLevel } from "@/marketing/entities/member-level.entity";
+import { resolveEffectiveMemberLevel } from "@/marketing/member-level-resolver";
 
 @Injectable()
 export class MemberService {
@@ -168,9 +169,7 @@ export class MemberService {
         order: { createTime: "DESC" },
         take: 10,
       }),
-      profile.levelId
-        ? this.levelRepository.findOne({ where: { id: profile.levelId, isDeleted: 0 } })
-        : Promise.resolve(null),
+      resolveEffectiveMemberLevel(this.levelRepository.manager, profile),
     ]);
 
     return {

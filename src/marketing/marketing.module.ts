@@ -17,6 +17,7 @@ import { MarketingAppController } from "./app/marketing-app.controller";
 import { Member } from "@/member/entities/member.entity";
 import { ProductSku } from "@/product/entities/product-sku.entity";
 import { ProductCategory } from "@/product/entities/product-category.entity";
+import { Product } from "@/product/entities/product.entity";
 import { SysConfig } from "@/system/config/entities/sys-config.entity";
 import { ConfigModule } from "@/system/config/config.module";
 
@@ -30,6 +31,7 @@ import { ConfigModule } from "@/system/config/config.module";
       MemberPointsLog,
       Member,
       ProductSku,
+      Product,
       ProductCategory,
       SysConfig,
     ]),

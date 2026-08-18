@@ -14,6 +14,8 @@ import { CouponScope } from "./entities/coupon-scope.entity";
 import { MemberCoupon } from "./entities/member-coupon.entity";
 import { Member } from "@/member/entities/member.entity";
 import { ProductSku } from "@/product/entities/product-sku.entity";
+import { Product } from "@/product/entities/product.entity";
+import { ProductCategory } from "@/product/entities/product-category.entity";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
 
@@ -56,7 +58,7 @@ export class CouponService {
   async create(dto: CouponSaveDto) {
     this.validate(dto);
     return this.dataSource.transaction(async (manager) => {
-      await this.assertExchangeSku(manager, dto);
+      await this.assertScopeTargets(manager, dto);
       const coupon = await manager.save(
         manager.create(Coupon, {
           ...this.toEntity(dto),
@@ -88,7 +90,7 @@ export class CouponService {
           throw this.userError("已有领取记录，不能修改适用范围");
         }
       }
-      await this.assertExchangeSku(manager, dto);
+      await this.assertScopeTargets(manager, dto);
       Object.assign(coupon, this.toEntity(dto));
       await manager.save(coupon);
       if (coupon.issuedQuantity === 0) await this.replaceScopes(manager, coupon.id, dto);
@@ -318,16 +320,27 @@ export class CouponService {
     };
   }
 
-  private async assertExchangeSku(manager: EntityManager, dto: CouponSaveDto) {
-    if (dto.type !== CouponType.EXCHANGE) return;
-    const sku = await manager.findOne(ProductSku, {
-      where: { id: dto.exchangeSkuId!, isDeleted: 0 },
-    });
-    if (!sku) throw this.userError("兑换SKU不存在");
+  private async assertScopeTargets(manager: EntityManager, dto: CouponSaveDto) {
+    if (dto.type === CouponType.EXCHANGE) {
+      const sku = await manager.findOne(ProductSku, {
+        where: { id: dto.exchangeSkuId!, isDeleted: 0 },
+      });
+      if (!sku) throw this.userError("兑换SKU不存在");
+      return;
+    }
+    if (dto.scopeType === CouponScopeType.ALL) return;
+
+    const ids = dto.scopeIds ?? [];
+    const target = dto.scopeType === CouponScopeType.CATEGORY ? ProductCategory : Product;
+    const count = await manager.count(target, { where: { id: In(ids), isDeleted: 0 } });
+    if (count !== ids.length) throw this.userError("优惠券适用范围包含不存在的对象");
   }
 
   private assertIssuedFieldsFrozen(coupon: Coupon, dto: CouponSaveDto) {
     const next = this.toEntity(dto);
+    if (next.validEnd.getTime() < coupon.validEnd.getTime()) {
+      throw this.userError("已有领取记录，有效结束时间只能延长");
+    }
     const frozen = [
       "type",
       "scopeType",

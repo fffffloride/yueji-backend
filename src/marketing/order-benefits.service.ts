@@ -25,6 +25,7 @@ import { BizOrder } from "@/order/entities/order.entity";
 import { ProductCategory } from "@/product/entities/product-category.entity";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
+import { resolveEffectiveMemberLevel } from "./member-level-resolver";
 
 export interface BenefitLine {
   skuId: string;
@@ -68,7 +69,7 @@ export class OrderBenefitsService {
     });
     if (!member || member.status !== 1) throw this.userError("会员不可用");
 
-    const level = await this.resolveLevel(manager, member);
+    const level = await resolveEffectiveMemberLevel(manager, member);
     const memberRate = level?.discountRate ?? 10000;
     const totalAmount = lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
     const discountedLines = lines.map((line) => ({
@@ -252,7 +253,9 @@ export class OrderBenefitsService {
     member.points += earned;
 
     const currentLevel = member.levelId
-      ? await manager.findOne(MemberLevel, { where: { id: member.levelId, isDeleted: 0 } })
+      ? await manager.findOne(MemberLevel, {
+          where: { id: member.levelId, status: 1, isDeleted: 0 },
+        })
       : null;
     const nextLevel = await manager.findOne(MemberLevel, {
       where: {
@@ -278,23 +281,6 @@ export class OrderBenefitsService {
         isDeleted: 0,
       })
     );
-  }
-
-  private async resolveLevel(manager: EntityManager, member: Member) {
-    if (member.levelId) {
-      const assigned = await manager.findOne(MemberLevel, {
-        where: { id: member.levelId, status: 1, isDeleted: 0 },
-      });
-      if (assigned) return assigned;
-    }
-    return manager.findOne(MemberLevel, {
-      where: {
-        thresholdAmount: LessThanOrEqual(member.totalSpent),
-        status: 1,
-        isDeleted: 0,
-      },
-      order: { thresholdAmount: "DESC", sort: "ASC" },
-    });
   }
 
   private async resolveCoupon(
