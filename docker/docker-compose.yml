@@ -19,8 +19,15 @@ services:
       - --collation-server=utf8mb4_unicode_ci
     volumes:
       - ./mysql/data:/var/lib/mysql
-      # 首次启动自动执行初始化脚本（脚本内含 CREATE DATABASE youlai_admin）
-      - ../sql/mysql/youlai_admin.sql:/docker-entrypoint-initdb.d/youlai_admin.sql:ro
+      # 仅在数据目录为空时按文件名顺序初始化阶段 0–5。
+      - ../sql/mysql/youlai_admin.sql:/docker-entrypoint-initdb.d/00-youlai_admin.sql:ro
+      - ../sql/mysql/biz_p0.sql:/docker-entrypoint-initdb.d/10-biz_p0.sql:ro
+      - ../sql/mysql/menu_product.sql:/docker-entrypoint-initdb.d/20-menu_product.sql:ro
+      - ../sql/mysql/menu_order.sql:/docker-entrypoint-initdb.d/30-menu_order.sql:ro
+      - ../sql/mysql/menu_member.sql:/docker-entrypoint-initdb.d/40-menu_member.sql:ro
+      - ../sql/mysql/biz_phase4.sql:/docker-entrypoint-initdb.d/50-biz_phase4.sql:ro
+      - ../sql/mysql/biz_phase5.sql:/docker-entrypoint-initdb.d/60-biz_phase5.sql:ro
+      - ../sql/mysql/menu_marketing.sql:/docker-entrypoint-initdb.d/70-menu_marketing.sql:ro
     ports:
       - 3306:3306
     networks:

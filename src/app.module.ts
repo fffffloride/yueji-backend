@@ -44,20 +44,24 @@ import jwtConfig from "./config/jwt.config";
 import typeormConfig from "./config/typeorm.config";
 import ossConfig from "./config/oss.config";
 import redisConfig from "./config/redis.config";
+import { validateEnvironment } from "./config/env.validation";
 import { DataScopeGuard } from "./common/guards/data-scope.guard";
 import { PermissionGuard } from "./common/guards/permission.guard";
 import { DataPermissionInterceptor } from "./common/interceptors/data-permission.interceptor";
 import { initDataPermissionPlugin } from "./common/plugins/data-permission.plugin";
 import { AuditSubscriber } from "./common/subscribers/audit.subscriber";
 
-const envPath = `.env.${process.env.NODE_ENV || "dev"}`;
+const nodeEnv = process.env.NODE_ENV || "dev";
+const envPath = `.env.${nodeEnv}`;
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [".env", envPath],
+      ignoreEnvFile: nodeEnv === "prod",
+      envFilePath: [envPath, ".env"],
       load: [typeormConfig, redisConfig, ossConfig, jwtConfig],
+      validate: validateEnvironment,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

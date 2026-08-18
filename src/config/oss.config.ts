@@ -15,9 +15,9 @@ export default registerAs("oss", () => ({
   },
 
   minio: {
-    endpoint: process.env.OSS_MINIO_ENDPOINT || "http://111.229.83.153:9000",
-    accessKey: process.env.OSS_MINIO_ACCESS_KEY || "bybaddp7zyARpgNbEGKf",
-    secretKey: process.env.OSS_MINIO_SECRET_KEY || "p9rBdQZPBIJcMH23iyFkZkXmmawbmwPlk3JLlaaj",
+    endpoint: process.env.OSS_MINIO_ENDPOINT || "http://localhost:9000",
+    accessKey: process.env.OSS_MINIO_ACCESS_KEY || "",
+    secretKey: process.env.OSS_MINIO_SECRET_KEY || "",
     bucketName: process.env.OSS_MINIO_BUCKET || "public",
     customDomain: process.env.OSS_MINIO_CUSTOM_DOMAIN || "",
   },
