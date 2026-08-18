@@ -1,7 +1,9 @@
 import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import { RedisService } from "../../common/redis/redis.service";
 import { BusinessException } from "../../common/exceptions/business.exception";
 import { ErrorCode } from "../../common/enums/error-code.enum";
+import { shouldSkipAdminAuth } from "../../common/guards/admin-auth-guard.utils";
 
 /**
  * Redis 会话模式下的认证守卫
@@ -12,9 +14,14 @@ import { ErrorCode } from "../../common/enums/error-code.enum";
  */
 @Injectable()
 export class RedisTokenAuthGuard implements CanActivate {
-  constructor(private readonly redisCacheService: RedisService) {}
+  constructor(
+    private readonly redisCacheService: RedisService,
+    private readonly reflector: Reflector
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (shouldSkipAdminAuth(this.reflector, context)) return true;
+
     const request = context.switchToHttp().getRequest();
     const authHeader: string | undefined = request.headers["authorization"];
 

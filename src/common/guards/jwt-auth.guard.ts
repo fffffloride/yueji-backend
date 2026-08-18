@@ -1,10 +1,9 @@
 import { ExecutionContext, Injectable } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { AuthGuard as PassportAuthGuard } from "@nestjs/passport";
-import { IS_PUBLIC_KEY } from "../../common/decorators/auth.decorator";
-import { METADATA } from "../../common/constants/metadata.constant";
 import { BusinessException } from "../../common/exceptions/business.exception";
 import { ErrorCode } from "../../common/enums/error-code.enum";
+import { shouldSkipAdminAuth } from "./admin-auth-guard.utils";
 
 /**
  * 认证守卫
@@ -19,20 +18,7 @@ export class JwtAuthGuard extends PassportAuthGuard("jwt") {
    * 路由访问控制逻辑
    */
   canActivate(context: ExecutionContext) {
-    // 检查 @Public() 装饰器
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-
-    if (isPublic) return true;
-
-    // C端会员接口：跳过管理员鉴权，由 MemberJwtGuard 接管
-    const isMemberApi = this.reflector.getAllAndOverride<boolean>(METADATA.MEMBER_API, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    if (isMemberApi) return true;
+    if (shouldSkipAdminAuth(this.reflector, context)) return true;
 
     // 执行 Passport 验证流程
     return super.canActivate(context);

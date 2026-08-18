@@ -39,6 +39,7 @@ import { XRequestInterceptor } from "./common/interceptors/request.interceptor";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { RedisTokenAuthGuard } from "./auth/guards/redis-token.guard";
 import { RateLimitGuard } from "./common/guards/rate-limit.guard";
+import { MemberJwtGuard } from "./common/guards/member-jwt.guard";
 
 import jwtConfig from "./config/jwt.config";
 import typeormConfig from "./config/typeorm.config";
@@ -129,6 +130,7 @@ const envPath = `.env.${nodeEnv}`;
     RateLimitGuard,
     JwtAuthGuard,
     RedisTokenAuthGuard,
+    MemberJwtGuard,
     // 接口限流守卫
     {
       provide: APP_GUARD,
@@ -146,6 +148,10 @@ const envPath = `.env.${nodeEnv}`;
         return sessionType === "redis-token" ? redisGuard : jwtGuard;
       },
       inject: [ConfigService, JwtAuthGuard, RedisTokenAuthGuard],
+    },
+    {
+      provide: APP_GUARD,
+      useExisting: MemberJwtGuard,
     },
     // 数据权限全局守卫
     {

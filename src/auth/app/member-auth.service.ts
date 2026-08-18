@@ -6,6 +6,7 @@ import axios from "axios";
 
 import { MemberService } from "@/member/member.service";
 import { Member } from "@/member/entities/member.entity";
+import { ensureMemberEnabled } from "@/member/member-status";
 import { MemberLoginResultDto } from "./dto/member-login.dto";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
@@ -77,7 +78,7 @@ export class MemberAuthService {
     }
 
     const member = await this.memberService.findOrCreateByOpenid(openid, session.unionid);
-    this.ensureMemberEnabled(member);
+    ensureMemberEnabled(member);
     await this.memberService.touchLastLogin(member.id);
 
     return this.generateMemberToken(member);
@@ -100,7 +101,7 @@ export class MemberAuthService {
     const mobile = await this.getPhoneNumber(phoneCode);
 
     const member = await this.memberService.findOrCreateByOpenid(openid, session.unionid);
-    this.ensureMemberEnabled(member);
+    ensureMemberEnabled(member);
 
     if (mobile && member.mobile !== mobile) {
       await this.memberService.attachMobile(member.id, mobile);
@@ -117,16 +118,17 @@ export class MemberAuthService {
    */
   async mockLogin(openid?: string, mobile?: string): Promise<MemberLoginResultDto> {
     const env = this.configService.get<string>("NODE_ENV") || "dev";
-    if (env === "prod") {
+    const enabled = this.configService.get<string>("MOCK_LOGIN_ENABLED", "false") === "true";
+    if (env === "prod" || !enabled) {
       throw new BusinessException({
         ...ErrorCode.USER_LOGIN_EXCEPTION,
-        msg: "生产环境禁用 Mock 登录",
+        msg: "Mock 登录未启用",
       });
     }
 
     const mockOpenid = openid || "mock_openid_dev";
     const member = await this.memberService.findOrCreateByOpenid(mockOpenid);
-    this.ensureMemberEnabled(member);
+    ensureMemberEnabled(member);
 
     if (mobile && member.mobile !== mobile) {
       await this.memberService.attachMobile(member.id, mobile);
@@ -136,15 +138,6 @@ export class MemberAuthService {
 
     this.logger.log(`Mock 登录：memberId=${member.id}, openid=${mockOpenid}`);
     return this.generateMemberToken(member);
-  }
-
-  private ensureMemberEnabled(member: Member): void {
-    if (member.status !== 1) {
-      throw new BusinessException({
-        ...ErrorCode.USER_LOGIN_EXCEPTION,
-        msg: "账号已被禁用，请联系客服",
-      });
-    }
   }
 
   private generateMemberToken(member: Member): MemberLoginResultDto {
@@ -202,10 +195,10 @@ export class MemberAuthService {
 
   private async getPhoneNumber(phoneCode: string): Promise<string> {
     const accessToken = await this.getAccessToken();
-    const url = `https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=${accessToken}&code=${phoneCode}`;
+    const url = `https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=${accessToken}`;
 
     try {
-      const response = await axios.get<WechatPhoneResponse>(url);
+      const response = await axios.post<WechatPhoneResponse>(url, { code: phoneCode });
       const data = response.data;
 
       if (data.errcode !== 0) {
