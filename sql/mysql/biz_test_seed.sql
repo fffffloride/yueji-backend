@@ -1,6 +1,6 @@
 -- 悦己 DLumière 本地测试环境业务数据
--- 警告：会清空阶段 1–5 的业务表；保留全部 sys_* 系统表。
--- 依赖：MySQL 8，已执行 biz_p0.sql、biz_phase4.sql、biz_phase5.sql。
+-- 警告：会清空阶段 1–6 的业务表；保留全部 sys_* 系统表。
+-- 依赖：MySQL 8，已执行 biz_p0.sql、biz_phase4.sql、biz_phase5.sql、biz_phase6.sql。
 
 USE youlai_admin;
 SET NAMES utf8mb4;
@@ -27,6 +27,7 @@ CREATE TEMPORARY TABLE `_seed_guard` (
 
 START TRANSACTION;
 
+DELETE FROM `appointment`;
 DELETE FROM `member_coupon`;
 DELETE FROM `coupon_scope`;
 DELETE FROM `coupon`;
@@ -86,6 +87,19 @@ SELECT
   0
 FROM `_seed_seq`
 WHERE n <= 60;
+
+INSERT INTO `appointment`
+  (`id`, `member_id`, `appointment_date`, `appointment_time`, `create_time`, `update_time`, `is_deleted`)
+SELECT
+  n,
+  1 + MOD(n - 1, 60),
+  DATE_ADD(CURDATE(), INTERVAL (MOD(n * 7, 61) - 30) DAY),
+  MAKETIME(9 + MOD(n, 9), IF(MOD(n, 2) = 0, 0, 30), 0),
+  DATE_SUB(NOW(), INTERVAL MOD(n * 5, 90) DAY),
+  NOW(),
+  0
+FROM `_seed_seq`
+WHERE n <= 90;
 
 INSERT INTO `product_category`
   (`id`, `name`, `parent_id`, `tree_path`, `level`, `icon`, `sort`, `status`, `create_time`, `update_time`, `is_deleted`)
@@ -520,6 +534,7 @@ DELETE FROM `_seed_guard`;
 INSERT INTO `_seed_guard` (`failures`)
 SELECT
   (SELECT COUNT(*) <> 60 FROM `member`) +
+  (SELECT COUNT(*) <> 90 FROM `appointment`) +
   (SELECT COUNT(*) <> 4 FROM `member_level`) +
   (SELECT COUNT(*) <> 20 FROM `product_category`) +
   (SELECT COUNT(*) <> 36 FROM `product`) +
@@ -556,6 +571,7 @@ SELECT
   (SELECT COUNT(*) FROM `biz_order_item` i LEFT JOIN `biz_order` o ON o.id = i.order_id WHERE o.id IS NULL) +
   (SELECT COUNT(*) FROM `biz_order_item` i LEFT JOIN `product` p ON p.id = i.product_id LEFT JOIN `product_sku` s ON s.id = i.sku_id WHERE p.id IS NULL OR s.id IS NULL) +
   (SELECT COUNT(*) FROM `cart` c LEFT JOIN `member` m ON m.id = c.member_id LEFT JOIN `product` p ON p.id = c.product_id LEFT JOIN `product_sku` s ON s.id = c.sku_id WHERE m.id IS NULL OR p.id IS NULL OR s.id IS NULL) +
+  (SELECT COUNT(*) FROM `appointment` a LEFT JOIN `member` m ON m.id = a.member_id WHERE m.id IS NULL) +
   (SELECT COUNT(*) FROM `biz_payment` p LEFT JOIN `biz_order` o ON o.id = p.order_id WHERE o.id IS NULL) +
   (SELECT COUNT(*) FROM `biz_refund` r LEFT JOIN `biz_payment` p ON p.id = r.payment_id LEFT JOIN `biz_order` o ON o.id = r.order_id LEFT JOIN `member` m ON m.id = r.member_id WHERE p.id IS NULL OR o.id IS NULL OR m.id IS NULL) +
   (SELECT COUNT(*) FROM `member_points_log` l LEFT JOIN `member` m ON m.id = l.member_id LEFT JOIN `biz_order` o ON o.id = l.order_id WHERE m.id IS NULL OR (l.order_id IS NOT NULL AND o.id IS NULL)) +
@@ -566,6 +582,7 @@ SELECT
 COMMIT;
 
 SELECT 'member' AS module, COUNT(*) AS rows_count FROM `member`
+UNION ALL SELECT 'appointment', COUNT(*) FROM `appointment`
 UNION ALL SELECT 'product', COUNT(*) FROM `product`
 UNION ALL SELECT 'product_sku', COUNT(*) FROM `product_sku`
 UNION ALL SELECT 'cart', COUNT(*) FROM `cart`

@@ -30,6 +30,7 @@ import { CartModule } from "./cart/cart.module";
 import { OrderModule } from "./order/order.module";
 import { PaymentModule } from "./payment/payment.module";
 import { MarketingModule } from "./marketing/marketing.module";
+import { AppointmentModule } from "./appointment/appointment.module";
 
 import { LoggerMiddleware } from "./common/middleware/logger.middleware";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
@@ -124,6 +125,7 @@ const envPath = `.env.${nodeEnv}`;
     OrderModule,
     PaymentModule,
     MarketingModule,
+    AppointmentModule,
   ],
   controllers: [],
   providers: [
