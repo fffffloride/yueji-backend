@@ -15,6 +15,7 @@ import { Transform, Type } from "class-transformer";
 export class OrderCreateItemDto {
   @ApiProperty({ description: "SKU ID" })
   @Transform(({ value }) => String(value))
+  @IsString()
   skuId: string;
 
   @ApiProperty({ description: "数量" })

@@ -1,11 +1,11 @@
 import { OrderStatus } from "./order-status";
 
-/** 允许的状态流转。待付款可支付或取消；支付后可核销或整单退款；核销后完成。 */
+/** 允许的状态流转。待付款可支付或取消；支付后可核销或整单退款；完成后仍可整单退款。 */
 const ALLOWED: Record<number, number[]> = {
   [OrderStatus.UNPAID]: [OrderStatus.PAID, OrderStatus.CANCELLED],
   [OrderStatus.PAID]: [OrderStatus.VERIFIED, OrderStatus.REFUNDED],
   [OrderStatus.VERIFIED]: [OrderStatus.COMPLETED],
-  [OrderStatus.COMPLETED]: [],
+  [OrderStatus.COMPLETED]: [OrderStatus.REFUNDED],
   [OrderStatus.CANCELLED]: [],
   [OrderStatus.REFUNDED]: [],
 };

@@ -33,6 +33,7 @@ import { MarketingModule } from "./marketing/marketing.module";
 import { AppointmentModule } from "./appointment/appointment.module";
 import { DecorationModule } from "./decoration/decoration.module";
 import { GroupBuyModule } from "./group-buy/group-buy.module";
+import { DistributionModule } from "./distribution/distribution.module";
 
 import { LoggerMiddleware } from "./common/middleware/logger.middleware";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
@@ -130,6 +131,7 @@ const envPath = `.env.${nodeEnv}`;
     AppointmentModule,
     DecorationModule,
     GroupBuyModule,
+    DistributionModule,
   ],
   controllers: [],
   providers: [

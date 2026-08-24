@@ -14,9 +14,10 @@ describe("order-state", () => {
     expect(canTransition(OrderStatus.PAID, OrderStatus.CANCELLED)).toBe(false);
   });
 
-  it("已核销只能完成", () => {
+  it("已核销可完成，完成后仍可整单退款", () => {
     expect(canTransition(OrderStatus.VERIFIED, OrderStatus.COMPLETED)).toBe(true);
     expect(canTransition(OrderStatus.COMPLETED, OrderStatus.VERIFIED)).toBe(false);
+    expect(canTransition(OrderStatus.COMPLETED, OrderStatus.REFUNDED)).toBe(true);
   });
 
   it("终态不可再流转", () => {

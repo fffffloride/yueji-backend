@@ -359,6 +359,7 @@ export class OrderService {
   }
 
   async markRefunded(manager: EntityManager, order: BizOrder): Promise<BizOrder> {
+    const wasCompleted = order.status === OrderStatus.COMPLETED;
     this.safeTransition(order.status, OrderStatus.REFUNDED);
     order.status = OrderStatus.REFUNDED;
     await manager.save(order);
@@ -377,6 +378,7 @@ export class OrderService {
       await this.productService.increaseSales(manager, productId, -qty);
     }
     await this.orderBenefits.releaseOrder(manager, order, PointsBizType.ORDER_REFUND_RETURN);
+    if (wasCompleted) await this.orderBenefits.revokeCompletedOrder(manager, order);
     return order;
   }
 
