@@ -5,9 +5,13 @@ import { DataSource, EntityManager, In, Repository } from "typeorm";
 import { Product } from "./entities/product.entity";
 import { ProductSku } from "./entities/product-sku.entity";
 import { ProductCategory } from "./entities/product-category.entity";
-import { ProductCategoryService } from "./product-category.service";
+import { ProductCategoryService, type CategoryTreeNode } from "./product-category.service";
 import { ProductFormDto, SkuFormDto } from "./dto/product-form.dto";
-import { AppProductQueryDto, ProductQueryDto } from "./dto/product-query.dto";
+import {
+  AppProductCatalogQueryDto,
+  AppProductQueryDto,
+  ProductQueryDto,
+} from "./dto/product-query.dto";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
 import { BizOrder } from "@/order/entities/order.entity";
@@ -294,18 +298,59 @@ export class ProductService {
       .getManyAndCount();
 
     // C端商品卡片：精简字段
-    const data = list.map((p) => ({
-      id: p.id,
-      name: p.name,
-      subTitle: p.subTitle,
-      mainImage: p.mainImage,
-      tags: p.tags ? p.tags.split(",").filter(Boolean) : [],
-      price: p.price,
-      originalPrice: p.originalPrice,
-      sales: p.sales,
-    }));
+    const data = list.map((p) => this.toAppCard(p));
 
     return { data, page: { pageNum, pageSize, total } };
+  }
+
+  async appCatalog(query: AppProductCatalogQueryDto) {
+    const [tree, products] = await Promise.all([
+      this.categoryService.tree(true),
+      this.productRepository.find({
+        where: {
+          isDeleted: 0,
+          status: 1,
+          ...(query.painFriendly ? { painFriendly: true } : {}),
+        },
+        order: { sort: "ASC", sales: "DESC" },
+      }),
+    ]);
+
+    const collectIds = (node: CategoryTreeNode): string[] => [
+      node.id,
+      ...(node.children ?? []).flatMap(collectIds),
+    ];
+    // ponytail: 目录当前最多约 200 个商品；超过后改为按分区索引/懒加载。
+    const productsIn = (categoryIds: string[]) => {
+      const ids = new Set(categoryIds.map(String));
+      return products.filter((product) => ids.has(String(product.categoryId)));
+    };
+    const toSection = (id: string, name: string, items: Product[]) => ({
+      id,
+      name,
+      total: items.length,
+      products: items.map((product) => this.toAppCard(product)),
+    });
+
+    const groups = tree
+      .map((group) => {
+        const directProducts = productsIn([group.id]);
+        const childSections = (group.children ?? [])
+          .map((child) => toSection(child.id, child.name, productsIn(collectIds(child))))
+          .filter((section) => section.total > 0);
+        const sections = group.children?.length
+          ? [
+              ...(directProducts.length ? [toSection(group.id, group.name, directProducts)] : []),
+              ...childSections,
+            ]
+          : directProducts.length
+            ? [toSection(group.id, group.name, directProducts)]
+            : [];
+        return { id: group.id, name: group.name, sections };
+      })
+      .filter((group) => group.sections.length > 0);
+
+    return { groups };
   }
 
   async appDetail(id: string) {
@@ -469,6 +514,7 @@ export class ProductService {
       album: dto.album ? JSON.stringify(dto.album) : null,
       videoUrl: dto.videoUrl ?? null,
       tags: dto.tags ?? null,
+      painFriendly: dto.painFriendly ?? false,
       originalPrice: dto.originalPrice ?? null,
       detail: dto.detail ?? null,
       usageNote: dto.usageNote ?? null,
@@ -485,6 +531,20 @@ export class ProductService {
     const enabled = skus.filter((s) => (s.status ?? 1) === 1);
     if (enabled.length === 0) return 0;
     return Math.min(...enabled.map((s) => s.price));
+  }
+
+  private toAppCard(product: Product) {
+    return {
+      id: product.id,
+      name: product.name,
+      subTitle: product.subTitle,
+      mainImage: product.mainImage,
+      tags: product.tags ? product.tags.split(",").filter(Boolean) : [],
+      price: product.price,
+      originalPrice: product.originalPrice,
+      sales: product.sales,
+      painFriendly: Boolean(product.painFriendly),
+    };
   }
 
   /** 实体转VO：album JSON 字符串转数组 */

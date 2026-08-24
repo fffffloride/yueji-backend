@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsIn, IsInt, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString } from "class-validator";
 import { Transform } from "class-transformer";
 import { BaseQueryDto } from "@/common/dto/base-query.dto";
 
@@ -8,6 +8,13 @@ const toOptionalInt = ({ value }: { value: unknown }) =>
 
 const toOptionalStr = ({ value }: { value: unknown }) =>
   value === undefined || value === null || value === "" ? undefined : String(value);
+
+const toOptionalBoolean = ({ value }: { value: unknown }) => {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  return value;
+};
 
 /**
  * 商品分页查询（B端）
@@ -58,4 +65,15 @@ export class AppProductQueryDto extends BaseQueryDto {
   @IsString()
   @IsIn(["default", "sales", "priceAsc", "priceDesc", "new"])
   sortType?: string;
+}
+
+/**
+ * 连续商品目录查询（C端）
+ */
+export class AppProductCatalogQueryDto {
+  @ApiProperty({ description: "仅查看疼痛友好商品", required: false })
+  @IsOptional()
+  @Transform(toOptionalBoolean)
+  @IsBoolean()
+  painFriendly?: boolean;
 }

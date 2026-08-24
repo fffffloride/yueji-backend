@@ -5,8 +5,17 @@ import { ProductSku } from "./entities/product-sku.entity";
 import { ProductService } from "./product.service";
 import type { ProductFormDto } from "./dto/product-form.dto";
 
-const createService = () =>
-  new ProductService({} as never, {} as never, {} as never, {} as never, {} as never);
+const createService = (
+  productRepository: Record<string, unknown> = {},
+  categoryService: Record<string, unknown> = {}
+) =>
+  new ProductService(
+    productRepository as never,
+    {} as never,
+    {} as never,
+    categoryService as never,
+    {} as never
+  );
 
 describe("ProductService", () => {
   it("拒绝没有启用SKU的上架商品", async () => {
@@ -65,6 +74,80 @@ describe("ProductService", () => {
     });
     expect(query.andWhere).toHaveBeenCalledWith("orders.status IN (:...statuses)", {
       statuses: [0, 1, 2],
+    });
+  });
+
+  it("按一级与二级分类构建疼痛友好商品目录", async () => {
+    const productRepository = {
+      find: jest.fn().mockResolvedValue([
+        {
+          id: "101",
+          name: "一级直挂商品",
+          categoryId: "1",
+          tags: "推荐,热卖",
+          price: 100,
+          originalPrice: 120,
+          sales: 3,
+          painFriendly: true,
+        },
+        {
+          id: "102",
+          name: "三级分类商品",
+          categoryId: "111",
+          tags: "口碑",
+          price: 200,
+          originalPrice: null,
+          sales: 2,
+          painFriendly: true,
+        },
+      ]),
+    };
+    const categoryService = {
+      tree: jest.fn().mockResolvedValue([
+        {
+          id: "1",
+          name: "水光抗衰",
+          children: [
+            {
+              id: "11",
+              name: "胶原水光",
+              children: [{ id: "111", name: "深层胶原" }],
+            },
+          ],
+        },
+        { id: "2", name: "空分类" },
+      ]),
+    };
+
+    const result = await createService(productRepository, categoryService).appCatalog({
+      painFriendly: true,
+    });
+
+    expect(productRepository.find).toHaveBeenCalledWith({
+      where: { isDeleted: 0, status: 1, painFriendly: true },
+      order: { sort: "ASC", sales: "DESC" },
+    });
+    expect(result).toEqual({
+      groups: [
+        {
+          id: "1",
+          name: "水光抗衰",
+          sections: [
+            {
+              id: "1",
+              name: "水光抗衰",
+              total: 1,
+              products: [expect.objectContaining({ id: "101", tags: ["推荐", "热卖"] })],
+            },
+            {
+              id: "11",
+              name: "胶原水光",
+              total: 1,
+              products: [expect.objectContaining({ id: "102", tags: ["口碑"] })],
+            },
+          ],
+        },
+      ],
     });
   });
 });

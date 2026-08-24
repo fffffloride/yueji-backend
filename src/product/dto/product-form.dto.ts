@@ -2,6 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 import {
   ArrayNotEmpty,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -108,6 +109,11 @@ export class ProductFormDto {
   @IsString()
   @MaxLength(255)
   tags?: string;
+
+  @ApiProperty({ description: "是否疼痛友好", required: false, default: false })
+  @IsOptional()
+  @IsBoolean()
+  painFriendly?: boolean;
 
   @ApiProperty({ description: "原价(分)", required: false })
   @IsOptional()

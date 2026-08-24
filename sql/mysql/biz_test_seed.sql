@@ -151,7 +151,7 @@ VALUES
   (28, '身体塑形', 18, '0,4,18', 3, NULL, 1, 0, NOW(), NOW(), 0);
 
 INSERT INTO `product`
-  (`id`, `name`, `category_id`, `sub_title`, `main_image`, `album`, `tags`, `original_price`,
+  (`id`, `name`, `category_id`, `sub_title`, `main_image`, `album`, `tags`, `pain_friendly`, `original_price`,
    `price`, `sales`, `stock`, `detail`, `usage_note`, `status`, `sort`, `create_time`, `update_time`, `is_deleted`)
 SELECT
   n,
@@ -175,6 +175,7 @@ SELECT
   CONCAT('["https://picsum.photos/seed/product-', LPAD(n, 3, '0'), '-1/800/800","https://picsum.photos/seed/product-', LPAD(n, 3, '0'), '-2/800/800"]'),
   CASE MOD(n, 5)
     WHEN 0 THEN '推荐,热卖' WHEN 1 THEN '新品' WHEN 2 THEN '限时' WHEN 3 THEN '明星项目' ELSE '口碑' END,
+  IF(MOD(n, 3) = 0, 1, 0),
   8800 + n * 2100,
   6800 + n * 1900,
   n * 7,

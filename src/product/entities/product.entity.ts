@@ -24,6 +24,9 @@ export class Product extends BaseEntity {
   @Column({ length: 255, nullable: true, comment: "标签(逗号分隔：推荐,新品,热卖)" })
   tags?: string | null;
 
+  @Column({ name: "pain_friendly", type: "boolean", default: false, comment: "是否疼痛友好" })
+  painFriendly: boolean;
+
   @Column({ name: "original_price", type: "int", nullable: true, comment: "原价(分)" })
   originalPrice?: number | null;
 

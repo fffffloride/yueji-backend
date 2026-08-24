@@ -3,7 +3,7 @@ import { ApiOperation, ApiTags } from "@nestjs/swagger";
 
 import { ProductService } from "../product.service";
 import { ProductCategoryService } from "../product-category.service";
-import { AppProductQueryDto } from "../dto/product-query.dto";
+import { AppProductCatalogQueryDto, AppProductQueryDto } from "../dto/product-query.dto";
 import { Public } from "@/common/decorators/auth.decorator";
 
 /**
@@ -28,6 +28,12 @@ export class ProductAppController {
   @Get("page")
   async page(@Query() query: AppProductQueryDto) {
     return this.productService.appPage(query);
+  }
+
+  @ApiOperation({ summary: "连续商品目录(按一级/二级分类分组)" })
+  @Get("catalog")
+  async catalog(@Query() query: AppProductCatalogQueryDto) {
+    return this.productService.appCatalog(query);
   }
 
   @ApiOperation({ summary: "商品详情(含启用SKU)" })

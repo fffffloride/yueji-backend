@@ -68,6 +68,7 @@ CREATE TABLE `product` (
     `album` text NULL COMMENT '轮播图URL列表(JSON数组)',
     `video_url` varchar(255) NULL COMMENT '短视频URL',
     `tags` varchar(255) NULL COMMENT '标签(逗号分隔：推荐,新品,热卖)',
+    `pain_friendly` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否疼痛友好(0-否 1-是)',
     `original_price` int NULL COMMENT '原价(分)',
     `price` int NOT NULL DEFAULT 0 COMMENT '现售价(分)',
     `sales` int DEFAULT 0 COMMENT '销量',
