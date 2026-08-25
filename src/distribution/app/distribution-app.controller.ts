@@ -1,11 +1,13 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 
 import { DistributionService } from "../distribution.service";
 import { DistributionSettlementService } from "../distribution-settlement.service";
+import { DistributionTaskService } from "../distribution-task.service";
 import {
   AgentApplicationDto,
   CommissionQueryDto,
+  DistributionAppTaskQueryDto,
   ReferralBindDto,
   WithdrawalApplyDto,
   WithdrawalQueryDto,
@@ -20,7 +22,8 @@ import type { CurrentMemberInfo } from "@/common/interfaces/current-member.inter
 export class DistributionAppController {
   constructor(
     private readonly service: DistributionService,
-    private readonly settlementService: DistributionSettlementService
+    private readonly settlementService: DistributionSettlementService,
+    private readonly taskService: DistributionTaskService
   ) {}
 
   @Post("applications")
@@ -61,5 +64,15 @@ export class DistributionAppController {
   @Get("withdrawals/page")
   withdrawals(@CurrentMember() member: CurrentMemberInfo, @Query() query: WithdrawalQueryDto) {
     return this.settlementService.withdrawalPage(query, member.memberId);
+  }
+
+  @Get("tasks/page")
+  tasks(@CurrentMember() member: CurrentMemberInfo, @Query() query: DistributionAppTaskQueryDto) {
+    return this.taskService.appTaskPage(member.memberId, query);
+  }
+
+  @Get("tasks/:id")
+  taskDetail(@CurrentMember() member: CurrentMemberInfo, @Param("id") id: string) {
+    return this.taskService.appTaskDetail(member.memberId, id);
   }
 }

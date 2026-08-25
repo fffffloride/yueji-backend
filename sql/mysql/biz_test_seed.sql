@@ -1,6 +1,6 @@
 -- 悦己 DLumière 本地测试环境业务数据
--- 警告：会清空阶段 1–8C 的业务表；保留全部 sys_* 系统表。
--- 依赖：MySQL 8，已执行 biz_p0.sql、biz_phase4.sql、biz_phase5.sql、biz_phase6.sql、biz_phase7.sql、biz_phase8_distribution.sql、biz_phase8c_settlement.sql。
+-- 警告：会清空阶段 1–8D 的业务表；保留全部 sys_* 系统表。
+-- 依赖：MySQL 8，已执行 biz_p0.sql、biz_phase4.sql、biz_phase5.sql、biz_phase6.sql、biz_phase7.sql、biz_phase8_distribution.sql、biz_phase8c_settlement.sql、biz_phase8d_distribution_task.sql。
 
 USE youlai_admin;
 SET NAMES utf8mb4;
@@ -28,6 +28,8 @@ CREATE TEMPORARY TABLE `_seed_guard` (
 START TRANSACTION;
 
 DELETE FROM `distribution_agent_log`;
+DELETE FROM `distribution_task_assignee`;
+DELETE FROM `distribution_task`;
 DELETE FROM `distribution_withdrawal`;
 DELETE FROM `distribution_settlement`;
 DELETE FROM `distribution_settlement_config`;
@@ -671,6 +673,21 @@ VALUES
   (2,3,'RATE',JSON_OBJECT('customLevel1RateBps',NULL),JSON_OBJECT('customLevel1RateBps',800),'试运行专属比例',1,DATE_SUB(NOW(),INTERVAL 10 DAY),NOW(),0),
   (3,5,'DISABLE',JSON_OBJECT('status',1),JSON_OBJECT('status',3),'无效代理账号',1,DATE_SUB(NOW(),INTERVAL 1 DAY),NOW(),0);
 
+INSERT INTO `distribution_task`
+  (`id`,`name`,`description`,`metric_type`,`target_value`,`start_time`,`end_time`,`assignment_scope`,
+   `target_level_id`,`target_agent_ids`,`status`,`published_time`,`cancelled_time`,`create_time`,`update_time`,`is_deleted`)
+VALUES
+  (1,'九月销售任务草稿','按直属客户已核销销售额统计','SALES_AMOUNT',100000,DATE_ADD(NOW(),INTERVAL 7 DAY),DATE_ADD(NOW(),INTERVAL 37 DAY),'ALL',NULL,NULL,0,NULL,NULL,NOW(),NOW(),0),
+  (2,'本月直属销售额任务','达到一千元即完成','SALES_AMOUNT',100000,DATE_SUB(NOW(),INTERVAL 30 DAY),DATE_ADD(NOW(),INTERVAL 30 DAY),'ALL',NULL,NULL,1,DATE_SUB(NOW(),INTERVAL 30 DAY),NULL,NOW(),NOW(),0),
+  (3,'历史核销订单任务','合伙人完成一单','ORDER_COUNT',1,DATE_SUB(NOW(),INTERVAL 60 DAY),DATE_SUB(NOW(),INTERVAL 20 DAY),'LEVEL',2,NULL,1,DATE_SUB(NOW(),INTERVAL 60 DAY),NULL,NOW(),NOW(),0),
+  (4,'已取消专项任务','指定代理销售任务','ORDER_COUNT',2,DATE_SUB(NOW(),INTERVAL 20 DAY),DATE_ADD(NOW(),INTERVAL 10 DAY),'AGENT',NULL,JSON_ARRAY('1','2'),2,DATE_SUB(NOW(),INTERVAL 20 DAY),DATE_SUB(NOW(),INTERVAL 5 DAY),NOW(),NOW(),0);
+
+INSERT INTO `distribution_task_assignee`
+  (`id`,`task_id`,`agent_id`,`create_time`,`update_time`,`is_deleted`)
+VALUES
+  (1,2,1,NOW(),NOW(),0),(2,2,2,NOW(),NOW(),0),(3,2,3,NOW(),NOW(),0),
+  (4,3,2,NOW(),NOW(),0),(5,4,1,NOW(),NOW(),0),(6,4,2,NOW(),NOW(),0);
+
 INSERT INTO `group_buy_group`
   (`id`,`activity_id`,`leader_member_id`,`required_people`,`group_price`,`expire_time`,`status`,
    `success_time`,`fail_time`,`create_time`,`update_time`,`is_deleted`)
@@ -708,6 +725,8 @@ SELECT
   (SELECT COUNT(*) <> 1 FROM `distribution_settlement`) +
   (SELECT COUNT(*) <> 4 FROM `distribution_withdrawal`) +
   (SELECT COUNT(*) <> 3 FROM `distribution_agent_log`) +
+  (SELECT COUNT(*) <> 4 FROM `distribution_task`) +
+  (SELECT COUNT(*) <> 6 FROM `distribution_task_assignee`) +
   (SELECT COUNT(*) <> 90 FROM `appointment`) +
   (SELECT COUNT(*) <> 4 FROM `member_level`) +
   (SELECT COUNT(*) <> 20 FROM `product_category`) +
@@ -755,6 +774,7 @@ SELECT
   (SELECT COUNT(*) FROM `distribution_commission` c LEFT JOIN `biz_order` o ON o.id=c.order_id LEFT JOIN `distribution_agent` a ON a.id=c.beneficiary_agent_id WHERE o.id IS NULL OR a.id IS NULL) +
   (SELECT COUNT(*) FROM `distribution_settlement` s LEFT JOIN `distribution_agent` a ON a.id=s.agent_id WHERE a.id IS NULL) +
   (SELECT COUNT(*) FROM `distribution_withdrawal` w LEFT JOIN `distribution_agent` a ON a.id=w.agent_id LEFT JOIN `member` m ON m.id=w.member_id WHERE a.id IS NULL OR m.id IS NULL) +
+  (SELECT COUNT(*) FROM `distribution_task_assignee` ta LEFT JOIN `distribution_task` t ON t.id=ta.task_id LEFT JOIN `distribution_agent` a ON a.id=ta.agent_id WHERE t.id IS NULL OR a.id IS NULL) +
   (SELECT COUNT(*) FROM `biz_payment` p LEFT JOIN `biz_order` o ON o.id = p.order_id WHERE o.id IS NULL) +
   (SELECT COUNT(*) FROM `biz_refund` r LEFT JOIN `biz_payment` p ON p.id = r.payment_id LEFT JOIN `biz_order` o ON o.id = r.order_id LEFT JOIN `member` m ON m.id = r.member_id WHERE p.id IS NULL OR o.id IS NULL OR m.id IS NULL) +
   (SELECT COUNT(*) FROM `member_points_log` l LEFT JOIN `member` m ON m.id = l.member_id LEFT JOIN `biz_order` o ON o.id = l.order_id WHERE m.id IS NULL OR (l.order_id IS NOT NULL AND o.id IS NULL)) +
@@ -773,6 +793,8 @@ UNION ALL SELECT 'distribution_agent', COUNT(*) FROM `distribution_agent`
 UNION ALL SELECT 'distribution_commission', COUNT(*) FROM `distribution_commission`
 UNION ALL SELECT 'distribution_settlement', COUNT(*) FROM `distribution_settlement`
 UNION ALL SELECT 'distribution_withdrawal', COUNT(*) FROM `distribution_withdrawal`
+UNION ALL SELECT 'distribution_task', COUNT(*) FROM `distribution_task`
+UNION ALL SELECT 'distribution_task_assignee', COUNT(*) FROM `distribution_task_assignee`
 UNION ALL SELECT 'appointment', COUNT(*) FROM `appointment`
 UNION ALL SELECT 'product', COUNT(*) FROM `product`
 UNION ALL SELECT 'product_sku', COUNT(*) FROM `product_sku`

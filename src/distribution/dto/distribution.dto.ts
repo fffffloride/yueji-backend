@@ -1,6 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import {
+  ArrayUnique,
+  IsArray,
   IsIn,
   IsDateString,
   IsInt,
@@ -419,4 +421,132 @@ export class WithdrawalPaidDto {
   @IsString()
   @MaxLength(255)
   remark?: string;
+}
+
+export class DistributionTaskFormDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  name: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  description?: string;
+
+  @ApiProperty({ enum: ["SALES_AMOUNT", "ORDER_COUNT"] })
+  @IsString()
+  @IsIn(["SALES_AMOUNT", "ORDER_COUNT"])
+  metricType: string;
+
+  @ApiProperty({ minimum: 1, description: "销售额单位分；订单数单位单" })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(2147483647)
+  targetValue: number;
+
+  @ApiProperty()
+  @IsDateString()
+  startTime: string;
+
+  @ApiProperty()
+  @IsDateString()
+  endTime: string;
+
+  @ApiProperty({ enum: ["ALL", "LEVEL", "AGENT"] })
+  @IsString()
+  @IsIn(["ALL", "LEVEL", "AGENT"])
+  assignmentScope: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  targetLevelId?: string;
+
+  @ApiProperty({ required: false, type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsString({ each: true })
+  targetAgentIds?: string[];
+}
+
+export class DistributionTaskQueryDto extends BaseQueryDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  keywords?: string;
+
+  @ApiProperty({ required: false, enum: [0, 1, 2] })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsIn([0, 1, 2])
+  status?: number;
+
+  @ApiProperty({
+    required: false,
+    enum: ["DRAFT", "NOT_STARTED", "IN_PROGRESS", "FINISHED", "CANCELLED"],
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(["DRAFT", "NOT_STARTED", "IN_PROGRESS", "FINISHED", "CANCELLED"])
+  displayStatus?: string;
+
+  @ApiProperty({ required: false, enum: ["SALES_AMOUNT", "ORDER_COUNT"] })
+  @IsOptional()
+  @IsString()
+  @IsIn(["SALES_AMOUNT", "ORDER_COUNT"])
+  metricType?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsDateString()
+  startTime?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsDateString()
+  endTime?: string;
+}
+
+export class DistributionTaskAssigneeQueryDto extends BaseQueryDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  keywords?: string;
+
+  @ApiProperty({ required: false, enum: [0, 1], description: "0-未完成 1-已完成" })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsIn([0, 1])
+  completed?: number;
+}
+
+export class DistributionAppTaskQueryDto extends BaseQueryDto {
+  @ApiProperty({
+    required: false,
+    enum: ["NOT_STARTED", "IN_PROGRESS", "FINISHED", "CANCELLED"],
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(["NOT_STARTED", "IN_PROGRESS", "FINISHED", "CANCELLED"])
+  displayStatus?: string;
+
+  @ApiProperty({ required: false, enum: ["SALES_AMOUNT", "ORDER_COUNT"] })
+  @IsOptional()
+  @IsString()
+  @IsIn(["SALES_AMOUNT", "ORDER_COUNT"])
+  metricType?: string;
+
+  @ApiProperty({ required: false, enum: [0, 1], description: "0-未完成 1-已完成" })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsIn([0, 1])
+  completed?: number;
 }

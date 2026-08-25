@@ -39,3 +39,20 @@ export const DirectSalesStatus = {
 } as const;
 
 export const ConfigStatus = { DISABLED: 0, ENABLED: 1 } as const;
+
+export const DistributionTaskMetric = {
+  SALES_AMOUNT: "SALES_AMOUNT",
+  ORDER_COUNT: "ORDER_COUNT",
+} as const;
+
+export const DistributionTaskScope = { ALL: "ALL", LEVEL: "LEVEL", AGENT: "AGENT" } as const;
+
+export const DistributionTaskStatus = { DRAFT: 0, PUBLISHED: 1, CANCELLED: 2 } as const;
+
+export const DistributionTaskDisplayStatus = {
+  DRAFT: "DRAFT",
+  NOT_STARTED: "NOT_STARTED",
+  IN_PROGRESS: "IN_PROGRESS",
+  FINISHED: "FINISHED",
+  CANCELLED: "CANCELLED",
+} as const;

@@ -3,6 +3,7 @@ import { ApiTags } from "@nestjs/swagger";
 
 import { DistributionService } from "../distribution.service";
 import { DistributionSettlementService } from "../distribution-settlement.service";
+import { DistributionTaskService } from "../distribution-task.service";
 import {
   AgentAccountStatusDto,
   AgentAuditDto,
@@ -15,6 +16,9 @@ import {
   DistributionConfigQueryDto,
   DistributionLevelFormDto,
   DistributionStatusDto,
+  DistributionTaskAssigneeQueryDto,
+  DistributionTaskFormDto,
+  DistributionTaskQueryDto,
   SettlementConfigDto,
   SettlementQueryDto,
   WithdrawalAuditDto,
@@ -30,7 +34,8 @@ import { BaseQueryDto } from "@/common/dto/base-query.dto";
 export class DistributionAdminController {
   constructor(
     private readonly service: DistributionService,
-    private readonly settlementService: DistributionSettlementService
+    private readonly settlementService: DistributionSettlementService,
+    private readonly taskService: DistributionTaskService
   ) {}
 
   @Get("agent-types/page")
@@ -242,5 +247,57 @@ export class DistributionAdminController {
     @CurrentUser("userId") operatorId: string
   ) {
     return this.settlementService.markWithdrawalPaid(id, dto.transferNo, dto.remark, operatorId);
+  }
+
+  @Get("tasks/page")
+  @Permissions("biz:distribution:task:list")
+  taskPage(@Query() query: DistributionTaskQueryDto) {
+    return this.taskService.taskPage(query);
+  }
+
+  @Get("tasks/:id")
+  @Permissions("biz:distribution:task:list")
+  taskDetail(@Param("id") id: string) {
+    return this.taskService.taskDetail(id);
+  }
+
+  @Post("tasks")
+  @Permissions("biz:distribution:task:create")
+  createTask(@Body() dto: DistributionTaskFormDto, @CurrentUser("userId") operatorId: string) {
+    return this.taskService.createTask(dto, operatorId);
+  }
+
+  @Put("tasks/:id")
+  @Permissions("biz:distribution:task:update")
+  updateTask(
+    @Param("id") id: string,
+    @Body() dto: DistributionTaskFormDto,
+    @CurrentUser("userId") operatorId: string
+  ) {
+    return this.taskService.updateTask(id, dto, operatorId);
+  }
+
+  @Delete("tasks/:id")
+  @Permissions("biz:distribution:task:delete")
+  removeTask(@Param("id") id: string, @CurrentUser("userId") operatorId: string) {
+    return this.taskService.removeTask(id, operatorId);
+  }
+
+  @Post("tasks/:id/publish")
+  @Permissions("biz:distribution:task:publish")
+  publishTask(@Param("id") id: string, @CurrentUser("userId") operatorId: string) {
+    return this.taskService.publishTask(id, operatorId);
+  }
+
+  @Post("tasks/:id/cancel")
+  @Permissions("biz:distribution:task:cancel")
+  cancelTask(@Param("id") id: string, @CurrentUser("userId") operatorId: string) {
+    return this.taskService.cancelTask(id, operatorId);
+  }
+
+  @Get("tasks/:id/assignees/page")
+  @Permissions("biz:distribution:task:list")
+  taskAssignees(@Param("id") id: string, @Query() query: DistributionTaskAssigneeQueryDto) {
+    return this.taskService.assigneePage(id, query);
   }
 }

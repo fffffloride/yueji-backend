@@ -5,6 +5,7 @@ import { DistributionAdminController } from "./admin/distribution-admin.controll
 import { DistributionAppController } from "./app/distribution-app.controller";
 import { DistributionService } from "./distribution.service";
 import { DistributionSettlementService } from "./distribution-settlement.service";
+import { DistributionTaskService } from "./distribution-task.service";
 import { DistributionTask } from "./distribution.task";
 import { DistributionAgentType } from "./entities/agent-type.entity";
 import { DistributionAgentLog } from "./entities/distribution-agent-log.entity";
@@ -15,6 +16,8 @@ import { DistributionLevel } from "./entities/distribution-level.entity";
 import { DistributionReferral } from "./entities/distribution-referral.entity";
 import { DistributionSettlementConfig } from "./entities/distribution-settlement-config.entity";
 import { DistributionSettlement } from "./entities/distribution-settlement.entity";
+import { DistributionTaskAssignee } from "./entities/distribution-task-assignee.entity";
+import { DistributionTaskEntity } from "./entities/distribution-task.entity";
 import { DistributionWithdrawal } from "./entities/distribution-withdrawal.entity";
 import { Member } from "@/member/entities/member.entity";
 import { BizOrder } from "@/order/entities/order.entity";
@@ -33,13 +36,20 @@ import { OrderModule } from "@/order/order.module";
       DistributionSettlementConfig,
       DistributionSettlement,
       DistributionWithdrawal,
+      DistributionTaskEntity,
+      DistributionTaskAssignee,
       Member,
       BizOrder,
     ]),
     OrderModule,
   ],
   controllers: [DistributionAdminController, DistributionAppController],
-  providers: [DistributionService, DistributionSettlementService, DistributionTask],
+  providers: [
+    DistributionService,
+    DistributionSettlementService,
+    DistributionTaskService,
+    DistributionTask,
+  ],
   exports: [DistributionService, DistributionSettlementService],
 })
 export class DistributionModule {}
