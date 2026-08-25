@@ -137,11 +137,9 @@ CREATE TABLE `sys_menu`  (
 -- ----------------------------
 -- Records of sys_menu
 -- ----------------------------
--- 顶级目录：系统/代码生成/平台文档/接口文档
+-- 顶级目录：系统/接口文档
 INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (1, 0, '0', '系统管理', 'C', '', '/system', 'Layout', NULL, NULL, NULL, 1, 1, 'system', '/system/user', now(), now(), NULL);
-INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (2, 0, '0', '代码生成', 'C', '', '/codegen', 'Layout', NULL, NULL, NULL, 1, 2, 'code', '/codegen/index', now(), now(), NULL);
-INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (4, 0, '0', '平台文档', 'C', '', '/doc', 'Layout', NULL, NULL, NULL, 1, 4, 'document', '', now(), now(), NULL);
-INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (5, 0, '0', '接口文档', 'C', '', '/api', 'Layout', NULL, NULL, NULL, 1, 5, 'api', '', now(), now(), NULL);
+INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (5, 0, '0', '接口文档', 'C', '', '/api', 'Layout', NULL, NULL, NULL, 1, 999, 'api', '', now(), now(), NULL);
 
 -- 系统管理
 INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (210, 1, '0,1', '用户管理', 'M', 'User', 'user', 'system/user/index', NULL, NULL, 1, 1, 1, 'el-icon-User', NULL, now(), now(), NULL);
@@ -201,15 +199,6 @@ INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_n
 INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (2804, 280, '0,1,280', '通知删除', 'B', NULL, '', NULL, 'sys:notice:delete', NULL, NULL, 1, 4, '', NULL, now(), now(), NULL);
 INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (2805, 280, '0,1,280', '通知发布', 'B', NULL, '', NULL, 'sys:notice:publish', 0, 1, 1, 5, '', NULL, now(), now(), NULL);
 INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (2806, 280, '0,1,280', '通知撤回', 'B', NULL, '', NULL, 'sys:notice:revoke', 0, 1, 1, 6, '', NULL, now(), now(), NULL);
-
--- 代码生成
-INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (310, 2, '0,2', '代码生成', 'M', 'Codegen', 'codegen', 'codegen/index', NULL, NULL, 1, 1, 1, 'code', NULL, now(), now(), NULL);
-
--- 平台文档
-INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `external_url`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (501, 4, '0,4', '平台文档(外链)', 'E', NULL, NULL, NULL, 'https://juejin.cn/post/7228990409909108793', NULL, NULL, NULL, 1, 1, 'document', '', now(), now(), NULL);
-INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `external_url`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (502, 4, '0,4', '后端文档', 'E', NULL, NULL, NULL, 'https://youlai.blog.csdn.net/article/details/145178880', NULL, NULL, NULL, 1, 2, 'document', '', now(), now(), NULL);
-INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `external_url`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (503, 4, '0,4', '移动端文档', 'E', NULL, NULL, NULL, 'https://youlai.blog.csdn.net/article/details/143222890', NULL, NULL, NULL, 1, 3, 'document', '', now(), now(), NULL);
-INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `external_url`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (504, 4, '0,4', '内部文档', 'E', 'InternalDoc', 'internal-doc', 'iframe', 'https://juejin.cn/post/7228990409909108793', NULL, NULL, 1, 1, 4, 'document', '', now(), now(), NULL);
 
 -- 接口文档
 INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `external_url`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`) VALUES (601, 5, '0,5', 'Apifox', 'E', 'Apifox', 'apifox', 'iframe', 'https://www.apifox.cn/apidoc/shared-195e783f-4d85-4235-a038-eec696de4ea5', NULL, NULL, 1, 1, 1, 'api', '', now(), now(), NULL);
@@ -275,7 +264,7 @@ INSERT IGNORE INTO `sys_role_dept` VALUES (7, 2);
 -- ============================================
 -- 系统管理员角色菜单权限（role_id=2）
 -- 顶级目录
-INSERT INTO `sys_role_menu` VALUES (2, 1), (2, 2), (2, 4), (2, 5);
+INSERT INTO `sys_role_menu` VALUES (2, 1), (2, 5);
 -- 系统管理
 INSERT INTO `sys_role_menu` VALUES (2, 210), (2, 2101), (2, 2102), (2, 2103), (2, 2104), (2, 2105), (2, 2106), (2, 2107);
 INSERT INTO `sys_role_menu` VALUES (2, 220), (2, 2201), (2, 2202), (2, 2203), (2, 2204), (2, 2205);
@@ -302,10 +291,6 @@ INSERT IGNORE INTO `sys_role_menu` VALUES (6, 220), (6, 2201), (6, 2202), (6, 22
 INSERT IGNORE INTO `sys_role_menu` VALUES (7, 1);
 INSERT IGNORE INTO `sys_role_menu` VALUES (7, 210), (7, 2101), (7, 2102), (7, 2103), (7, 2104), (7, 2105), (7, 2106), (7, 2107);
 INSERT IGNORE INTO `sys_role_menu` VALUES (7, 220), (7, 2201), (7, 2202), (7, 2203), (7, 2204), (7, 2205);
--- 代码生成
-INSERT INTO `sys_role_menu` VALUES (2, 310);
--- 平台文档
-INSERT INTO `sys_role_menu` VALUES (2, 501), (2, 502), (2, 503), (2, 504);
 -- 接口文档
 INSERT INTO `sys_role_menu` VALUES (2, 601);
 -- ----------------------------
@@ -393,56 +378,6 @@ CREATE TABLE `sys_log` (
     KEY `idx_operator_time` (`operator_id`, `create_time`),
     KEY `idx_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统操作日志表';
-
--- ----------------------------
--- Table structure for gen_table
--- ----------------------------
-DROP TABLE IF EXISTS `gen_table`;
-CREATE TABLE `gen_table` (
-                              `id` bigint NOT NULL AUTO_INCREMENT,
-                              `table_name` varchar(100) NOT NULL COMMENT '表名',
-                              `module_name` varchar(100) COMMENT '模块名',
-                              `package_name` varchar(255) NOT NULL COMMENT '包名',
-                              `business_name` varchar(100) NOT NULL COMMENT '业务名',
-                              `entity_name` varchar(100) NOT NULL COMMENT '实体类名',
-                              `author` varchar(50) NOT NULL COMMENT '作者',
-                              `parent_menu_id` bigint COMMENT '上级菜单ID，对应sys_menu的id ',
-                              `remove_table_prefix` varchar(20) COMMENT '要移除的表前缀，如: sys_',
-                              `page_type` varchar(20) COMMENT '页面类型(classic|curd)',
-                              `create_time` datetime COMMENT '创建时间',
-                              `update_time` datetime COMMENT '更新时间',
-                              `is_deleted` tinyint(4) DEFAULT 0 COMMENT '是否删除',
-                              PRIMARY KEY (`id`),
-                              UNIQUE KEY `uk_tablename` (`table_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='代码生成配置表';
-
--- ----------------------------
--- Table structure for gen_table_column
--- ----------------------------
-DROP TABLE IF EXISTS `gen_table_column`;
-CREATE TABLE `gen_table_column` (
-                                    `id` bigint NOT NULL AUTO_INCREMENT,
-                                    `table_id` bigint NOT NULL COMMENT '关联的表配置ID',
-                                    `column_name` varchar(100)  ,
-                                    `column_type` varchar(50)  ,
-                                    `column_length` int ,
-                                    `field_name` varchar(100) NOT NULL COMMENT '字段名称',
-                                    `field_type` varchar(100) COMMENT '字段类型',
-                                    `field_sort` int COMMENT '字段排序',
-                                    `field_comment` varchar(255) COMMENT '字段描述',
-                                    `max_length` int ,
-                                    `is_required` tinyint(1) COMMENT '是否必填',
-                                    `is_show_in_list` tinyint(1) DEFAULT '0' COMMENT '是否在列表显示',
-                                    `is_show_in_form` tinyint(1) DEFAULT '0' COMMENT '是否在表单显示',
-                                    `is_show_in_query` tinyint(1) DEFAULT '0' COMMENT '是否在查询条件显示',
-                                    `query_type` tinyint COMMENT '查询方式',
-                                    `form_type` tinyint COMMENT '表单类型',
-                                    `dict_type` varchar(50) COMMENT '字典类型',
-                                    `create_time` datetime COMMENT '创建时间',
-                                    `update_time` datetime COMMENT '更新时间',
-                                    PRIMARY KEY (`id`),
-                                    KEY `idx_table_id` (`table_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='代码生成字段配置表';
 
 -- ----------------------------
 -- 系统配置表

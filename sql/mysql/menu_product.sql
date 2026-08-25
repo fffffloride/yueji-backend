@@ -5,7 +5,7 @@
 USE youlai_admin;
 
 INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`)
-VALUES (3000, 0, '0', '商品管理', 'C', '', '/product', 'Layout', NULL, NULL, NULL, 1, 0, 'goods', '/product/goods', now(), now(), NULL);
+VALUES (3000, 0, '0', '商品管理', 'C', '', '/product', 'Layout', NULL, NULL, NULL, 1, 0, 'el-icon-Goods', '/product/goods', now(), now(), NULL);
 
 INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`)
 VALUES (3001, 3000, '0,3000', '商品列表', 'M', 'ProductGoods', 'goods', 'product/goods/index', NULL, NULL, 1, 1, 1, 'el-icon-Goods', NULL, now(), now(), NULL);

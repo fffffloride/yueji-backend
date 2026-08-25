@@ -141,7 +141,7 @@
 
 沿用现有 API 分层、`usePageTable`、分页组件、图片上传和富文本组件：
 
-Banner、公告和拼团活动先使用现有 codegen 生成基础 CRUD，再按本设计删减和补充；品牌单例页与拼团记录页直接复用现有页面模式。
+Banner、公告和拼团活动直接复用现有业务 CRUD 页面模式；品牌单例页与拼团记录页同样沿用现有页面模式。
 
 - `src/views/decoration/banner/`：图片、链接、排序、状态和 CRUD。
 - `src/views/decoration/notice/`：标题、正文、排序、状态和 CRUD。

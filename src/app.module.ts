@@ -20,7 +20,6 @@ import { RedisSharedModule } from "./common/redis/redis.module";
 import { DictModule } from "./system/dict/dict.module"; // 系统字典模块
 import { ConfigModule as SystemConfigModule } from "./system/config/config.module"; // 系统配置模块
 import { SseModule } from "./message/sse.module";
-import { CodegenModule } from "./codegen/codegen.module";
 import { FileModule } from "./file/file.module";
 import { LogModule } from "./system/log/log.module";
 import { NoticeModule } from "./system/notice/notice.module";
@@ -119,7 +118,6 @@ const envPath = `.env.${nodeEnv}`;
     SystemConfigModule,
     SseModule,
     FileModule,
-    CodegenModule,
     LogModule,
     NoticeModule,
     MemberModule,

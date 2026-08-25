@@ -12,7 +12,6 @@ export enum LogModuleValue {
   FILE = 8,
   NOTICE = 9,
   LOG = 10,
-  CODEGEN = 11,
   OTHER = 99,
 }
 
@@ -32,7 +31,6 @@ export class LogModuleEnum {
   static readonly FILE = new LogModuleEnum(LogModuleValue.FILE, "文件管理");
   static readonly NOTICE = new LogModuleEnum(LogModuleValue.NOTICE, "通知公告");
   static readonly LOG = new LogModuleEnum(LogModuleValue.LOG, "日志管理");
-  static readonly CODEGEN = new LogModuleEnum(LogModuleValue.CODEGEN, "代码生成");
   static readonly OTHER = new LogModuleEnum(LogModuleValue.OTHER, "其他");
 
   private constructor(
