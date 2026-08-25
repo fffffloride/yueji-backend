@@ -65,28 +65,6 @@ export const ErrorCode = {
     httpStatus: HttpStatus.BAD_REQUEST,
   },
 
-  // A025x 扫码登录
-  QR_CODE_NOT_FOUND: {
-    code: "A0250",
-    msg: "扫码登录票据不存在或已过期",
-    httpStatus: HttpStatus.BAD_REQUEST,
-  },
-  QR_CODE_STATUS_ILLEGAL: {
-    code: "A0251",
-    msg: "扫码登录状态非法",
-    httpStatus: HttpStatus.BAD_REQUEST,
-  },
-  QR_CODE_USER_MISMATCH: {
-    code: "A0252",
-    msg: "扫码用户与确认用户不一致",
-    httpStatus: HttpStatus.BAD_REQUEST,
-  },
-  QR_CODE_ALREADY_USED: {
-    code: "A0253",
-    msg: "扫码登录票据已使用",
-    httpStatus: HttpStatus.BAD_REQUEST,
-  },
-
   ACCESS_PERMISSION_EXCEPTION: {
     code: "A0300",
     msg: "访问权限异常",

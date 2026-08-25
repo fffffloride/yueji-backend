@@ -24,8 +24,6 @@ import { v4 as uuidv4 } from "uuid";
 import { RedisService } from "../common/redis/redis.service";
 import { ErrorCode } from "../common/enums/error-code.enum";
 import { RateLimit } from "../common/decorators/rate-limit.decorator";
-import { QrCodeAuthService } from "./qr-code-auth.service";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 /**
  * 认证接口控制器
@@ -37,8 +35,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly toolsService: ToolsService,
     @Inject(forwardRef(() => RedisService))
-    private readonly RedisService: RedisService,
-    private readonly qrCodeAuthService: QrCodeAuthService
+    private readonly RedisService: RedisService
   ) {}
 
   @ApiOperation({ summary: "登录接口" })
@@ -117,50 +114,5 @@ export class AuthController {
   @Post("refresh-token")
   async refreshToken(@Query("refreshToken") refreshToken: string) {
     return await this.authService.refreshToken(refreshToken);
-  }
-
-  // ── 扫码登录 ──
-
-  @ApiOperation({ summary: "生成扫码登录票据" })
-  @Public()
-  @Post("qr-code/generate")
-  async qrGenerate(@Req() req: any) {
-    const clientIp =
-      (req.headers["x-forwarded-for"] ?? "").split(",")[0].trim() ||
-      (req.headers["x-real-ip"] ?? "").trim() ||
-      (req.ip ?? "unknown");
-    return this.qrCodeAuthService.generate(clientIp);
-  }
-
-  @ApiOperation({ summary: "查询扫码状态" })
-  @Public()
-  @Get("qr-code/status")
-  async qrStatus(@Query("ticket") ticket: string) {
-    return this.qrCodeAuthService.status(ticket);
-  }
-
-  @ApiOperation({ summary: "APP 标记已扫码" })
-  @Post("qr-code/scan")
-  async qrScan(@Body("ticket") ticket: string, @CurrentUser("userId") userId: number) {
-    return this.qrCodeAuthService.scan(ticket, userId);
-  }
-
-  @ApiOperation({ summary: "APP 确认登录" })
-  @Post("qr-code/confirm")
-  async qrConfirm(@Body("ticket") ticket: string, @CurrentUser("userId") userId: number) {
-    return this.qrCodeAuthService.confirm(ticket, userId);
-  }
-
-  @ApiOperation({ summary: "APP 取消登录" })
-  @Post("qr-code/cancel")
-  async qrCancel(@Body("ticket") ticket: string, @CurrentUser("userId") userId: number) {
-    return this.qrCodeAuthService.cancel(ticket, userId);
-  }
-
-  @ApiOperation({ summary: "PC 端换取会话令牌" })
-  @Public()
-  @Post("qr-code/login")
-  async qrLogin(@Body("ticket") ticket: string) {
-    return this.qrCodeAuthService.login(ticket);
   }
 }

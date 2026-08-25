@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
-import { QrCodeAuthService } from "./qr-code-auth.service";
 import { MemberAuthService } from "./app/member-auth.service";
 import { MemberAuthController } from "./app/member-auth.controller";
 import { UserModule } from "../system/user/user.module";
@@ -43,14 +42,7 @@ import { SysUserSocial } from "../system/user/entities/sys-user-social.entity";
     }),
   ],
   controllers: [AuthController, MemberAuthController],
-  providers: [
-    AuthService,
-    QrCodeAuthService,
-    MemberAuthService,
-    JwtStrategy,
-    RedisService,
-    ToolsService,
-  ],
+  providers: [AuthService, MemberAuthService, JwtStrategy, RedisService, ToolsService],
   exports: [AuthService, MemberAuthService],
 })
 export class AuthModule {}
