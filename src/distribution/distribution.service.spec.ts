@@ -10,7 +10,7 @@ import { BizOrder } from "@/order/entities/order.entity";
 import { OrderStatus } from "@/order/order-status";
 
 describe("DistributionService order lifecycle", () => {
-  it("keeps paid, verified and refunded synchronization idempotent", async () => {
+  it("keeps paid, verified and pre-verification refund synchronization idempotent", async () => {
     const order: BizOrder = Object.assign(new BizOrder(), {
       id: "100",
       orderNo: "O100",
@@ -148,18 +148,27 @@ describe("DistributionService order lifecycle", () => {
     order.status = OrderStatus.COMPLETED;
     await service.syncOrder(order.id);
     await service.syncOrder(order.id);
-    expect(commissions.every((row) => row.status === CommissionStatus.AVAILABLE)).toBe(true);
+    expect(commissions.every((row) => row.status === CommissionStatus.WAIT_SETTLEMENT)).toBe(true);
     expect(direct.directVerifiedSales).toBe(100_000);
     expect(direct.levelId).toBe(honorLevel.id);
 
-    order.status = OrderStatus.REFUNDED;
-    await service.syncOrder(order.id);
-    await service.syncOrder(order.id);
-    expect(commissions.every((row) => row.status === CommissionStatus.REVERSED)).toBe(true);
-    expect((store.get(DistributionDirectSale) as DistributionDirectSale[])[0].status).toBe(
-      DirectSalesStatus.REVERSED
+    const refundedOrder: BizOrder = Object.assign(new BizOrder(), {
+      ...order,
+      id: "101",
+      orderNo: "O101",
+      status: OrderStatus.PAID,
+      verifyTime: null,
+    });
+    store.get(BizOrder)!.push(refundedOrder);
+    await service.syncOrder(refundedOrder.id);
+    refundedOrder.status = OrderStatus.REFUNDED;
+    await service.syncOrder(refundedOrder.id);
+    const refundedCommissions = commissions.filter((row) => row.orderId === refundedOrder.id);
+    expect(refundedCommissions.every((row) => row.status === CommissionStatus.REVERSED)).toBe(true);
+    const refundedSale = (store.get(DistributionDirectSale) as DistributionDirectSale[]).find(
+      (row) => row.orderId === refundedOrder.id
     );
-    expect(direct.directVerifiedSales).toBe(0);
-    expect(direct.levelId).toBe(honorLevel.id);
+    expect(refundedSale?.status).toBe(DirectSalesStatus.REVERSED);
+    expect(direct.directVerifiedSales).toBe(100_000);
   });
 });

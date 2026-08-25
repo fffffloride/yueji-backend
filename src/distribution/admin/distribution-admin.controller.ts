@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from "@
 import { ApiTags } from "@nestjs/swagger";
 
 import { DistributionService } from "../distribution.service";
+import { DistributionSettlementService } from "../distribution-settlement.service";
 import {
   AgentAccountStatusDto,
   AgentAuditDto,
@@ -14,6 +15,11 @@ import {
   DistributionConfigQueryDto,
   DistributionLevelFormDto,
   DistributionStatusDto,
+  SettlementConfigDto,
+  SettlementQueryDto,
+  WithdrawalAuditDto,
+  WithdrawalPaidDto,
+  WithdrawalQueryDto,
 } from "../dto/distribution.dto";
 import { Permissions } from "@/common/decorators/auth.decorator";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
@@ -22,7 +28,10 @@ import { BaseQueryDto } from "@/common/dto/base-query.dto";
 @ApiTags("21.分销管理")
 @Controller("distribution")
 export class DistributionAdminController {
-  constructor(private readonly service: DistributionService) {}
+  constructor(
+    private readonly service: DistributionService,
+    private readonly settlementService: DistributionSettlementService
+  ) {}
 
   @Get("agent-types/page")
   @Permissions("biz:distribution:type:list")
@@ -180,5 +189,58 @@ export class DistributionAdminController {
   @Permissions("biz:distribution:commission:list")
   commissions(@Query() query: CommissionQueryDto) {
     return this.service.commissionPage(query);
+  }
+
+  @Get("settlement/config")
+  @Permissions("biz:distribution:settlement:list")
+  settlementConfig() {
+    return this.settlementService.getConfig();
+  }
+
+  @Put("settlement/config")
+  @Permissions("biz:distribution:settlement:config")
+  updateSettlementConfig(
+    @Body() dto: SettlementConfigDto,
+    @CurrentUser("userId") operatorId: string
+  ) {
+    return this.settlementService.updateConfig(dto, operatorId);
+  }
+
+  @Post("settlements/run-due")
+  @Permissions("biz:distribution:settlement:run")
+  runDueSettlement() {
+    return this.settlementService.runDue();
+  }
+
+  @Get("settlements/page")
+  @Permissions("biz:distribution:settlement:list")
+  settlements(@Query() query: SettlementQueryDto) {
+    return this.settlementService.settlementPage(query);
+  }
+
+  @Get("withdrawals/page")
+  @Permissions("biz:distribution:withdrawal:list")
+  withdrawals(@Query() query: WithdrawalQueryDto) {
+    return this.settlementService.withdrawalPage(query);
+  }
+
+  @Put("withdrawals/:id/audit")
+  @Permissions("biz:distribution:withdrawal:audit")
+  auditWithdrawal(
+    @Param("id") id: string,
+    @Body() dto: WithdrawalAuditDto,
+    @CurrentUser("userId") operatorId: string
+  ) {
+    return this.settlementService.auditWithdrawal(id, dto.status, dto.reason, operatorId);
+  }
+
+  @Put("withdrawals/:id/paid")
+  @Permissions("biz:distribution:withdrawal:paid")
+  paidWithdrawal(
+    @Param("id") id: string,
+    @Body() dto: WithdrawalPaidDto,
+    @CurrentUser("userId") operatorId: string
+  ) {
+    return this.settlementService.markWithdrawalPaid(id, dto.transferNo, dto.remark, operatorId);
   }
 }

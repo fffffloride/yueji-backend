@@ -232,61 +232,6 @@ export class OrderBenefitsService {
     await manager.save(memberCoupon);
   }
 
-  async revokeCompletedOrder(manager: EntityManager, order: BizOrder) {
-    const earnedLog = await manager.findOne(MemberPointsLog, {
-      where: {
-        memberId: order.memberId,
-        bizType: PointsBizType.ORDER_EARN,
-        bizId: order.id,
-        isDeleted: 0,
-      },
-    });
-    const member = await manager.findOne(Member, {
-      where: { id: order.memberId, isDeleted: 0 },
-      lock: { mode: "pessimistic_write" },
-    });
-    if (!member) throw this.userError("会员不存在");
-    if (earnedLog) {
-      const existingRevoke = await manager.findOne(MemberPointsLog, {
-        where: {
-          memberId: order.memberId,
-          bizType: PointsBizType.ORDER_REFUND_REVOKE,
-          bizId: order.id,
-          isDeleted: 0,
-        },
-      });
-      const revoke = existingRevoke
-        ? 0
-        : Math.min(member.points, Math.max(0, earnedLog.changePoints));
-      if (revoke) {
-        member.points -= revoke;
-        await manager.save(
-          manager.create(MemberPointsLog, {
-            memberId: member.id,
-            changePoints: -revoke,
-            balanceAfter: member.points,
-            bizType: PointsBizType.ORDER_REFUND_REVOKE,
-            bizId: order.id,
-            orderId: order.id,
-            remark: `订单 ${order.orderNo} 退款撤销赠送积分`,
-            isDeleted: 0,
-          })
-        );
-      }
-    }
-    member.totalSpent = Math.max(0, member.totalSpent - order.payAmount);
-    const level = await manager.findOne(MemberLevel, {
-      where: {
-        thresholdAmount: LessThanOrEqual(member.totalSpent),
-        status: 1,
-        isDeleted: 0,
-      },
-      order: { thresholdAmount: "DESC", sort: "ASC" },
-    });
-    member.levelId = level?.id ?? null;
-    await manager.save(member);
-  }
-
   async completeOrder(manager: EntityManager, order: BizOrder) {
     const existing = await manager.findOne(MemberPointsLog, {
       where: {

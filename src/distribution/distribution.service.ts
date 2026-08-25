@@ -500,7 +500,10 @@ export class DistributionService implements OnModuleInit {
   async appProfile(memberId: string) {
     const agent = await this.agentRepository.findOne({ where: { memberId, isDeleted: 0 } });
     if (!agent)
-      return { agent: null, commissionSummary: { pending: 0, available: 0, reversed: 0 } };
+      return {
+        agent: null,
+        commissionSummary: { waitingVerify: 0, pendingSettlement: 0, settled: 0, reversed: 0 },
+      };
     const [type, level, summary] = await Promise.all([
       agent.typeId
         ? this.typeRepository.findOne({ where: { id: agent.typeId, isDeleted: 0 } })
@@ -615,7 +618,8 @@ export class DistributionService implements OnModuleInit {
         "c.agentLevelName AS agentLevelName",
         "c.status AS status",
         "c.paidTime AS paidTime",
-        "c.availableTime AS availableTime",
+        "c.pendingSettlementTime AS pendingSettlementTime",
+        "c.settledTime AS settledTime",
         "c.reversedTime AS reversedTime",
       ])
       .orderBy("c.id", "DESC")
@@ -776,7 +780,7 @@ export class DistributionService implements OnModuleInit {
       commissionAmount: amount,
       agentLevelId: level.id,
       agentLevelName: level.name,
-      status: CommissionStatus.PENDING,
+      status: CommissionStatus.WAIT_VERIFY,
       paidTime,
       isDeleted: 0,
     });
@@ -802,11 +806,11 @@ export class DistributionService implements OnModuleInit {
       }
     }
     const commissions = await manager.find(DistributionCommission, {
-      where: { orderId: order.id, status: CommissionStatus.PENDING, isDeleted: 0 },
+      where: { orderId: order.id, status: CommissionStatus.WAIT_VERIFY, isDeleted: 0 },
     });
     for (const row of commissions) {
-      row.status = CommissionStatus.AVAILABLE;
-      row.availableTime = now;
+      row.status = CommissionStatus.WAIT_SETTLEMENT;
+      row.pendingSettlementTime = now;
     }
     if (commissions.length) await manager.save(commissions);
   }
@@ -817,23 +821,13 @@ export class DistributionService implements OnModuleInit {
       where: { orderId: order.id, isDeleted: 0 },
       lock: { mode: "pessimistic_write" },
     });
-    if (sale && sale.status !== DirectSalesStatus.REVERSED) {
-      if (sale.status === DirectSalesStatus.APPLIED) {
-        const agent = await manager.findOne(DistributionAgent, {
-          where: { id: sale.agentId, isDeleted: 0 },
-          lock: { mode: "pessimistic_write" },
-        });
-        if (agent) {
-          agent.directVerifiedSales = Math.max(0, agent.directVerifiedSales - sale.amount);
-          await manager.save(agent);
-        }
-      }
+    if (sale?.status === DirectSalesStatus.PENDING) {
       sale.status = DirectSalesStatus.REVERSED;
       sale.reversedTime = now;
       await manager.save(sale);
     }
     const commissions = await manager.find(DistributionCommission, {
-      where: { orderId: order.id, status: Not(CommissionStatus.REVERSED), isDeleted: 0 },
+      where: { orderId: order.id, status: CommissionStatus.WAIT_VERIFY, isDeleted: 0 },
     });
     for (const row of commissions) {
       row.status = CommissionStatus.REVERSED;
@@ -873,12 +867,14 @@ export class DistributionService implements OnModuleInit {
       .where("c.beneficiaryAgentId = :agentId AND c.isDeleted = 0", { agentId })
       .groupBy("c.status")
       .getRawMany();
-    const summary = { pending: 0, available: 0, reversed: 0 };
+    const summary = { waitingVerify: 0, pendingSettlement: 0, settled: 0, reversed: 0 };
     for (const row of rows) {
       const amount = Number(row.amount);
-      if (Number(row.status) === CommissionStatus.PENDING) summary.pending = amount;
-      if (Number(row.status) === CommissionStatus.AVAILABLE) summary.available = amount;
+      if (Number(row.status) === CommissionStatus.WAIT_VERIFY) summary.waitingVerify = amount;
+      if (Number(row.status) === CommissionStatus.WAIT_SETTLEMENT)
+        summary.pendingSettlement = amount;
       if (Number(row.status) === CommissionStatus.REVERSED) summary.reversed = amount;
+      if (Number(row.status) === CommissionStatus.SETTLED) summary.settled = amount;
     }
     return summary;
   }

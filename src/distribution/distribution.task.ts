@@ -2,12 +2,16 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Interval } from "@nestjs/schedule";
 
 import { DistributionService } from "./distribution.service";
+import { DistributionSettlementService } from "./distribution-settlement.service";
 
 @Injectable()
 export class DistributionTask {
   private readonly logger = new Logger(DistributionTask.name);
 
-  constructor(private readonly service: DistributionService) {}
+  constructor(
+    private readonly service: DistributionService,
+    private readonly settlementService: DistributionSettlementService
+  ) {}
 
   @Interval(60_000)
   async reconcile() {
@@ -18,6 +22,11 @@ export class DistributionTask {
       } catch (error) {
         this.logger.warn(`补偿分销订单失败 orderId=${id}: ${String(error)}`);
       }
+    }
+    try {
+      await this.settlementService.runDue();
+    } catch (error) {
+      this.logger.warn(`执行分销结算失败: ${String(error)}`);
     }
   }
 }

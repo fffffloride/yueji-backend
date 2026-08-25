@@ -1,6 +1,6 @@
 -- 悦己 DLumière 本地测试环境业务数据
--- 警告：会清空阶段 1–8B 的业务表；保留全部 sys_* 系统表。
--- 依赖：MySQL 8，已执行 biz_p0.sql、biz_phase4.sql、biz_phase5.sql、biz_phase6.sql、biz_phase7.sql、biz_phase8_distribution.sql。
+-- 警告：会清空阶段 1–8C 的业务表；保留全部 sys_* 系统表。
+-- 依赖：MySQL 8，已执行 biz_p0.sql、biz_phase4.sql、biz_phase5.sql、biz_phase6.sql、biz_phase7.sql、biz_phase8_distribution.sql、biz_phase8c_settlement.sql。
 
 USE youlai_admin;
 SET NAMES utf8mb4;
@@ -28,6 +28,9 @@ CREATE TEMPORARY TABLE `_seed_guard` (
 START TRANSACTION;
 
 DELETE FROM `distribution_agent_log`;
+DELETE FROM `distribution_withdrawal`;
+DELETE FROM `distribution_settlement`;
+DELETE FROM `distribution_settlement_config`;
 DELETE FROM `distribution_commission`;
 DELETE FROM `distribution_direct_sales`;
 DELETE FROM `distribution_referral`;
@@ -132,6 +135,10 @@ VALUES
   (1,'总店',1,0,1,1000,0,1,1,NOW(),NOW(),0),
   (2,'合伙人',2,5000000,2,1200,500,1,2,NOW(),NOW(),0),
   (3,'荣誉股东',3,10000000,2,1500,800,1,3,NOW(),NOW(),0);
+
+INSERT INTO `distribution_settlement_config`
+  (`id`,`cycle_type`,`settlement_day`,`withdrawal_mode`,`single_limit_amount`,`create_time`,`update_time`,`is_deleted`)
+VALUES (1,'MONTH',1,'APPLY',1000000,NOW(),NOW(),0);
 
 INSERT INTO `distribution_agent`
   (`id`,`member_id`,`real_name`,`mobile`,`wechat`,`contact_remark`,`type_id`,`level_id`,`parent_agent_id`,`invite_code`,
@@ -622,24 +629,40 @@ SET a.direct_verified_sales=COALESCE(s.amount,0);
 
 INSERT INTO `distribution_commission`
   (`id`,`order_id`,`order_no`,`buyer_member_id`,`beneficiary_agent_id`,`source_agent_id`,`depth`,`base_amount`,`rate_bps`,`commission_amount`,
-   `agent_level_id`,`agent_level_name`,`status`,`paid_time`,`available_time`,`reversed_time`,`create_time`,`update_time`,`is_deleted`)
-SELECT 1,o.id,o.order_no,o.member_id,3,3,1,o.pay_amount,800,FLOOR(o.pay_amount*800/10000),1,'总店',0,COALESCE(o.pay_time,o.create_time),NULL,NULL,NOW(),NOW(),0
+   `agent_level_id`,`agent_level_name`,`status`,`paid_time`,`pending_settlement_time`,`settlement_id`,`settled_time`,`reversed_time`,`create_time`,`update_time`,`is_deleted`)
+SELECT 1,o.id,o.order_no,o.member_id,3,3,1,o.pay_amount,800,FLOOR(o.pay_amount*800/10000),1,'总店',0,COALESCE(o.pay_time,o.create_time),NULL,NULL,NULL,NULL,NOW(),NOW(),0
 FROM `biz_order` o WHERE o.member_id=4 ORDER BY o.id LIMIT 1;
 INSERT INTO `distribution_commission`
   (`id`,`order_id`,`order_no`,`buyer_member_id`,`beneficiary_agent_id`,`source_agent_id`,`depth`,`base_amount`,`rate_bps`,`commission_amount`,
-   `agent_level_id`,`agent_level_name`,`status`,`paid_time`,`available_time`,`reversed_time`,`create_time`,`update_time`,`is_deleted`)
-SELECT 2,o.id,o.order_no,o.member_id,2,3,2,o.pay_amount,500,FLOOR(o.pay_amount*500/10000),2,'合伙人',0,COALESCE(o.pay_time,o.create_time),NULL,NULL,NOW(),NOW(),0
+   `agent_level_id`,`agent_level_name`,`status`,`paid_time`,`pending_settlement_time`,`settlement_id`,`settled_time`,`reversed_time`,`create_time`,`update_time`,`is_deleted`)
+SELECT 2,o.id,o.order_no,o.member_id,2,3,2,o.pay_amount,500,FLOOR(o.pay_amount*500/10000),2,'合伙人',1,COALESCE(o.pay_time,o.create_time),DATE_SUB(NOW(),INTERVAL 10 DAY),NULL,NULL,NULL,NOW(),NOW(),0
 FROM `biz_order` o WHERE o.member_id=4 ORDER BY o.id LIMIT 1;
 INSERT INTO `distribution_commission`
   (`id`,`order_id`,`order_no`,`buyer_member_id`,`beneficiary_agent_id`,`source_agent_id`,`depth`,`base_amount`,`rate_bps`,`commission_amount`,
-   `agent_level_id`,`agent_level_name`,`status`,`paid_time`,`available_time`,`reversed_time`,`create_time`,`update_time`,`is_deleted`)
-SELECT 3,o.id,o.order_no,o.member_id,2,2,1,o.pay_amount,1200,FLOOR(o.pay_amount*1200/10000),2,'合伙人',1,COALESCE(o.pay_time,o.create_time),COALESCE(o.verify_time,o.update_time),NULL,NOW(),NOW(),0
+   `agent_level_id`,`agent_level_name`,`status`,`paid_time`,`pending_settlement_time`,`settlement_id`,`settled_time`,`reversed_time`,`create_time`,`update_time`,`is_deleted`)
+SELECT 3,o.id,o.order_no,o.member_id,2,2,1,o.pay_amount,1200,FLOOR(o.pay_amount*1200/10000),2,'合伙人',3,COALESCE(o.pay_time,o.create_time),DATE_SUB(NOW(),INTERVAL 40 DAY),1,DATE_SUB(NOW(),INTERVAL 1 DAY),NULL,NOW(),NOW(),0
 FROM `biz_order` o WHERE o.member_id=5 ORDER BY o.id LIMIT 1;
 INSERT INTO `distribution_commission`
   (`id`,`order_id`,`order_no`,`buyer_member_id`,`beneficiary_agent_id`,`source_agent_id`,`depth`,`base_amount`,`rate_bps`,`commission_amount`,
-   `agent_level_id`,`agent_level_name`,`status`,`paid_time`,`available_time`,`reversed_time`,`create_time`,`update_time`,`is_deleted`)
-SELECT 4,o.id,o.order_no,o.member_id,1,1,1,o.pay_amount,1500,FLOOR(o.pay_amount*1500/10000),3,'荣誉股东',2,COALESCE(o.pay_time,o.create_time),COALESCE(o.verify_time,o.update_time),NOW(),NOW(),NOW(),0
+   `agent_level_id`,`agent_level_name`,`status`,`paid_time`,`pending_settlement_time`,`settlement_id`,`settled_time`,`reversed_time`,`create_time`,`update_time`,`is_deleted`)
+SELECT 4,o.id,o.order_no,o.member_id,1,1,1,o.pay_amount,1500,FLOOR(o.pay_amount*1500/10000),3,'荣誉股东',2,COALESCE(o.pay_time,o.create_time),NULL,NULL,NULL,NOW(),NOW(),NOW(),0
 FROM `biz_order` o WHERE o.member_id=6 ORDER BY o.id LIMIT 1;
+
+INSERT INTO `distribution_settlement`
+  (`id`,`settlement_no`,`agent_id`,`profit_point`,`period_start`,`period_end`,`commission_count`,`amount`,`settled_time`,`create_time`,`update_time`,`is_deleted`)
+SELECT 1,'SETTLEMENT-SEED-0001',2,'PRODUCT_SALES',DATE_FORMAT(DATE_SUB(NOW(),INTERVAL 1 MONTH),'%Y-%m-01'),
+       LAST_DAY(DATE_SUB(NOW(),INTERVAL 1 MONTH)),1,commission_amount,DATE_SUB(NOW(),INTERVAL 1 DAY),NOW(),NOW(),0
+FROM `distribution_commission` WHERE id=3;
+
+INSERT INTO `distribution_withdrawal`
+  (`id`,`withdrawal_no`,`agent_id`,`member_id`,`source_mode`,`amount`,`openid_snapshot`,`status`,
+   `review_by`,`review_time`,`review_reason`,`transfer_no`,`paid_by`,`paid_time`,`paid_remark`,`auto_period_end`,`create_time`,`update_time`,`is_deleted`)
+SELECT s.n,CONCAT('WITHDRAW-SEED-',LPAD(s.n,4,'0')),2,2,'APPLY',GREATEST(1,FLOOR(c.commission_amount/10)),m.openid,s.n-1,
+       IF(s.n=1,NULL,1),IF(s.n=1,NULL,NOW()),IF(s.n=1,NULL,IF(s.n=3,'资料不完整','审核通过')),
+       IF(s.n=4,'MOCK-TRANSFER-0001',NULL),IF(s.n=4,1,NULL),IF(s.n=4,NOW(),NULL),IF(s.n=4,'人工打款',NULL),NULL,NOW(),NOW(),0
+FROM (SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4) s
+JOIN `distribution_commission` c ON c.id=3
+JOIN `member` m ON m.id=2;
 
 INSERT INTO `distribution_agent_log`
   (`id`,`agent_id`,`action`,`before_value`,`after_value`,`reason`,`operator_id`,`create_time`,`update_time`,`is_deleted`)
@@ -681,6 +704,9 @@ SELECT
   (SELECT COUNT(*) <> 3 FROM `distribution_referral`) +
   (SELECT COUNT(*) <> 3 FROM `distribution_direct_sales`) +
   (SELECT COUNT(*) <> 4 FROM `distribution_commission`) +
+  (SELECT COUNT(*) <> 1 FROM `distribution_settlement_config`) +
+  (SELECT COUNT(*) <> 1 FROM `distribution_settlement`) +
+  (SELECT COUNT(*) <> 4 FROM `distribution_withdrawal`) +
   (SELECT COUNT(*) <> 3 FROM `distribution_agent_log`) +
   (SELECT COUNT(*) <> 90 FROM `appointment`) +
   (SELECT COUNT(*) <> 4 FROM `member_level`) +
@@ -727,6 +753,8 @@ SELECT
   (SELECT COUNT(*) FROM `distribution_referral` r LEFT JOIN `member` m ON m.id=r.member_id LEFT JOIN `distribution_agent` a ON a.id=r.referrer_agent_id WHERE m.id IS NULL OR a.id IS NULL) +
   (SELECT COUNT(*) FROM `distribution_direct_sales` s LEFT JOIN `biz_order` o ON o.id=s.order_id LEFT JOIN `distribution_agent` a ON a.id=s.agent_id WHERE o.id IS NULL OR a.id IS NULL) +
   (SELECT COUNT(*) FROM `distribution_commission` c LEFT JOIN `biz_order` o ON o.id=c.order_id LEFT JOIN `distribution_agent` a ON a.id=c.beneficiary_agent_id WHERE o.id IS NULL OR a.id IS NULL) +
+  (SELECT COUNT(*) FROM `distribution_settlement` s LEFT JOIN `distribution_agent` a ON a.id=s.agent_id WHERE a.id IS NULL) +
+  (SELECT COUNT(*) FROM `distribution_withdrawal` w LEFT JOIN `distribution_agent` a ON a.id=w.agent_id LEFT JOIN `member` m ON m.id=w.member_id WHERE a.id IS NULL OR m.id IS NULL) +
   (SELECT COUNT(*) FROM `biz_payment` p LEFT JOIN `biz_order` o ON o.id = p.order_id WHERE o.id IS NULL) +
   (SELECT COUNT(*) FROM `biz_refund` r LEFT JOIN `biz_payment` p ON p.id = r.payment_id LEFT JOIN `biz_order` o ON o.id = r.order_id LEFT JOIN `member` m ON m.id = r.member_id WHERE p.id IS NULL OR o.id IS NULL OR m.id IS NULL) +
   (SELECT COUNT(*) FROM `member_points_log` l LEFT JOIN `member` m ON m.id = l.member_id LEFT JOIN `biz_order` o ON o.id = l.order_id WHERE m.id IS NULL OR (l.order_id IS NOT NULL AND o.id IS NULL)) +
@@ -743,6 +771,8 @@ UNION ALL SELECT 'group_buy_activity', COUNT(*) FROM `group_buy_activity`
 UNION ALL SELECT 'group_buy_group', COUNT(*) FROM `group_buy_group`
 UNION ALL SELECT 'distribution_agent', COUNT(*) FROM `distribution_agent`
 UNION ALL SELECT 'distribution_commission', COUNT(*) FROM `distribution_commission`
+UNION ALL SELECT 'distribution_settlement', COUNT(*) FROM `distribution_settlement`
+UNION ALL SELECT 'distribution_withdrawal', COUNT(*) FROM `distribution_withdrawal`
 UNION ALL SELECT 'appointment', COUNT(*) FROM `appointment`
 UNION ALL SELECT 'product', COUNT(*) FROM `product`
 UNION ALL SELECT 'product_sku', COUNT(*) FROM `product_sku`

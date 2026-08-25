@@ -171,8 +171,8 @@ export class PaymentService {
       }
 
       const order = await this.orderService.lockForPayment(manager, payment.orderId);
-      if (order.status !== OrderStatus.PAID && order.status !== OrderStatus.COMPLETED) {
-        throw this.userError("仅已付款或已完成订单可退款");
+      if (order.status !== OrderStatus.PAID) {
+        throw this.userError("仅已付款待核销订单可退款");
       }
 
       const refund =

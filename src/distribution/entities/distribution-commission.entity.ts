@@ -40,14 +40,25 @@ export class DistributionCommission extends BaseEntity {
   @Column({ name: "agent_level_name", length: 64, nullable: true, comment: "代理等级快照名称" })
   agentLevelName?: string | null;
 
-  @Column({ type: "tinyint", default: 0, comment: "状态(0-待结算 1-可提现 2-已冲销)" })
+  @Column({ type: "tinyint", default: 0, comment: "状态(0-待核销 1-待结算 2-已冲销 3-已结算)" })
   status: number;
 
   @Column({ name: "paid_time", type: "datetime", comment: "支付时间" })
   paidTime: Date;
 
-  @Column({ name: "available_time", type: "datetime", nullable: true, comment: "可提现时间" })
-  availableTime?: Date | null;
+  @Column({
+    name: "pending_settlement_time",
+    type: "datetime",
+    nullable: true,
+    comment: "进入待结算时间",
+  })
+  pendingSettlementTime?: Date | null;
+
+  @Column({ name: "settlement_id", type: "bigint", nullable: true, comment: "结算单ID" })
+  settlementId?: string | null;
+
+  @Column({ name: "settled_time", type: "datetime", nullable: true, comment: "结算时间" })
+  settledTime?: Date | null;
 
   @Column({ name: "reversed_time", type: "datetime", nullable: true, comment: "冲销时间" })
   reversedTime?: Date | null;

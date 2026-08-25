@@ -4,6 +4,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { DistributionAdminController } from "./admin/distribution-admin.controller";
 import { DistributionAppController } from "./app/distribution-app.controller";
 import { DistributionService } from "./distribution.service";
+import { DistributionSettlementService } from "./distribution-settlement.service";
 import { DistributionTask } from "./distribution.task";
 import { DistributionAgentType } from "./entities/agent-type.entity";
 import { DistributionAgentLog } from "./entities/distribution-agent-log.entity";
@@ -12,6 +13,9 @@ import { DistributionCommission } from "./entities/distribution-commission.entit
 import { DistributionDirectSale } from "./entities/distribution-direct-sale.entity";
 import { DistributionLevel } from "./entities/distribution-level.entity";
 import { DistributionReferral } from "./entities/distribution-referral.entity";
+import { DistributionSettlementConfig } from "./entities/distribution-settlement-config.entity";
+import { DistributionSettlement } from "./entities/distribution-settlement.entity";
+import { DistributionWithdrawal } from "./entities/distribution-withdrawal.entity";
 import { Member } from "@/member/entities/member.entity";
 import { BizOrder } from "@/order/entities/order.entity";
 import { OrderModule } from "@/order/order.module";
@@ -26,13 +30,16 @@ import { OrderModule } from "@/order/order.module";
       DistributionCommission,
       DistributionDirectSale,
       DistributionAgentLog,
+      DistributionSettlementConfig,
+      DistributionSettlement,
+      DistributionWithdrawal,
       Member,
       BizOrder,
     ]),
     OrderModule,
   ],
   controllers: [DistributionAdminController, DistributionAppController],
-  providers: [DistributionService, DistributionTask],
-  exports: [DistributionService],
+  providers: [DistributionService, DistributionSettlementService, DistributionTask],
+  exports: [DistributionService, DistributionSettlementService],
 })
 export class DistributionModule {}
