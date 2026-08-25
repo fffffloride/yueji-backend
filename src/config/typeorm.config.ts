@@ -4,9 +4,7 @@ export default registerAs("typeorm", () => {
   const required = (envKey: string, label: string) => {
     const value = process.env[envKey];
     if (!value) {
-      throw new Error(
-        `[TypeORM Config] 环境变量 ${envKey}(${label}) 未配置，请检查 .env 文件`
-      );
+      throw new Error(`[TypeORM Config] 环境变量 ${envKey}(${label}) 未配置，请检查 .env 文件`);
     }
     return value;
   };
@@ -21,6 +19,7 @@ export default registerAs("typeorm", () => {
     autoLoadEntities: true,
     supportBigNumbers: true,
     bigNumberStrings: true,
+    timezone: "+08:00",
     synchronize: false,
     logging: process.env.TYPEORM_LOGGING === "false" ? false : true,
   };
