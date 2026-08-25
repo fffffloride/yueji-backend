@@ -263,7 +263,7 @@ export class DashboardService {
         FROM biz_refund
         WHERE is_deleted = 0 AND (status = 2 OR (status = 0 AND create_time <= ?))
       ) todos
-      ORDER BY occurredAt ASC
+      ORDER BY occurredAt DESC
       LIMIT 5`,
       [timeoutBefore]
     );
