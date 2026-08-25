@@ -1,6 +1,21 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from "@nestjs/common";
-import { ApiTags } from "@nestjs/swagger";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Res,
+  SetMetadata,
+} from "@nestjs/common";
+import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import type { Response as ExpressResponse } from "express";
+import * as XLSX from "xlsx";
 
+import { DistributionAnalyticsService } from "../distribution-analytics.service";
 import { DistributionService } from "../distribution.service";
 import { DistributionSettlementService } from "../distribution-settlement.service";
 import { DistributionTaskService } from "../distribution-task.service";
@@ -13,6 +28,8 @@ import {
   AgentRateAdjustDto,
   AgentTypeFormDto,
   CommissionQueryDto,
+  DistributionAgentAnalyticsQueryDto,
+  DistributionAnalyticsQueryDto,
   DistributionConfigQueryDto,
   DistributionLevelFormDto,
   DistributionStatusDto,
@@ -34,6 +51,7 @@ import { BaseQueryDto } from "@/common/dto/base-query.dto";
 export class DistributionAdminController {
   constructor(
     private readonly service: DistributionService,
+    private readonly analyticsService: DistributionAnalyticsService,
     private readonly settlementService: DistributionSettlementService,
     private readonly taskService: DistributionTaskService
   ) {}
@@ -247,6 +265,101 @@ export class DistributionAdminController {
     @CurrentUser("userId") operatorId: string
   ) {
     return this.settlementService.markWithdrawalPaid(id, dto.transferNo, dto.remark, operatorId);
+  }
+
+  @Get("analytics/overview")
+  @Permissions("biz:distribution:analytics:list")
+  analyticsOverview(@Query() query: DistributionAnalyticsQueryDto) {
+    return this.analyticsService.overview(query);
+  }
+
+  @Get("analytics/agents/page")
+  @Permissions("biz:distribution:analytics:list")
+  analyticsAgents(@Query() query: DistributionAgentAnalyticsQueryDto) {
+    return this.analyticsService.agentPage(query);
+  }
+
+  @Get("analytics/agents/:agentId")
+  @Permissions("biz:distribution:analytics:list")
+  analyticsAgent(@Param("agentId") agentId: string, @Query() query: DistributionAnalyticsQueryDto) {
+    return this.analyticsService.agentDetail(agentId, query);
+  }
+
+  @Get("analytics/export")
+  @Permissions("biz:distribution:analytics:export")
+  @SetMetadata("skipResponseTransform", true)
+  @ApiOperation({ summary: "导出销售统计" })
+  async exportAnalytics(
+    @Query() query: DistributionAnalyticsQueryDto,
+    @Res() res: ExpressResponse
+  ) {
+    const { range, overview, agents } = await this.analyticsService.exportReport(query);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ["统计周期", "全系统销售额(元)", "已核销订单数", "分销直属销售额(元)"],
+        ...overview.trend.map((row) => [
+          row.period,
+          row.totalSalesAmount / 100,
+          row.verifiedOrderCount,
+          row.distributionSalesAmount / 100,
+        ]),
+      ]),
+      "销售趋势"
+    );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        [
+          "排名",
+          "代理ID",
+          "姓名",
+          "手机号",
+          "当前等级",
+          "账号状态",
+          "直属销售额(元)",
+          "订单数",
+          "客户数",
+        ],
+        ...agents.map((row, index) => [
+          index + 1,
+          row.agentId,
+          row.realName,
+          row.mobile,
+          row.levelName,
+          row.status === 1 ? "已审核" : "已禁用",
+          row.salesAmount / 100,
+          row.orderCount,
+          row.customerCount,
+        ]),
+      ]),
+      "代理业绩"
+    );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ["等级", "已审核人数", "已禁用人数", "总人数", "直属销售额(元)", "订单数", "客户数"],
+        ...overview.levels.map((row) => [
+          row.levelName,
+          row.approvedAgentCount,
+          row.disabledAgentCount,
+          row.agentCount,
+          row.salesAmount / 100,
+          row.orderCount,
+          row.customerCount,
+        ]),
+      ]),
+      "层级统计"
+    );
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    const fileName = `销售统计_${range.startDate}_${range.endDate}.xlsx`;
+    res.setHeader("Content-Disposition", `attachment; filename=${encodeURIComponent(fileName)}`);
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.send(buffer);
   }
 
   @Get("tasks/page")

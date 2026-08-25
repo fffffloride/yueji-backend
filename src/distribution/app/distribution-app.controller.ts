@@ -1,12 +1,14 @@
 import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 
+import { DistributionAnalyticsService } from "../distribution-analytics.service";
 import { DistributionService } from "../distribution.service";
 import { DistributionSettlementService } from "../distribution-settlement.service";
 import { DistributionTaskService } from "../distribution-task.service";
 import {
   AgentApplicationDto,
   CommissionQueryDto,
+  DistributionAnalyticsQueryDto,
   DistributionAppTaskQueryDto,
   ReferralBindDto,
   WithdrawalApplyDto,
@@ -22,6 +24,7 @@ import type { CurrentMemberInfo } from "@/common/interfaces/current-member.inter
 export class DistributionAppController {
   constructor(
     private readonly service: DistributionService,
+    private readonly analyticsService: DistributionAnalyticsService,
     private readonly settlementService: DistributionSettlementService,
     private readonly taskService: DistributionTaskService
   ) {}
@@ -64,6 +67,14 @@ export class DistributionAppController {
   @Get("withdrawals/page")
   withdrawals(@CurrentMember() member: CurrentMemberInfo, @Query() query: WithdrawalQueryDto) {
     return this.settlementService.withdrawalPage(query, member.memberId);
+  }
+
+  @Get("analytics/overview")
+  analytics(
+    @CurrentMember() member: CurrentMemberInfo,
+    @Query() query: DistributionAnalyticsQueryDto
+  ) {
+    return this.analyticsService.appOverview(member.memberId, query);
   }
 
   @Get("tasks/page")

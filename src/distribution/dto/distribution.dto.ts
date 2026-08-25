@@ -9,6 +9,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -549,4 +550,38 @@ export class DistributionAppTaskQueryDto extends BaseQueryDto {
   @IsInt()
   @IsIn([0, 1])
   completed?: number;
+}
+
+export class DistributionAnalyticsQueryDto {
+  @ApiProperty({ required: false, example: "2026-08-01" })
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  startDate?: string;
+
+  @ApiProperty({ required: false, example: "2026-08-31" })
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  endDate?: string;
+}
+
+export class DistributionAgentAnalyticsQueryDto extends BaseQueryDto {
+  @ApiProperty({ required: false, example: "2026-08-01" })
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  startDate?: string;
+
+  @ApiProperty({ required: false, example: "2026-08-31" })
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  endDate?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  keywords?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  levelId?: string;
 }

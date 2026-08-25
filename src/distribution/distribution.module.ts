@@ -3,6 +3,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 
 import { DistributionAdminController } from "./admin/distribution-admin.controller";
 import { DistributionAppController } from "./app/distribution-app.controller";
+import { DistributionAnalyticsService } from "./distribution-analytics.service";
 import { DistributionService } from "./distribution.service";
 import { DistributionSettlementService } from "./distribution-settlement.service";
 import { DistributionTaskService } from "./distribution-task.service";
@@ -46,6 +47,7 @@ import { OrderModule } from "@/order/order.module";
   controllers: [DistributionAdminController, DistributionAppController],
   providers: [
     DistributionService,
+    DistributionAnalyticsService,
     DistributionSettlementService,
     DistributionTaskService,
     DistributionTask,

@@ -1,6 +1,7 @@
 -- 悦己 DLumière 本地测试环境业务数据
--- 警告：会清空阶段 1–8D 的业务表；保留全部 sys_* 系统表。
--- 依赖：MySQL 8，已执行 biz_p0.sql、biz_phase4.sql、biz_phase5.sql、biz_phase6.sql、biz_phase7.sql、biz_phase8_distribution.sql、biz_phase8c_settlement.sql、biz_phase8d_distribution_task.sql。
+-- 警告：会清空阶段 1–8E 的业务表；保留全部 sys_* 系统表。
+-- 依赖：MySQL 8，已执行 biz_p0.sql、biz_phase4.sql、biz_phase5.sql、biz_phase6.sql、biz_phase7.sql、biz_phase8_distribution.sql、biz_phase8c_settlement.sql、biz_phase8d_distribution_task.sql、biz_phase8e_sales_analytics.sql。
+-- 阶段8E直接复用下方跨90天订单、少量直属业绩和多等级代理，不增加统计汇总数据。
 
 USE youlai_admin;
 SET NAMES utf8mb4;
