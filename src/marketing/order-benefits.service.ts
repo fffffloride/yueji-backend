@@ -135,6 +135,7 @@ export class OrderBenefitsService {
       couponName: string | null;
       couponType: CouponType | null;
       couponAmount: number;
+      thresholdAmount: number;
       validEnd: Date | null;
     }> = [];
     for (const row of rows) {
@@ -147,6 +148,7 @@ export class OrderBenefitsService {
           couponName: quote.couponName,
           couponType: quote.couponType,
           couponAmount: quote.couponAmount,
+          thresholdAmount: coupon?.thresholdAmount ?? 0,
           validEnd: coupon?.validEnd ?? null,
         });
       } catch {
