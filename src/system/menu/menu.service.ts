@@ -82,11 +82,11 @@ export class MenuService {
     if (userId === "1") {
       // 后端路由用于前端注册，不仅决定侧边栏显示；因此这里会包含 visible=0 的隐藏菜单
       const menuList = await this.menuRepository.find({
-      where: { type: Not("B") },
-      order: { sort: "ASC" },
-    });
-    return this.buildRoutes(menuList);
-  }
+        where: { type: Not("B") },
+        order: { sort: "ASC" },
+      });
+      return this.buildRoutes(menuList);
+    }
 
     // 其他用户返回其角色对应的菜单
     const menuIds = await this.userService.getUserMenuIds(userId);
@@ -163,7 +163,6 @@ export class MenuService {
     const { type, routePath, parentId } = createMenuDto;
 
     const isExternal = type === "E";
-    const isEmbedded = isExternal && createMenuDto.component === "iframe";
 
     let component = createMenuDto.component;
     if (type === "C") {
@@ -171,13 +170,12 @@ export class MenuService {
         createMenuDto.routePath = "/" + routePath;
       }
       component = "Layout";
-    } else if (isExternal && !isEmbedded) {
+    } else if (isExternal) {
       component = null;
     }
 
-    // 菜单(M)和内嵌外链(E+iframe)需要路由名称唯一
-    const needsRouteName = type === "M" || isEmbedded;
-    if (needsRouteName) {
+    // 页面菜单需要唯一的路由名称。
+    if (type === "M") {
       const existing = await this.menuRepository.findOne({
         where: { routeName: createMenuDto.routeName },
       });
@@ -185,7 +183,7 @@ export class MenuService {
         throw new Error("路由名称已存在");
       }
     } else {
-      // C 类型（目录）、E 类型（外链非 iframe）不需要 routeName，清空
+      // 目录、外链和按钮不需要路由名称。
       createMenuDto.routeName = null;
     }
 
@@ -265,7 +263,6 @@ export class MenuService {
     const { type, routePath, parentId } = updateMenuDto;
 
     const isExternal = type === "E";
-    const isEmbedded = isExternal && updateMenuDto.component === "iframe";
 
     let component = updateMenuDto.component ?? menu.component;
     if (type === "C") {
@@ -273,7 +270,7 @@ export class MenuService {
         updateMenuDto.routePath = "/" + routePath;
       }
       component = "Layout";
-    } else if (isExternal && !isEmbedded) {
+    } else if (isExternal) {
       component = null;
     }
 
@@ -293,13 +290,12 @@ export class MenuService {
 
     // clearable 字段未传时置为 null
     const dto: Record<string, any> = { ...updateMenuDto };
-    for (const field of ['icon', 'redirect', 'perm', 'externalUrl']) {
+    for (const field of ["icon", "redirect", "perm", "externalUrl"]) {
       if (dto[field] === undefined) dto[field] = null;
     }
 
-    // 菜单(M)和内嵌外链(E+iframe)需要路由名称唯一
-    const needsRouteName = type === "M" || isEmbedded;
-    if (needsRouteName) {
+    // 页面菜单需要唯一的路由名称。
+    if (type === "M") {
       const existing = await this.menuRepository.findOne({
         where: { routeName: dto.routeName },
       });
@@ -307,7 +303,7 @@ export class MenuService {
         throw new Error("路由名称已存在");
       }
     } else {
-      // C 类型（目录）、E 类型（外链非 iframe）不需要 routeName，强制清空
+      // 目录、外链和按钮不需要路由名称。
       dto.routeName = null;
     }
 
@@ -443,23 +439,19 @@ export class MenuService {
     menus.forEach((menu) => {
       if (menu.parentId === parentId) {
         const isExternal = menu.type === "E";
-        const isEmbedded = isExternal && menu.component === "iframe";
-        const routePath = isExternal && !isEmbedded && menu.externalUrl
-          ? menu.externalUrl
-          : (menu.routePath || "");
+        const routePath = isExternal && menu.externalUrl ? menu.externalUrl : menu.routePath || "";
 
         const route: Route = {
           path: routePath,
-          component: isEmbedded ? "iframe" : (isExternal ? null : menu.component || ""),
-          name: isExternal ? (menu.routeName || "") : (menu.routeName || ""),
+          component: isExternal ? null : menu.component || "",
+          name: menu.routeName || "",
           meta: {
             title: menu.name,
             icon: menu.icon || "",
             hidden: menu.visible === 0,
-            keepAlive: (menu.type === "M" || isEmbedded) ? menu.keepAlive === 1 : false,
+            keepAlive: menu.type === "M" ? menu.keepAlive === 1 : false,
             alwaysShow: menu.alwaysShow === 1,
             params: this.parseMenuParams(menu.params),
-            externalUrl: isEmbedded && menu.externalUrl ? menu.externalUrl : "",
           },
           children: this.buildRoutes(menus, menu.id),
         };
@@ -493,5 +485,4 @@ export class MenuService {
 
     return {};
   }
-
 }

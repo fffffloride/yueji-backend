@@ -44,3 +44,5 @@ lerna-debug.log*
 # Docker 数据目录
 docker/*/data
 docker/*/config
+
+.superpowers/

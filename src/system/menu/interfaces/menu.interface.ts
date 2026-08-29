@@ -28,7 +28,6 @@ export interface Route {
     alwaysShow: boolean;
     keepAlive: boolean;
     params: Record<string, string> | null;
-    externalUrl: string;
   };
   children?: Route[];
 }
