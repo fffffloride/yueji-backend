@@ -1,7 +1,23 @@
-import { Column, Entity } from "typeorm";
+import { Check, Column, Entity, Index } from "typeorm";
 import { BaseEntity } from "@/common/entities/base.entity";
 
 @Entity("member")
+@Index("uk_openid", ["openid"], { unique: true })
+@Index("uk_member_unionid", ["unionid"], { unique: true })
+@Index("uk_member_mobile", ["mobile"], { unique: true })
+@Index("idx_member_nickname", ["nickname"])
+@Index("idx_member_active_created", ["isDeleted", "createTime", "id"])
+@Index("idx_member_active_status_created", ["isDeleted", "status", "createTime", "id"])
+@Index("idx_member_level_id", ["levelId"])
+@Check("chk_member_openid_not_blank", "CHAR_LENGTH(TRIM(`openid`)) > 0")
+@Check("chk_member_unionid_not_blank", "`unionid` IS NULL OR CHAR_LENGTH(TRIM(`unionid`)) > 0")
+@Check("chk_member_mobile_not_blank", "`mobile` IS NULL OR CHAR_LENGTH(TRIM(`mobile`)) > 0")
+@Check("chk_member_nickname_not_blank", "CHAR_LENGTH(TRIM(`nickname`)) > 0")
+@Check("chk_member_gender", "`gender` IN (0, 1, 2)")
+@Check("chk_member_status", "`status` IN (0, 1)")
+@Check("chk_member_points", "`points` >= 0")
+@Check("chk_member_total_spent", "`total_spent` >= 0")
+@Check("chk_member_is_deleted", "`is_deleted` IN (0, 1)")
 export class Member extends BaseEntity {
   @Column({ length: 64, comment: "微信小程序openid" })
   openid: string;

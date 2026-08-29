@@ -99,6 +99,35 @@ export class AppointmentService {
     return { data, page: { pageNum, pageSize, total } };
   }
 
+  async listByMonth(month: string) {
+    const start = dayjs(month, "YYYY-MM", true);
+    if (!start.isValid()) {
+      throw this.userError("月份无效");
+    }
+
+    return this.appointmentRepository
+      .createQueryBuilder("appointment")
+      .innerJoin(Member, "member", "member.id = appointment.memberId AND member.isDeleted = 0")
+      .where("appointment.isDeleted = 0")
+      .andWhere("appointment.appointmentDate BETWEEN :startDate AND :endDate", {
+        startDate: start.startOf("month").format("YYYY-MM-DD"),
+        endDate: start.endOf("month").format("YYYY-MM-DD"),
+      })
+      .select([
+        "appointment.id AS id",
+        "appointment.memberId AS memberId",
+        "member.nickname AS memberNickname",
+        "member.mobile AS memberMobile",
+        "DATE_FORMAT(appointment.appointmentDate, '%Y-%m-%d') AS appointmentDate",
+        "TIME_FORMAT(appointment.appointmentTime, '%H:%i') AS appointmentTime",
+        "appointment.createTime AS createTime",
+      ])
+      .orderBy("appointment.appointmentDate", "ASC")
+      .addOrderBy("appointment.appointmentTime", "ASC")
+      .addOrderBy("appointment.id", "ASC")
+      .getRawMany();
+  }
+
   private userError(msg: string) {
     return new BusinessException({ ...ErrorCode.USER_ERROR, msg });
   }

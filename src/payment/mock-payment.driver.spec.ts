@@ -14,13 +14,19 @@ describe("MockPaymentDriver", () => {
       paymentNo: "P1",
       status: "PENDING",
     });
-    await driver.confirmCallback({ paymentNo: "P1", success: true, thirdPartyNo: "T1" });
+    await driver.confirmCallback({
+      paymentNo: "P1",
+      amount: 100,
+      success: true,
+      thirdPartyNo: "T1",
+    });
     await expect(driver.create(request)).resolves.toMatchObject({
       paymentNo: "P1",
       status: "SUCCESS",
     });
     await expect(driver.query("P1")).resolves.toMatchObject({
       status: "SUCCESS",
+      amount: 100,
       thirdPartyNo: "T1",
     });
   });
@@ -28,10 +34,14 @@ describe("MockPaymentDriver", () => {
   it("退款可安全重试", async () => {
     const driver = new MockPaymentDriver();
     await driver.create({ paymentNo: "P2", orderNo: "O2", amount: 200, description: "test" });
-    await driver.confirmCallback({ paymentNo: "P2", success: true });
+    await driver.confirmCallback({ paymentNo: "P2", amount: 200, success: true });
     const request = { paymentNo: "P2", refundNo: "R2", amount: 200, reason: "test" };
 
     await expect(driver.refund(request)).resolves.toMatchObject({ status: "SUCCESS" });
-    await expect(driver.refund(request)).resolves.toMatchObject({ status: "SUCCESS" });
+    await expect(driver.refund(request)).resolves.toMatchObject({ status: "SUCCESS", amount: 200 });
+    await expect(driver.queryRefund("R2")).resolves.toMatchObject({
+      status: "SUCCESS",
+      amount: 200,
+    });
   });
 });

@@ -1,7 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, EntityManager, In, LessThan, Repository } from "typeorm";
+import { randomBytes, randomInt } from "crypto";
+import { DataSource, EntityManager, In, Repository } from "typeorm";
 
 import { BizOrder } from "./entities/order.entity";
 import { BizOrderItem } from "./entities/order-item.entity";
@@ -18,6 +19,11 @@ import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
 import { OrderBenefitsService } from "@/marketing/order-benefits.service";
 import { PointsBizType } from "@/marketing/marketing.constants";
+
+const ORDER_TIMEOUT_BATCH_SIZE = 100;
+const ORDER_TIMEOUT_MAX_BATCHES = 5;
+const ORDER_EXPORT_MAX_ROWS = 5000;
+const UNIQUE_RETRY_LIMIT = 8;
 
 @Injectable()
 export class OrderService {
@@ -78,7 +84,7 @@ export class OrderService {
 
       if (dto.cartIds?.length) {
         // SKU 锁之后再锁购物车行；并发结算同一购物车时只有第一个请求可继续。
-        await this.cartService.lockOwnedByIds(manager, memberId, dto.cartIds);
+        await this.cartService.lockOwnedByIds(manager, memberId, dto.cartIds, lines);
       }
 
       const pricing = await this.orderBenefits.quote(
@@ -107,7 +113,7 @@ export class OrderService {
         remark: dto.remark ?? null,
         isDeleted: 0,
       });
-      await manager.save(created);
+      await this.saveNewOrder(manager, created);
       await this.orderBenefits.reserveOrder(manager, created);
 
       const items = pricedLines.map((line) =>
@@ -144,33 +150,32 @@ export class OrderService {
   }
 
   async quote(memberId: string, dto: OrderCreateDto) {
-    return this.dataSource.transaction(async (manager) => {
-      const lines = await this.resolveCreateLines(manager, memberId, dto);
-      const pricedLines = [];
-      for (const line of lines) {
-        const { sku, product } = await this.productService.getSkuForOrder(manager, line.skuId);
-        if (sku.stock < line.quantity) {
-          throw new BusinessException({
-            ...ErrorCode.USER_ERROR,
-            msg: `库存不足：${product.name}`,
-          });
-        }
-        pricedLines.push({
-          skuId: sku.id,
-          productId: product.id,
-          categoryId: product.categoryId,
-          price: sku.price,
-          quantity: line.quantity,
+    const manager = this.dataSource.manager;
+    const lines = await this.resolveCreateLines(manager, memberId, dto);
+    const pricedLines = [];
+    for (const line of lines) {
+      const { sku, product } = await this.productService.getSkuForQuote(manager, line.skuId);
+      if (sku.stock < line.quantity) {
+        throw new BusinessException({
+          ...ErrorCode.USER_ERROR,
+          msg: `库存不足：${product.name}`,
         });
       }
-      return this.orderBenefits.quote(
-        manager,
-        memberId,
-        pricedLines,
-        dto.memberCouponId,
-        dto.pointsToUse ?? 0
-      );
-    });
+      pricedLines.push({
+        skuId: sku.id,
+        productId: product.id,
+        categoryId: product.categoryId,
+        price: sku.price,
+        quantity: line.quantity,
+      });
+    }
+    return this.orderBenefits.quote(
+      manager,
+      memberId,
+      pricedLines,
+      dto.memberCouponId,
+      dto.pointsToUse ?? 0
+    );
   }
 
   /** 创建一件固定拼团价订单；优惠字段固定为零，由拼团模块在同一事务中调用。 */
@@ -211,7 +216,7 @@ export class OrderService {
       remark,
       isDeleted: 0,
     });
-    await manager.save(order);
+    await this.saveNewOrder(manager, order);
     await manager.save(
       manager.create(BizOrderItem, {
         orderId: order.id,
@@ -231,21 +236,20 @@ export class OrderService {
   }
 
   async availableCoupons(memberId: string, dto: OrderCreateDto) {
-    return this.dataSource.transaction(async (manager) => {
-      const lines = await this.resolveCreateLines(manager, memberId, dto);
-      const pricedLines = [];
-      for (const line of lines) {
-        const { sku, product } = await this.productService.getSkuForOrder(manager, line.skuId);
-        pricedLines.push({
-          skuId: sku.id,
-          productId: product.id,
-          categoryId: product.categoryId,
-          price: sku.price,
-          quantity: line.quantity,
-        });
-      }
-      return this.orderBenefits.availableCoupons(manager, memberId, pricedLines);
-    });
+    const manager = this.dataSource.manager;
+    const lines = await this.resolveCreateLines(manager, memberId, dto);
+    const pricedLines = [];
+    for (const line of lines) {
+      const { sku, product } = await this.productService.getSkuForQuote(manager, line.skuId);
+      pricedLines.push({
+        skuId: sku.id,
+        productId: product.id,
+        categoryId: product.categoryId,
+        price: sku.price,
+        quantity: line.quantity,
+      });
+    }
+    return this.orderBenefits.availableCoupons(manager, memberId, pricedLines);
   }
 
   async appPage(memberId: string, query: AppOrderQueryDto) {
@@ -341,8 +345,7 @@ export class OrderService {
     order.status = OrderStatus.PAID;
     order.payType = payType;
     order.payTime = paidAt;
-    order.verifyCode = await this.nextVerifyCode(manager);
-    await manager.save(order);
+    await this.savePaidOrder(manager, order);
 
     const items = await manager.find(BizOrderItem, {
       where: { orderId: order.id, isDeleted: 0 },
@@ -380,6 +383,14 @@ export class OrderService {
     return order;
   }
 
+  /** 订单取消后才收到渠道成功结果：退款完成时只改终态，不重复回补库存或权益。 */
+  async markLatePaymentRefunded(manager: EntityManager, order: BizOrder): Promise<BizOrder> {
+    this.safeTransition(order.status, OrderStatus.REFUNDED);
+    order.status = OrderStatus.REFUNDED;
+    await manager.save(order);
+    return order;
+  }
+
   publishPaid(order: BizOrder): void {
     this.emit(ORDER_EVENTS.PAID, order);
   }
@@ -405,20 +416,49 @@ export class OrderService {
     }
   }
 
-  async cancelExpiredUnpaid(): Promise<number> {
+  async cancelExpiredUnpaid(
+    batchSize = ORDER_TIMEOUT_BATCH_SIZE,
+    maxBatches = ORDER_TIMEOUT_MAX_BATCHES
+  ): Promise<number> {
     const timeoutMinutes = this.configService.get<number>("ORDER_PAY_TIMEOUT_MINUTES", 30);
     const expireBefore = new Date(Date.now() - timeoutMinutes * 60 * 1000);
-    const list = await this.orderRepository.find({
-      where: { status: OrderStatus.UNPAID, isDeleted: 0, createTime: LessThan(expireBefore) },
-    });
     let count = 0;
-    for (const order of list) {
-      try {
-        await this.cancelInternal(order.id, "支付超时自动取消");
-        count += 1;
-      } catch (err) {
-        this.logger.warn(`超时取消失败 orderId=${order.id}: ${String(err)}`);
+    let cursorTime: Date | undefined;
+    let cursorId: string | undefined;
+    for (let batch = 0; batch < maxBatches; batch++) {
+      const qb = this.orderRepository
+        .createQueryBuilder("o")
+        .select(["o.id", "o.createTime"])
+        .where("o.status = :status", { status: OrderStatus.UNPAID })
+        .andWhere("o.isDeleted = 0")
+        .andWhere("o.createTime < :expireBefore", { expireBefore });
+      if (cursorTime && cursorId) {
+        qb.andWhere(
+          "(o.createTime > :cursorTime OR (o.createTime = :cursorTime AND o.id > :cursorId))",
+          {
+            cursorTime,
+            cursorId,
+          }
+        );
       }
+      const list = await qb
+        .orderBy("o.createTime", "ASC")
+        .addOrderBy("o.id", "ASC")
+        .take(batchSize)
+        .getMany();
+      if (list.length === 0) break;
+      for (const order of list) {
+        try {
+          await this.cancelInternal(order.id, "支付超时自动取消");
+          count += 1;
+        } catch (err) {
+          this.logger.warn(`超时取消失败 orderId=${order.id}: ${String(err)}`);
+        }
+      }
+      const last = list[list.length - 1];
+      cursorTime = last.createTime;
+      cursorId = last.id;
+      if (list.length < batchSize) break;
     }
     return count;
   }
@@ -469,7 +509,17 @@ export class OrderService {
   }
 
   async listExport(query: OrderQueryDto) {
-    const list = await this.adminQueryBuilder(query).orderBy("o.createTime", "DESC").getMany();
+    const list = await this.adminQueryBuilder(query)
+      .orderBy("o.createTime", "DESC")
+      .addOrderBy("o.id", "DESC")
+      .take(ORDER_EXPORT_MAX_ROWS + 1)
+      .getMany();
+    if (list.length > ORDER_EXPORT_MAX_ROWS) {
+      throw new BusinessException({
+        ...ErrorCode.USER_ERROR,
+        msg: `单次最多导出${ORDER_EXPORT_MAX_ROWS}条订单，请增加筛选条件后重试`,
+      });
+    }
     const memberIds = Array.from(new Set(list.map((o) => String(o.memberId))));
     const members = memberIds.length
       ? await this.memberRepository.find({ where: { id: In(memberIds) } })
@@ -556,6 +606,12 @@ export class OrderService {
   }
 
   private async resolveCreateLines(manager: EntityManager, memberId: string, dto: OrderCreateDto) {
+    if (dto.cartIds?.length && dto.items?.length) {
+      throw new BusinessException({
+        ...ErrorCode.USER_ERROR,
+        msg: "购物车下单和立即购买不能同时提交",
+      });
+    }
     if (dto.cartIds?.length) {
       const rows = await this.cartService.findOwnedByIds(manager, memberId, dto.cartIds);
       return rows.map((row) => ({ skuId: String(row.skuId), quantity: row.quantity }));
@@ -594,17 +650,48 @@ export class OrderService {
     const stamp =
       `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}` +
       `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-    const rand = pad(Math.floor(Math.random() * 10000), 4);
-    return `YJ${stamp}${rand}`;
+    return `YJ${stamp}${randomBytes(6).toString("hex").toUpperCase()}`;
   }
 
   private async nextVerifyCode(manager: EntityManager): Promise<string> {
-    for (let i = 0; i < 8; i++) {
-      const code = String(Math.floor(10000000 + Math.random() * 90000000));
+    for (let i = 0; i < UNIQUE_RETRY_LIMIT; i++) {
+      const code = String(randomInt(10_000_000, 100_000_000));
       const exists = await manager.findOne(BizOrder, { where: { verifyCode: code } });
       if (!exists) return code;
     }
-    return `${Date.now()}`.slice(-8);
+    throw new Error("生成唯一核销码失败");
+  }
+
+  private async saveNewOrder(manager: EntityManager, order: BizOrder): Promise<void> {
+    for (let attempt = 0; attempt < UNIQUE_RETRY_LIMIT; attempt++) {
+      order.orderNo = this.nextOrderNo();
+      try {
+        await manager.save(order);
+        return;
+      } catch (error) {
+        if (!this.isDuplicateEntry(error) || attempt === UNIQUE_RETRY_LIMIT - 1) throw error;
+      }
+    }
+  }
+
+  private async savePaidOrder(manager: EntityManager, order: BizOrder): Promise<void> {
+    for (let attempt = 0; attempt < UNIQUE_RETRY_LIMIT; attempt++) {
+      order.verifyCode = await this.nextVerifyCode(manager);
+      try {
+        await manager.save(order);
+        return;
+      } catch (error) {
+        if (!this.isDuplicateEntry(error) || attempt === UNIQUE_RETRY_LIMIT - 1) throw error;
+      }
+    }
+  }
+
+  private isDuplicateEntry(error: unknown): boolean {
+    const candidate = error as {
+      code?: string;
+      driverError?: { code?: string };
+    };
+    return (candidate.driverError?.code ?? candidate.code) === "ER_DUP_ENTRY";
   }
 
   private emit(event: string, order: BizOrder) {

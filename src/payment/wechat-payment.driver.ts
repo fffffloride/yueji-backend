@@ -30,6 +30,10 @@ export class WechatPaymentDriver implements PaymentDriver {
     return this.notConfigured();
   }
 
+  async queryRefund(_refundNo: string): Promise<PaymentRefundResult> {
+    return this.notConfigured();
+  }
+
   private notConfigured(): never {
     throw new BusinessException({
       ...ErrorCode.THIRD_PARTY_SERVICE_ERROR,

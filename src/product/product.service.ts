@@ -107,9 +107,10 @@ export class ProductService {
 
   async create(dto: ProductFormDto): Promise<Product> {
     this.ensureOnSaleHasEnabledSku(dto);
-    await this.ensureCategoryExists(dto.categoryId);
+    this.ensureRequiredMedia(dto);
 
     return this.dataSource.transaction(async (manager) => {
+      await this.ensureCategoryExists(manager, dto.categoryId);
       const product = manager.create(Product, {
         ...this.formToEntityFields(dto),
         sales: 0,
@@ -142,7 +143,8 @@ export class ProductService {
 
   async update(id: string, dto: ProductFormDto): Promise<Product> {
     this.ensureOnSaleHasEnabledSku(dto);
-    await this.ensureCategoryExists(dto.categoryId);
+    this.ensureUniqueSkuIds(dto.skus);
+    this.ensureRequiredMedia(dto);
 
     return this.dataSource.transaction(async (manager) => {
       const existingSkus = await manager.find(ProductSku, {
@@ -156,6 +158,7 @@ export class ProductService {
       if (!product) {
         throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "商品不存在" });
       }
+      await this.ensureCategoryExists(manager, dto.categoryId);
 
       const incomingIds = new Set(dto.skus.filter((s) => s.id).map((s) => String(s.id)));
       const removedSkus = existingSkus.filter((sku) => !incomingIds.has(String(sku.id)));
@@ -164,9 +167,6 @@ export class ProductService {
       });
 
       Object.assign(product, this.formToEntityFields(dto));
-      product.stock = this.sumStock(dto.skus);
-      product.price = this.minEnabledPrice(dto.skus);
-      await manager.save(product);
 
       // 删除表单中已移除的SKU
       for (const sku of removedSkus) {
@@ -204,6 +204,14 @@ export class ProductService {
           await manager.save(created);
         }
       }
+
+      // 以事务内最终落库的可售 SKU 为准，避免表单重复或后续写入变更造成 SPU 汇总漂移。
+      const enabledSkus = await manager.find(ProductSku, {
+        where: { productId: id, status: 1, isDeleted: 0 },
+      });
+      product.stock = enabledSkus.reduce((sum, sku) => sum + sku.stock, 0);
+      product.price = enabledSkus.length ? Math.min(...enabledSkus.map((sku) => sku.price)) : 0;
+      await manager.save(product);
 
       return product;
     });
@@ -412,6 +420,23 @@ export class ProductService {
     return { sku, product };
   }
 
+  /** 订单试算只读商品快照；真实创建订单会重新加写锁并计价。 */
+  async getSkuForQuote(manager: EntityManager, skuId: string) {
+    const sku = await manager.findOne(ProductSku, {
+      where: { id: skuId, isDeleted: 0 },
+    });
+    if (!sku || sku.status !== 1) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "规格不存在或已停用" });
+    }
+    const product = await manager.findOne(Product, {
+      where: { id: sku.productId, isDeleted: 0 },
+    });
+    if (!product || product.status !== 1) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "商品不存在或已下架" });
+    }
+    return { sku, product };
+  }
+
   async adjustStock(manager: EntityManager, skuId: string, delta: number) {
     const sku = await manager.findOne(ProductSku, {
       where: { id: skuId },
@@ -464,12 +489,29 @@ export class ProductService {
     return product;
   }
 
-  private async ensureCategoryExists(categoryId: string): Promise<void> {
-    const count = await this.categoryRepository.count({
+  private async ensureCategoryExists(manager: EntityManager, categoryId: string): Promise<void> {
+    const category = await manager.findOne(ProductCategory, {
       where: { id: categoryId, isDeleted: 0 },
+      lock: { mode: "pessimistic_read" },
     });
-    if (count === 0) {
+    if (!category) {
       throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "商品分类不存在" });
+    }
+  }
+
+  private ensureUniqueSkuIds(skus: SkuFormDto[]): void {
+    const ids = skus.filter((sku) => sku.id).map((sku) => String(sku.id));
+    if (new Set(ids).size !== ids.length) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "SKU ID不能重复" });
+    }
+  }
+
+  private ensureRequiredMedia(dto: ProductFormDto): void {
+    if (!dto.mainImage?.trim()) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "请上传主图" });
+    }
+    if (!(dto.album ?? []).some((url) => url?.trim())) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "请至少上传一张轮播图" });
     }
   }
 

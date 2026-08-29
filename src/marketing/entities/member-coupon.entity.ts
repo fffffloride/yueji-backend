@@ -3,7 +3,10 @@ import { Column, Entity, Index } from "typeorm";
 import { BaseEntity } from "@/common/entities/base.entity";
 
 @Entity("member_coupon")
-@Index(["memberId", "status"])
+@Index("idx_member_coupon_status", ["memberId", "status"])
+@Index("idx_member_coupon_member_template", ["memberId", "couponId", "isDeleted"])
+@Index("idx_member_coupon_template", ["couponId"])
+@Index("idx_member_coupon_order", ["orderId"])
 export class MemberCoupon extends BaseEntity {
   @Column({ name: "coupon_id", type: "bigint", comment: "优惠券ID" })
   couponId: string;

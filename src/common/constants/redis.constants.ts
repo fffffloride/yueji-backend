@@ -41,5 +41,15 @@ export const RedisConstants = {
      * Token 黑名单
      */
     TOKEN_BLACKLIST: "auth:token:blacklist",
+
+    /**
+     * JWT 会话族黑名单（access/refresh 共用 sid）
+     */
+    TOKEN_FAMILY_BLACKLIST: "auth:token:family:blacklist",
+
+    /**
+     * Redis-token 模式 access -> refresh 配对索引
+     */
+    TOKEN_PAIR: "auth:token:pair",
   },
 } as const;

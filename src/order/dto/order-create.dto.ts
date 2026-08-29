@@ -1,6 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
+  ArrayMaxSize,
   ArrayNotEmpty,
+  ArrayUnique,
   IsArray,
   IsInt,
   IsOptional,
@@ -30,12 +32,18 @@ export class OrderCreateDto {
   @IsOptional()
   @IsArray()
   @ArrayNotEmpty()
+  @ArrayMaxSize(100)
+  @ArrayUnique()
+  @IsString({ each: true })
   @Transform(({ value }) => (Array.isArray(value) ? value.map((v) => String(v)) : value))
   cartIds?: string[];
 
   @ApiProperty({ description: "立即购买明细", required: false, type: [OrderCreateItemDto] })
   @IsOptional()
   @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(100)
+  @ArrayUnique((item: OrderCreateItemDto | null | undefined) => String(item?.skuId ?? ""))
   @ValidateNested({ each: true })
   @Type(() => OrderCreateItemDto)
   items?: OrderCreateItemDto[];

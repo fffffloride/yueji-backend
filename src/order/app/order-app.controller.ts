@@ -8,6 +8,7 @@ import { OrderCancelDto } from "../dto/order-verify.dto";
 import { MemberAuth } from "@/common/decorators/member-auth.decorator";
 import { CurrentMember } from "@/common/decorators/current-member.decorator";
 import type { CurrentMemberInfo } from "@/common/interfaces/current-member.interface";
+import { RateLimit } from "@/common/decorators/rate-limit.decorator";
 
 @ApiTags("C05.订单")
 @MemberAuth()
@@ -17,12 +18,14 @@ export class OrderAppController {
 
   @ApiOperation({ summary: "订单优惠试算" })
   @Post("quote")
+  @RateLimit({ limit: 30, windowSec: 60 })
   async quote(@CurrentMember() member: CurrentMemberInfo, @Body() dto: OrderCreateDto) {
     return this.orderService.quote(member.memberId, dto);
   }
 
   @ApiOperation({ summary: "查询当前商品可用优惠券" })
   @Post("available-coupons")
+  @RateLimit({ limit: 30, windowSec: 60 })
   async availableCoupons(@CurrentMember() member: CurrentMemberInfo, @Body() dto: OrderCreateDto) {
     return this.orderService.availableCoupons(member.memberId, dto);
   }

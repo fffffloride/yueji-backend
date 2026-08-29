@@ -6,6 +6,7 @@ import { CouponScope } from "./entities/coupon-scope.entity";
 import { MemberCoupon } from "./entities/member-coupon.entity";
 import { MemberLevel } from "./entities/member-level.entity";
 import { MemberPointsLog } from "./entities/member-points-log.entity";
+import { MarketingPointsRule } from "./entities/points-rule.entity";
 import { MemberLevelService } from "./member-level.service";
 import { PointsService } from "./points.service";
 import { CouponService } from "./coupon.service";
@@ -18,8 +19,6 @@ import { Member } from "@/member/entities/member.entity";
 import { ProductSku } from "@/product/entities/product-sku.entity";
 import { ProductCategory } from "@/product/entities/product-category.entity";
 import { Product } from "@/product/entities/product.entity";
-import { SysConfig } from "@/system/config/entities/sys-config.entity";
-import { ConfigModule } from "@/system/config/config.module";
 
 @Module({
   imports: [
@@ -29,13 +28,12 @@ import { ConfigModule } from "@/system/config/config.module";
       MemberCoupon,
       MemberLevel,
       MemberPointsLog,
+      MarketingPointsRule,
       Member,
       ProductSku,
       Product,
       ProductCategory,
-      SysConfig,
     ]),
-    ConfigModule,
   ],
   controllers: [
     MemberLevelAdminController,

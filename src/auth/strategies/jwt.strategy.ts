@@ -5,6 +5,7 @@ import { ConfigService } from "@nestjs/config";
 import { RedisService } from "../../common/redis/redis.service";
 import { RoleService } from "../../system/role/role.service";
 import { RedisConstants } from "../../common/constants/redis.constants";
+import { UserService } from "../../system/user/user.service";
 
 /**
  * JWT 认证策略
@@ -19,7 +20,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private readonly configService: ConfigService,
     private readonly redisCacheService: RedisService,
-    private readonly roleService: RoleService
+    private readonly roleService: RoleService,
+    private readonly userService: UserService
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -41,6 +43,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const userId = payload.sub;
 
+    if (!(await this.userService.isUserEnabled(userId))) {
+      throw new UnauthorizedException("账号已被禁用或不存在");
+    }
+
     // 校验 Token 版本号
     const tokenVersion: number = payload.tokenVersion ?? 0;
     const versionKey = `${RedisConstants.Auth.USER_TOKEN_VERSION}:${userId}`;
@@ -51,12 +57,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException("Token 已失效，请重新登录");
     }
 
-    // 校验黑名单
-    const jti: string | undefined = payload.jti;
-    if (jti) {
-      const blacklistKey = `${RedisConstants.Auth.TOKEN_BLACKLIST}:${jti}`;
-      const inBlacklist = await this.redisCacheService.hasKey(blacklistKey);
-      if (inBlacklist) {
+    // 校验会话族黑名单；同时保留对升级前单 jti 黑名单的兼容。
+    const sessionId: string | undefined = payload.sid ?? payload.jti;
+    if (sessionId) {
+      const familyBlacklistKey = `${RedisConstants.Auth.TOKEN_FAMILY_BLACKLIST}:${sessionId}`;
+      const inFamilyBlacklist = await this.redisCacheService.hasKey(familyBlacklistKey);
+      const inLegacyBlacklist = payload.jti
+        ? await this.redisCacheService.hasKey(
+            `${RedisConstants.Auth.TOKEN_BLACKLIST}:${payload.jti}`
+          )
+        : false;
+      if (inFamilyBlacklist || inLegacyBlacklist) {
         throw new UnauthorizedException("Token 已失效，请重新登录");
       }
     }

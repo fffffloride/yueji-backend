@@ -386,6 +386,19 @@ export class UserService {
   }
 
   /**
+   * 校验后台用户当前是否仍可登录。
+   *
+   * Guard 和刷新令牌流程必须查询数据库当前状态，不能只信任签发时的 JWT/Redis 会话快照。
+   */
+  async isUserEnabled(userId: string): Promise<boolean> {
+    const id = userId?.toString();
+    if (!id) return false;
+    return this.userRepository.exists({
+      where: { id, status: 1, isDeleted: 0 },
+    });
+  }
+
+  /**
    * 获取当前用户信息
    */
   async findMe(currentUserInfo: CurrentUserInfo): Promise<CurrentUserDto> {
@@ -541,7 +554,11 @@ export class UserService {
       { id: userId.toString(), isDeleted: 0 },
       { status: Number(status) }
     );
-    return (result.affected ?? 0) > 0;
+    const ok = (result.affected ?? 0) > 0;
+    if (ok) {
+      await this.invalidateUserSessions(userId.toString());
+    }
+    return ok;
   }
 
   async resetUserPassword(userId: string, password: string): Promise<boolean> {
@@ -887,6 +904,7 @@ export class UserService {
 
       if (accessToken) {
         await this.redisCacheService.del(`auth:token:access:${accessToken}`);
+        await this.redisCacheService.del(`auth:token:pair:${accessToken}`);
       }
       if (refreshToken) {
         await this.redisCacheService.del(`auth:token:refresh:${refreshToken}`);
@@ -912,7 +930,7 @@ export class UserService {
    */
   async update(userId: string, updateUserDto: UpdateUserDto) {
     const userIdStr = userId.toString();
-    const { username, deptId, roleIds, password } = updateUserDto;
+    const { username, deptId, roleIds, password, status } = updateUserDto;
 
     if (!roleIds?.length) {
       throw new BusinessException("角色不能为空");
@@ -934,6 +952,11 @@ export class UserService {
     if (!user) {
       throw new BusinessException("用户不存在");
     }
+
+    const authIdentityChanged =
+      (username !== undefined && username !== user.username) ||
+      (status !== undefined && Number(status) !== Number(user.status)) ||
+      !!password;
 
     // 如果提供了新密码，则加密新密码
     let hashedPassword;
@@ -976,11 +999,13 @@ export class UserService {
       await this.userRoleRepository.save(userRoles);
     }
 
-    if (rolesChanged) {
+    const savedUser = await this.userRepository.save(user);
+
+    if (rolesChanged || authIdentityChanged) {
       await this.invalidateUserSessions(userIdStr);
     }
 
-    return await this.userRepository.save(user);
+    return savedUser;
   }
 
   /**

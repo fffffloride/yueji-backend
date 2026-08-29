@@ -2,7 +2,7 @@ import { Body, Controller, Get, Put } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 
 import { MemberService } from "../member.service";
-import { MemberProfileDto } from "../dto/member-profile.dto";
+import { MemberProfileDto, MemberProfileResponseDto } from "../dto/member-profile.dto";
 import { MemberAuth } from "@/common/decorators/member-auth.decorator";
 import { CurrentMember } from "@/common/decorators/current-member.decorator";
 import type { CurrentMemberInfo } from "@/common/interfaces/current-member.interface";
@@ -18,13 +18,16 @@ export class MemberAppController {
 
   @ApiOperation({ summary: "获取当前会员资料" })
   @Get("profile")
-  async getProfile(@CurrentMember() member: CurrentMemberInfo) {
-    return this.memberService.getById(member.memberId);
+  async getProfile(@CurrentMember() member: CurrentMemberInfo): Promise<MemberProfileResponseDto> {
+    return this.memberService.getAppProfile(member.memberId);
   }
 
   @ApiOperation({ summary: "修改当前会员资料" })
   @Put("profile")
-  async updateProfile(@CurrentMember() member: CurrentMemberInfo, @Body() dto: MemberProfileDto) {
+  async updateProfile(
+    @CurrentMember() member: CurrentMemberInfo,
+    @Body() dto: MemberProfileDto
+  ): Promise<MemberProfileResponseDto> {
     return this.memberService.updateProfile(member.memberId, dto);
   }
 }

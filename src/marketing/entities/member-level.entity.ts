@@ -1,8 +1,9 @@
-import { Column, Entity } from "typeorm";
+import { Column, Entity, Index } from "typeorm";
 
 import { BaseEntity } from "@/common/entities/base.entity";
 
 @Entity("member_level")
+@Index("idx_member_level_threshold", ["thresholdAmount"])
 export class MemberLevel extends BaseEntity {
   @Column({ length: 64, comment: "等级名称" })
   name: string;

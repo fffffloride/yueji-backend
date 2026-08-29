@@ -14,6 +14,11 @@ import {
 } from "class-validator";
 import { Transform, Type } from "class-transformer";
 
+function isBlankHtml(value: unknown): boolean {
+  if (typeof value !== "string") return true;
+  return value.replace(/<[^>]*>/g, "").replace(/&nbsp;/gi, " ").trim().length === 0;
+}
+
 /**
  * SKU 表单项
  */
@@ -87,16 +92,20 @@ export class ProductFormDto {
   @MaxLength(255)
   subTitle?: string;
 
-  @ApiProperty({ description: "主图URL", required: false })
-  @IsOptional()
+  @ApiProperty({ description: "主图URL" })
+  @IsNotEmpty({ message: "请上传主图" })
   @IsString()
   @MaxLength(255)
-  mainImage?: string;
+  mainImage: string;
 
-  @ApiProperty({ description: "轮播图URL列表", required: false, type: [String] })
-  @IsOptional()
+  @ApiProperty({ description: "轮播图URL列表", type: [String] })
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value.filter((item) => typeof item === "string" && item.trim()) : value
+  )
   @IsArray()
-  album?: string[];
+  @ArrayNotEmpty({ message: "请至少上传一张轮播图" })
+  @IsString({ each: true })
+  album: string[];
 
   @ApiProperty({ description: "短视频URL", required: false })
   @IsOptional()
@@ -115,16 +124,16 @@ export class ProductFormDto {
   @IsBoolean()
   painFriendly?: boolean;
 
-  @ApiProperty({ description: "原价(分)", required: false })
-  @IsOptional()
-  @IsInt()
+  @ApiProperty({ description: "原价(分)" })
+  @IsInt({ message: "请填写划线原价" })
   @Min(0)
-  originalPrice?: number;
+  originalPrice: number;
 
-  @ApiProperty({ description: "商品详情(富文本)", required: false })
-  @IsOptional()
+  @ApiProperty({ description: "商品详情(富文本)" })
+  @Transform(({ value }) => (isBlankHtml(value) ? "" : value))
+  @IsNotEmpty({ message: "请填写商品详情" })
   @IsString()
-  detail?: string;
+  detail: string;
 
   @ApiProperty({ description: "产品说明", required: false })
   @IsOptional()

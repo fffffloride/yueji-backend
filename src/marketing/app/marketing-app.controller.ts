@@ -3,7 +3,11 @@ import { ApiTags } from "@nestjs/swagger";
 
 import { CouponService } from "../coupon.service";
 import { PointsService } from "../points.service";
-import { MemberCouponQueryDto, PointsLogQueryDto } from "../dto/marketing.dto";
+import {
+  ClaimableCouponQueryDto,
+  MemberCouponQueryDto,
+  PointsLogQueryDto,
+} from "../dto/marketing.dto";
 import { MemberAuth } from "@/common/decorators/member-auth.decorator";
 import { CurrentMember } from "@/common/decorators/current-member.decorator";
 import type { CurrentMemberInfo } from "@/common/interfaces/current-member.interface";
@@ -28,8 +32,8 @@ export class MarketingAppController {
   }
 
   @Get("coupons/claimable")
-  claimable(@CurrentMember() member: CurrentMemberInfo) {
-    return this.couponService.claimable(member.memberId);
+  claimable(@CurrentMember() member: CurrentMemberInfo, @Query() query: ClaimableCouponQueryDto) {
+    return this.couponService.claimable(member.memberId, query);
   }
 
   @Post("coupons/:id/claim")

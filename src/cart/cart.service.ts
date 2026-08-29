@@ -11,6 +11,8 @@ import { ProductSku } from "@/product/entities/product-sku.entity";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
 
+const MAX_ACTIVE_CART_ITEMS = 100;
+
 @Injectable()
 export class CartService {
   constructor(
@@ -70,13 +72,23 @@ export class CartService {
     return this.dataSource.transaction(async (manager) => {
       // 锁定 SKU 将同一规格的并发加购串行化，避免唯一索引冲突和数量丢失。
       const { sku, product } = await this.productService.getSkuForOrder(manager, dto.skuId);
-      const existing = await manager.findOne(Cart, {
-        where: { memberId, skuId: dto.skuId },
+      // 同时锁定该会员的购物车范围，使不同 SKU 的并发加购也能安全执行数量上限检查。
+      const memberRows = await manager.find(Cart, {
+        where: { memberId },
         lock: { mode: "pessimistic_write" },
       });
+      const existing = memberRows.find((row) => String(row.skuId) === String(dto.skuId));
       const nextQty = (existing && existing.isDeleted === 0 ? existing.quantity : 0) + dto.quantity;
       if (nextQty > sku.stock) {
         throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "库存不足" });
+      }
+
+      const activeCount = memberRows.filter((row) => row.isDeleted === 0).length;
+      if ((!existing || existing.isDeleted === 1) && activeCount >= MAX_ACTIVE_CART_ITEMS) {
+        throw new BusinessException({
+          ...ErrorCode.USER_ERROR,
+          msg: `购物车最多保留${MAX_ACTIVE_CART_ITEMS}种商品规格`,
+        });
       }
 
       if (existing) {
@@ -100,23 +112,48 @@ export class CartService {
   }
 
   async update(memberId: string, id: string, dto: CartUpdateDto) {
-    const row = await this.getOwn(memberId, id);
-    if (dto.quantity !== undefined) {
-      const sku = await this.skuRepository.findOne({ where: { id: row.skuId, isDeleted: 0 } });
-      if (sku && dto.quantity > sku.stock) {
-        throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "库存不足" });
+    const snapshot = await this.getOwn(memberId, id);
+    const requiresSellableSku = dto.quantity !== undefined || dto.checked === 1;
+
+    // 失效项仍允许取消选中；使用带归属条件的原子更新，避免保存陈旧实体。
+    if (!requiresSellableSku) {
+      if (dto.checked === 0) {
+        const result = await this.cartRepository.update(
+          { id, memberId, isDeleted: 0 },
+          { checked: 0 }
+        );
+        if (result.affected !== 1) this.throwNotFound();
+        snapshot.checked = 0;
       }
-      row.quantity = dto.quantity;
+      return snapshot;
     }
-    if (dto.checked !== undefined) {
-      row.checked = dto.checked;
-    }
-    return this.cartRepository.save(row);
+
+    return this.dataSource.transaction(async (manager) => {
+      // 与加购、下单保持 SKU→商品→购物车行的锁顺序。
+      const { sku } = await this.productService.getSkuForOrder(manager, snapshot.skuId);
+      const row = await manager.findOne(Cart, {
+        where: { id, memberId, isDeleted: 0 },
+        lock: { mode: "pessimistic_write" },
+      });
+      if (!row || String(row.skuId) !== String(snapshot.skuId)) this.throwNotFound();
+
+      if (dto.quantity !== undefined) {
+        if (dto.quantity > sku.stock) {
+          throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "库存不足" });
+        }
+        row.quantity = dto.quantity;
+      }
+      if (dto.checked !== undefined) row.checked = dto.checked;
+      return manager.save(row);
+    });
   }
 
   async remove(memberId: string, id: string) {
-    const row = await this.getOwn(memberId, id);
-    await this.cartRepository.delete(row.id);
+    const result = await this.cartRepository.update(
+      { id, memberId, isDeleted: 0 },
+      { isDeleted: 1, checked: 0 }
+    );
+    if (result.affected !== 1) this.throwNotFound();
   }
 
   async findOwnedByIds(manager: EntityManager, memberId: string, ids: string[]) {
@@ -134,7 +171,12 @@ export class CartService {
     return rows;
   }
 
-  async lockOwnedByIds(manager: EntityManager, memberId: string, ids: string[]) {
+  async lockOwnedByIds(
+    manager: EntityManager,
+    memberId: string,
+    ids: string[],
+    expectedLines?: Array<{ skuId: string; quantity: number }>
+  ) {
     const uniqueIds = Array.from(new Set(ids));
     const rows = await manager
       .createQueryBuilder(Cart, "cart")
@@ -146,11 +188,30 @@ export class CartService {
     if (rows.length !== uniqueIds.length) {
       throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "购物车项不存在" });
     }
+    if (expectedLines) {
+      const lockedLineMap = new Map(rows.map((row) => [String(row.skuId), row.quantity] as const));
+      if (
+        rows.length !== expectedLines.length ||
+        expectedLines.some((line) => lockedLineMap.get(String(line.skuId)) !== line.quantity)
+      ) {
+        throw new BusinessException({
+          ...ErrorCode.USER_ERROR,
+          msg: "购物车状态已变化，请重新确认",
+        });
+      }
+    }
+    return rows;
   }
 
   async removeOwnedByIds(manager: EntityManager, memberId: string, ids: string[]) {
-    if (ids.length === 0) return;
-    await manager.delete(Cart, { memberId, id: In(ids) });
+    const uniqueIds = Array.from(new Set(ids));
+    if (uniqueIds.length === 0) return;
+    const result = await manager.update(
+      Cart,
+      { memberId, id: In(uniqueIds), isDeleted: 0 },
+      { isDeleted: 1, checked: 0 }
+    );
+    if (result.affected !== uniqueIds.length) this.throwNotFound();
   }
 
   private async getOwn(memberId: string, id: string): Promise<Cart> {
@@ -159,5 +220,9 @@ export class CartService {
       throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "购物车项不存在" });
     }
     return row;
+  }
+
+  private throwNotFound(): never {
+    throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "购物车项不存在" });
   }
 }

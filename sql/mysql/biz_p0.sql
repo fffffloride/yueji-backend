@@ -16,21 +16,34 @@ CREATE TABLE `member` (
     `openid` varchar(64) NOT NULL COMMENT '微信小程序openid',
     `unionid` varchar(64) NULL COMMENT '微信unionid',
     `mobile` varchar(20) NULL COMMENT '手机号',
-    `nickname` varchar(64) DEFAULT '微信用户' COMMENT '昵称',
+    `nickname` varchar(64) NOT NULL DEFAULT '微信用户' COMMENT '昵称',
     `avatar` varchar(255) NULL COMMENT '头像',
-    `gender` tinyint DEFAULT 0 COMMENT '性别(1-男 2-女 0-保密)',
-    `status` tinyint DEFAULT 1 COMMENT '状态(1-正常 0-禁用)',
-    `points` int DEFAULT 0 COMMENT '积分余额',
+    `gender` tinyint NOT NULL DEFAULT 0 COMMENT '性别(1-男 2-女 0-保密)',
+    `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态(1-正常 0-禁用)',
+    `points` int NOT NULL DEFAULT 0 COMMENT '积分余额',
     `level_id` bigint NULL COMMENT '会员等级ID(阶段5启用)',
     `last_login_time` datetime NULL COMMENT '最后登录时间',
     `create_by` bigint NULL COMMENT '创建人ID',
     `create_time` datetime NULL COMMENT '创建时间',
     `update_by` bigint NULL COMMENT '修改人ID',
     `update_time` datetime NULL COMMENT '更新时间',
-    `is_deleted` tinyint DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
+    `is_deleted` tinyint NOT NULL DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
     PRIMARY KEY (`id`) USING BTREE,
     UNIQUE INDEX `uk_openid`(`openid` ASC) USING BTREE COMMENT 'openid唯一索引',
-    INDEX `idx_mobile`(`mobile` ASC) USING BTREE
+    UNIQUE INDEX `uk_member_unionid`(`unionid` ASC) USING BTREE COMMENT 'unionid唯一索引',
+    UNIQUE INDEX `uk_member_mobile`(`mobile` ASC) USING BTREE COMMENT '手机号唯一索引',
+    INDEX `idx_member_nickname`(`nickname` ASC) USING BTREE,
+    INDEX `idx_member_active_created`(`is_deleted` ASC, `create_time` ASC, `id` ASC) USING BTREE,
+    INDEX `idx_member_active_status_created`(`is_deleted` ASC, `status` ASC, `create_time` ASC, `id` ASC) USING BTREE,
+    INDEX `idx_member_level_id`(`level_id` ASC) USING BTREE,
+    CONSTRAINT `chk_member_openid_not_blank` CHECK (CHAR_LENGTH(TRIM(`openid`)) > 0),
+    CONSTRAINT `chk_member_unionid_not_blank` CHECK (`unionid` IS NULL OR CHAR_LENGTH(TRIM(`unionid`)) > 0),
+    CONSTRAINT `chk_member_mobile_not_blank` CHECK (`mobile` IS NULL OR CHAR_LENGTH(TRIM(`mobile`)) > 0),
+    CONSTRAINT `chk_member_nickname_not_blank` CHECK (CHAR_LENGTH(TRIM(`nickname`)) > 0),
+    CONSTRAINT `chk_member_gender` CHECK (`gender` IN (0, 1, 2)),
+    CONSTRAINT `chk_member_status` CHECK (`status` IN (0, 1)),
+    CONSTRAINT `chk_member_points` CHECK (`points` >= 0),
+    CONSTRAINT `chk_member_is_deleted` CHECK (`is_deleted` IN (0, 1))
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COMMENT = '会员表';
 
 -- ----------------------------
@@ -84,7 +97,10 @@ CREATE TABLE `product` (
     `is_deleted` tinyint DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
     PRIMARY KEY (`id`) USING BTREE,
     INDEX `idx_category_id`(`category_id` ASC) USING BTREE,
-    INDEX `idx_status`(`status` ASC) USING BTREE
+    INDEX `idx_status`(`status` ASC) USING BTREE,
+    CONSTRAINT `fk_product_category`
+        FOREIGN KEY (`category_id`) REFERENCES `product_category` (`id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COMMENT = '商品表(SPU)';
 
 -- ----------------------------
@@ -107,7 +123,11 @@ CREATE TABLE `product_sku` (
     `update_time` datetime NULL COMMENT '更新时间',
     `is_deleted` tinyint DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
     PRIMARY KEY (`id`) USING BTREE,
-    INDEX `idx_product_id`(`product_id` ASC) USING BTREE
+    INDEX `idx_product_id`(`product_id` ASC) USING BTREE,
+    UNIQUE INDEX `uk_product_sku_product_id_id`(`product_id` ASC, `id` ASC) USING BTREE,
+    CONSTRAINT `fk_product_sku_product`
+        FOREIGN KEY (`product_id`) REFERENCES `product` (`id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COMMENT = '商品SKU表';
 
 -- ----------------------------
@@ -120,15 +140,25 @@ CREATE TABLE `cart` (
     `product_id` bigint NOT NULL COMMENT '商品ID',
     `sku_id` bigint NOT NULL COMMENT 'SKU ID',
     `quantity` int NOT NULL DEFAULT 1 COMMENT '数量',
-    `checked` tinyint DEFAULT 1 COMMENT '是否选中(1-选中 0-未选中)',
+    `checked` tinyint NOT NULL DEFAULT 1 COMMENT '是否选中(1-选中 0-未选中)',
     `create_by` bigint NULL COMMENT '创建人ID',
     `create_time` datetime NULL COMMENT '创建时间',
     `update_by` bigint NULL COMMENT '修改人ID',
     `update_time` datetime NULL COMMENT '更新时间',
-    `is_deleted` tinyint DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
+    `is_deleted` tinyint NOT NULL DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
     PRIMARY KEY (`id`) USING BTREE,
     UNIQUE INDEX `uk_member_sku`(`member_id` ASC, `sku_id` ASC) USING BTREE COMMENT '会员+SKU唯一',
-    INDEX `idx_member_id`(`member_id` ASC) USING BTREE
+    INDEX `idx_cart_member_active_updated`(`member_id` ASC, `is_deleted` ASC, `update_time` DESC, `id` DESC) USING BTREE,
+    INDEX `idx_cart_product_sku`(`product_id` ASC, `sku_id` ASC) USING BTREE,
+    CONSTRAINT `fk_cart_member`
+        FOREIGN KEY (`member_id`) REFERENCES `member` (`id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `fk_cart_product_sku`
+        FOREIGN KEY (`product_id`, `sku_id`) REFERENCES `product_sku` (`product_id`, `id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `chk_cart_quantity` CHECK (`quantity` BETWEEN 1 AND 99),
+    CONSTRAINT `chk_cart_checked` CHECK (`checked` IN (0, 1)),
+    CONSTRAINT `chk_cart_is_deleted` CHECK (`is_deleted` IN (0, 1))
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COMMENT = '购物车表';
 
 -- ----------------------------
@@ -139,16 +169,16 @@ CREATE TABLE `biz_order` (
     `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
     `order_no` varchar(32) NOT NULL COMMENT '订单号',
     `member_id` bigint NOT NULL COMMENT '会员ID',
-    `status` tinyint NOT NULL DEFAULT 0 COMMENT '订单状态(0-待付款 1-已付款/待核销 2-已核销 3-已完成 4-已取消)',
+    `status` tinyint NOT NULL DEFAULT 0 COMMENT '订单状态(0-待付款 1-已付款/待核销 2-已核销 3-已完成 4-已取消 5-已退款)',
     `total_amount` int NOT NULL DEFAULT 0 COMMENT '商品总额(分)',
     `discount_amount` int NOT NULL DEFAULT 0 COMMENT '优惠金额(分)',
     `pay_amount` int NOT NULL DEFAULT 0 COMMENT '实付金额(分)',
-    `pay_type` tinyint NULL COMMENT '支付方式(1-微信支付)',
+    `pay_type` tinyint NULL COMMENT '支付方式(1-微信支付 2-Mock支付)',
     `pay_time` datetime NULL COMMENT '支付时间',
     `contact_name` varchar(32) NULL COMMENT '联系人姓名',
     `contact_mobile` varchar(20) NULL COMMENT '联系人手机号',
     `remark` varchar(255) NULL COMMENT '订单备注',
-    `verify_code` varchar(32) NULL COMMENT '核销码',
+    `verify_code` varchar(8) NULL COMMENT '核销码',
     `verify_time` datetime NULL COMMENT '核销时间',
     `verify_by` bigint NULL COMMENT '核销人ID(sys_user)',
     `cancel_time` datetime NULL COMMENT '取消时间',
@@ -157,12 +187,24 @@ CREATE TABLE `biz_order` (
     `create_time` datetime NULL COMMENT '创建时间',
     `update_by` bigint NULL COMMENT '修改人ID',
     `update_time` datetime NULL COMMENT '更新时间',
-    `is_deleted` tinyint DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
+    `is_deleted` tinyint NOT NULL DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
     PRIMARY KEY (`id`) USING BTREE,
     UNIQUE INDEX `uk_order_no`(`order_no` ASC) USING BTREE,
-    INDEX `idx_member_id`(`member_id` ASC) USING BTREE,
-    INDEX `idx_status`(`status` ASC) USING BTREE,
-    INDEX `idx_verify_code`(`verify_code` ASC) USING BTREE
+    UNIQUE INDEX `uk_order_verify_code`(`verify_code` ASC) USING BTREE,
+    INDEX `idx_order_member_active_created`(`member_id` ASC, `is_deleted` ASC, `create_time` DESC, `id` DESC) USING BTREE,
+    INDEX `idx_order_timeout_scan`(`status` ASC, `is_deleted` ASC, `create_time` ASC, `id` ASC) USING BTREE,
+    CONSTRAINT `fk_biz_order_member`
+        FOREIGN KEY (`member_id`) REFERENCES `member` (`id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `chk_biz_order_status` CHECK (`status` IN (0, 1, 2, 3, 4, 5)),
+    CONSTRAINT `chk_biz_order_amounts` CHECK (
+        `total_amount` >= 0 AND `discount_amount` >= 0 AND
+        `pay_amount` >= 0 AND `discount_amount` <= `total_amount` AND
+        `pay_amount` = `total_amount` - `discount_amount`
+    ),
+    CONSTRAINT `chk_biz_order_pay_type` CHECK (`pay_type` IS NULL OR `pay_type` IN (1, 2)),
+    CONSTRAINT `chk_biz_order_verify_code` CHECK (`verify_code` IS NULL OR `verify_code` REGEXP '^[0-9]{8}$'),
+    CONSTRAINT `chk_biz_order_is_deleted` CHECK (`is_deleted` IN (0, 1))
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COMMENT = '订单表';
 
 -- ----------------------------
@@ -184,9 +226,21 @@ CREATE TABLE `biz_order_item` (
     `create_time` datetime NULL COMMENT '创建时间',
     `update_by` bigint NULL COMMENT '修改人ID',
     `update_time` datetime NULL COMMENT '更新时间',
-    `is_deleted` tinyint DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
+    `is_deleted` tinyint NOT NULL DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
     PRIMARY KEY (`id`) USING BTREE,
-    INDEX `idx_order_id`(`order_id` ASC) USING BTREE
+    INDEX `idx_order_item_order`(`order_id` ASC) USING BTREE,
+    INDEX `idx_order_item_product_sku`(`product_id` ASC, `sku_id` ASC) USING BTREE,
+    CONSTRAINT `fk_biz_order_item_order`
+        FOREIGN KEY (`order_id`) REFERENCES `biz_order` (`id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `fk_biz_order_item_product_sku`
+        FOREIGN KEY (`product_id`, `sku_id`) REFERENCES `product_sku` (`product_id`, `id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `chk_biz_order_item_values` CHECK (
+        `price` >= 0 AND `quantity` BETWEEN 1 AND 99 AND
+        `subtotal` >= 0 AND `subtotal` = `price` * `quantity`
+    ),
+    CONSTRAINT `chk_biz_order_item_is_deleted` CHECK (`is_deleted` IN (0, 1))
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COMMENT = '订单明细表';
 
 SET FOREIGN_KEY_CHECKS = 1;

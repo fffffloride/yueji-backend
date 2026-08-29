@@ -12,6 +12,7 @@ import { ProductModule } from "@/product/product.module";
 import { Member } from "@/member/entities/member.entity";
 import { DomainEvents } from "@/common/events/domain-events";
 import { MarketingModule } from "@/marketing/marketing.module";
+import { RedisSharedModule } from "@/common/redis/redis.module";
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { MarketingModule } from "@/marketing/marketing.module";
     CartModule,
     ProductModule,
     MarketingModule,
+    RedisSharedModule,
   ],
   controllers: [OrderAdminController, OrderAppController],
   providers: [OrderService, OrderTimeoutTask, DomainEvents],

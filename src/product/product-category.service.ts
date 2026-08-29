@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { DataSource, EntityManager, Repository } from "typeorm";
 
 import { ProductCategory } from "./entities/product-category.entity";
 import { Product } from "./entities/product.entity";
@@ -26,8 +26,7 @@ export class ProductCategoryService {
   constructor(
     @InjectRepository(ProductCategory)
     private readonly categoryRepository: Repository<ProductCategory>,
-    @InjectRepository(Product)
-    private readonly productRepository: Repository<Product>
+    private readonly dataSource: DataSource
   ) {}
 
   private async listAll(onlyEnabled = false): Promise<ProductCategory[]> {
@@ -75,101 +74,113 @@ export class ProductCategoryService {
   }
 
   async create(dto: CategoryFormDto): Promise<ProductCategory> {
-    const parentId = dto.parentId ?? "0";
-    let treePath = "0";
-    let level = 1;
+    return this.dataSource.transaction(async (manager) => {
+      const parentId = dto.parentId ?? "0";
+      let treePath = "0";
+      let level = 1;
 
-    if (parentId !== "0") {
-      const parent = await this.getById(parentId);
-      if (parent.level >= MAX_LEVEL) {
-        throw new BusinessException({
-          ...ErrorCode.USER_ERROR,
-          msg: `最多支持${MAX_LEVEL}级分类`,
-        });
-      }
-      treePath = `${parent.treePath},${parent.id}`;
-      level = parent.level + 1;
-    }
-
-    const category = this.categoryRepository.create({
-      name: dto.name,
-      parentId,
-      treePath,
-      level,
-      icon: dto.icon ?? null,
-      sort: dto.sort ?? 0,
-      status: dto.status ?? 1,
-      isDeleted: 0,
-    });
-    return this.categoryRepository.save(category);
-  }
-
-  async update(id: string, dto: CategoryFormDto): Promise<ProductCategory> {
-    const category = await this.getById(id);
-    const newParentId = dto.parentId ?? "0";
-
-    if (newParentId === id) {
-      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "父分类不能是自己" });
-    }
-
-    // 父分类变更时重算层级路径（存在子分类时禁止移动，避免整棵子树重算）
-    if (newParentId !== String(category.parentId)) {
-      const childCount = await this.categoryRepository.count({
-        where: { parentId: id, isDeleted: 0 },
-      });
-      if (childCount > 0) {
-        throw new BusinessException({
-          ...ErrorCode.USER_ERROR,
-          msg: "该分类下存在子分类，不允许变更父级",
-        });
-      }
-
-      if (newParentId === "0") {
-        category.treePath = "0";
-        category.level = 1;
-      } else {
-        const parent = await this.getById(newParentId);
+      if (parentId !== "0") {
+        const parent = await this.getLockedById(manager, parentId, "pessimistic_read");
         if (parent.level >= MAX_LEVEL) {
           throw new BusinessException({
             ...ErrorCode.USER_ERROR,
             msg: `最多支持${MAX_LEVEL}级分类`,
           });
         }
-        if (parent.treePath.split(",").includes(id)) {
-          throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "不能移动到自己的子分类下" });
-        }
-        category.treePath = `${parent.treePath},${parent.id}`;
-        category.level = parent.level + 1;
+        treePath = `${parent.treePath},${parent.id}`;
+        level = parent.level + 1;
       }
-      category.parentId = newParentId;
-    }
 
-    category.name = dto.name;
-    if (dto.icon !== undefined) category.icon = dto.icon;
-    if (dto.sort !== undefined) category.sort = dto.sort;
-    if (dto.status !== undefined) category.status = dto.status;
+      const category = manager.create(ProductCategory, {
+        name: dto.name,
+        parentId,
+        treePath,
+        level,
+        icon: dto.icon ?? null,
+        sort: dto.sort ?? 0,
+        status: dto.status ?? 1,
+        isDeleted: 0,
+      });
+      return manager.save(category);
+    });
+  }
 
-    return this.categoryRepository.save(category);
+  async update(id: string, dto: CategoryFormDto): Promise<ProductCategory> {
+    return this.dataSource.transaction(async (manager) => {
+      const category = await this.getLockedById(manager, id, "pessimistic_write");
+      const newParentId = dto.parentId ?? "0";
+
+      if (newParentId === id) {
+        throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "父分类不能是自己" });
+      }
+
+      // 父分类变更时重算层级路径（存在子分类时禁止移动，避免整棵子树重算）
+      if (newParentId !== String(category.parentId)) {
+        const childCount = await manager.count(ProductCategory, {
+          where: { parentId: id, isDeleted: 0 },
+        });
+        if (childCount > 0) {
+          throw new BusinessException({
+            ...ErrorCode.USER_ERROR,
+            msg: "该分类下存在子分类，不允许变更父级",
+          });
+        }
+
+        if (newParentId === "0") {
+          category.treePath = "0";
+          category.level = 1;
+        } else {
+          const parent = await this.getLockedById(manager, newParentId, "pessimistic_read");
+          if (parent.level >= MAX_LEVEL) {
+            throw new BusinessException({
+              ...ErrorCode.USER_ERROR,
+              msg: `最多支持${MAX_LEVEL}级分类`,
+            });
+          }
+          if (parent.treePath.split(",").includes(id)) {
+            throw new BusinessException({
+              ...ErrorCode.USER_ERROR,
+              msg: "不能移动到自己的子分类下",
+            });
+          }
+          category.treePath = `${parent.treePath},${parent.id}`;
+          category.level = parent.level + 1;
+        }
+        category.parentId = newParentId;
+      }
+
+      category.name = dto.name;
+      if (dto.icon !== undefined) category.icon = dto.icon;
+      if (dto.sort !== undefined) category.sort = dto.sort;
+      if (dto.status !== undefined) category.status = dto.status;
+
+      return manager.save(category);
+    });
   }
 
   async remove(id: string): Promise<void> {
-    await this.getById(id);
+    await this.dataSource.transaction(async (manager) => {
+      await this.getLockedById(manager, id, "pessimistic_write");
 
-    const childCount = await this.categoryRepository.count({
-      where: { parentId: id, isDeleted: 0 },
+      const childCount = await manager.count(ProductCategory, {
+        where: { parentId: id, isDeleted: 0 },
+      });
+      if (childCount > 0) {
+        throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "存在子分类，无法删除" });
+      }
+
+      const productCount = await manager.count(Product, {
+        where: { categoryId: id, isDeleted: 0 },
+      });
+      if (productCount > 0) {
+        throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "分类下存在商品，无法删除" });
+      }
+
+      const result = await manager.update(ProductCategory, { id, isDeleted: 0 }, { isDeleted: 1 });
+      if (result.affected !== 1) {
+        throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "分类不存在" });
+      }
     });
-    if (childCount > 0) {
-      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "存在子分类，无法删除" });
-    }
-
-    const productCount = await this.productRepository.count({
-      where: { categoryId: id, isDeleted: 0 },
-    });
-    if (productCount > 0) {
-      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "分类下存在商品，无法删除" });
-    }
-
-    await this.categoryRepository.update(id, { isDeleted: 1 });
   }
 
   /**
@@ -177,16 +188,35 @@ export class ProductCategoryService {
    */
   async getSelfAndDescendantIds(categoryId: string): Promise<string[]> {
     const list = await this.listAll();
-    const result: string[] = [categoryId];
+    const result: string[] = [];
+    const visited = new Set<string>();
     const collect = (parentId: string) => {
+      const normalizedId = String(parentId);
+      if (visited.has(normalizedId)) return;
+      visited.add(normalizedId);
+      result.push(normalizedId);
       for (const c of list) {
         if (String(c.parentId) === String(parentId)) {
-          result.push(c.id);
           collect(c.id);
         }
       }
     };
     collect(categoryId);
     return result;
+  }
+
+  private async getLockedById(
+    manager: EntityManager,
+    id: string,
+    mode: "pessimistic_read" | "pessimistic_write"
+  ): Promise<ProductCategory> {
+    const category = await manager.findOne(ProductCategory, {
+      where: { id, isDeleted: 0 },
+      lock: { mode },
+    });
+    if (!category) {
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "分类不存在" });
+    }
+    return category;
   }
 }

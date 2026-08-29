@@ -9,6 +9,7 @@ import { OrderVerifyDto } from "../dto/order-verify.dto";
 import { Permissions } from "@/common/decorators/auth.decorator";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
 import type { CurrentUserInfo } from "@/common/interfaces/current-user.interface";
+import { RateLimit } from "@/common/decorators/rate-limit.decorator";
 
 @ApiTags("16.订单管理")
 @Controller("orders")
@@ -25,6 +26,7 @@ export class OrderAdminController {
   @ApiOperation({ summary: "导出订单" })
   @Get("export")
   @Permissions("biz:order:export")
+  @RateLimit({ limit: 3, windowSec: 60 })
   @SetMetadata("skipResponseTransform", true)
   async export(@Query() query: OrderQueryDto, @Res() res: ExpressResponse) {
     const list = await this.orderService.listExport(query);

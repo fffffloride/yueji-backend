@@ -4,6 +4,8 @@ import { RedisService } from "../../common/redis/redis.service";
 import { BusinessException } from "../../common/exceptions/business.exception";
 import { ErrorCode } from "../../common/enums/error-code.enum";
 import { shouldSkipAdminAuth } from "../../common/guards/admin-auth-guard.utils";
+import { UserService } from "../../system/user/user.service";
+import { RedisConstants } from "../../common/constants/redis.constants";
 
 /**
  * Redis 会话模式下的认证守卫
@@ -16,7 +18,8 @@ import { shouldSkipAdminAuth } from "../../common/guards/admin-auth-guard.utils"
 export class RedisTokenAuthGuard implements CanActivate {
   constructor(
     private readonly redisCacheService: RedisService,
-    private readonly reflector: Reflector
+    private readonly reflector: Reflector,
+    private readonly userService: UserService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -33,6 +36,18 @@ export class RedisTokenAuthGuard implements CanActivate {
     const userSession = await this.redisCacheService.get<any>(`auth:token:access:${accessToken}`);
 
     if (!userSession) {
+      throw new BusinessException(ErrorCode.ACCESS_TOKEN_INVALID);
+    }
+
+    if (!(await this.userService.isUserEnabled(String(userSession.userId)))) {
+      throw new BusinessException(ErrorCode.ACCESS_TOKEN_INVALID);
+    }
+
+    const currentVersionRaw = await this.redisCacheService.get<number>(
+      `${RedisConstants.Auth.USER_TOKEN_VERSION}:${userSession.userId}`
+    );
+    const currentVersion = currentVersionRaw ?? 0;
+    if ((userSession.tokenVersion ?? 0) < currentVersion) {
       throw new BusinessException(ErrorCode.ACCESS_TOKEN_INVALID);
     }
 

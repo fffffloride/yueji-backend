@@ -6,7 +6,8 @@ const ALLOWED: Record<number, number[]> = {
   [OrderStatus.PAID]: [OrderStatus.VERIFIED, OrderStatus.REFUNDED],
   [OrderStatus.VERIFIED]: [OrderStatus.COMPLETED],
   [OrderStatus.COMPLETED]: [],
-  [OrderStatus.CANCELLED]: [],
+  // 渠道成功通知晚于超时取消时，原路退款完成后可进入已退款；库存与权益不得再次回补。
+  [OrderStatus.CANCELLED]: [OrderStatus.REFUNDED],
   [OrderStatus.REFUNDED]: [],
 };
 

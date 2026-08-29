@@ -1,6 +1,7 @@
 import { Transform, Type } from "class-transformer";
 import {
   ArrayNotEmpty,
+  ArrayMaxSize,
   ArrayUnique,
   IsArray,
   IsDateString,
@@ -13,7 +14,13 @@ import {
   Min,
 } from "class-validator";
 
-import { CouponScopeType, CouponType } from "../marketing.constants";
+import {
+  CouponScopeType,
+  CouponType,
+  MAX_COUPON_ISSUE_MEMBERS,
+  MAX_COUPON_SCOPE_IDS,
+  POINTS_RULE_LIMITS,
+} from "../marketing.constants";
 
 export class MemberLevelSaveDto {
   @IsString()
@@ -41,10 +48,12 @@ export class MemberLevelSaveDto {
 export class PointsRuleDto {
   @IsInt()
   @Min(0)
+  @Max(POINTS_RULE_LIMITS.maxEarnPerYuan)
   earnPerYuan: number;
 
   @IsInt()
   @Min(1)
+  @Max(POINTS_RULE_LIMITS.maxRedeemPointsPerYuan)
   redeemPointsPerYuan: number;
 
   @IsInt()
@@ -150,8 +159,10 @@ export class CouponSaveDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(MAX_COUPON_SCOPE_IDS)
   @ArrayUnique()
   @Transform(({ value }) => (Array.isArray(value) ? value.map(String) : value))
+  @IsString({ each: true })
   scopeIds?: string[];
 }
 
@@ -188,7 +199,11 @@ export class MemberCouponQueryDto extends PageDto {
 export class CouponIssueDto {
   @IsArray()
   @ArrayNotEmpty()
+  @ArrayMaxSize(MAX_COUPON_ISSUE_MEMBERS)
   @ArrayUnique()
   @Transform(({ value }) => (Array.isArray(value) ? value.map(String) : value))
+  @IsString({ each: true })
   memberIds: string[];
 }
+
+export class ClaimableCouponQueryDto extends PageDto {}

@@ -1,6 +1,8 @@
 -- 阶段5：会员等级、积分、优惠券菜单
 USE youlai_admin;
 
+SET NAMES utf8mb4;
+
 INSERT INTO `sys_menu` (`id`,`parent_id`,`tree_path`,`name`,`type`,`route_name`,`route_path`,`component`,`perm`,`always_show`,`keep_alive`,`visible`,`sort`,`icon`,`redirect`,`create_time`,`update_time`,`params`) VALUES
 (3210,3200,'0,3200','会员等级','M','BizMemberLevel','level','member/level/index',NULL,0,1,1,2,'el-icon-Medal',NULL,now(),now(),NULL),
 (3211,3210,'0,3200,3210','等级查询','B',NULL,'',NULL,'biz:member-level:list',NULL,NULL,1,1,'',NULL,now(),now(),NULL),

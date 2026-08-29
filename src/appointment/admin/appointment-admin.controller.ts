@@ -2,6 +2,7 @@ import { Controller, Get, Query } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 
 import { AppointmentService } from "../appointment.service";
+import { AppointmentCalendarQueryDto } from "../dto/appointment-calendar-query.dto";
 import { AppointmentQueryDto } from "../dto/appointment-query.dto";
 import { Permissions } from "@/common/decorators/auth.decorator";
 
@@ -15,5 +16,12 @@ export class AppointmentAdminController {
   @Permissions("biz:appointment:query")
   async page(@Query() query: AppointmentQueryDto) {
     return this.appointmentService.pageQuery(query);
+  }
+
+  @ApiOperation({ summary: "预约月历" })
+  @Get("calendar")
+  @Permissions("biz:appointment:query")
+  async calendar(@Query() query: AppointmentCalendarQueryDto) {
+    return this.appointmentService.listByMonth(query.month);
   }
 }

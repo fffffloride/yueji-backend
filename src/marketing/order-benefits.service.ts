@@ -125,10 +125,62 @@ export class OrderBenefitsService {
   }
 
   async availableCoupons(manager: EntityManager, memberId: string, lines: BenefitLine[]) {
+    const member = await manager.findOne(Member, {
+      where: { id: memberId, status: 1, isDeleted: 0 },
+    });
+    if (!member) throw this.userError("会员不可用");
+    const level = await resolveEffectiveMemberLevel(manager, member);
+    const memberRate = level?.discountRate ?? 10000;
+    const discountedLines = lines.map((line) => ({
+      ...line,
+      discountedUnitPrice: discountUnitPrice(line.price, memberRate),
+    }));
+    const afterMember = discountedLines.reduce(
+      (sum, line) => sum + line.discountedUnitPrice * line.quantity,
+      0
+    );
     const rows = await manager.find(MemberCoupon, {
       where: { memberId, status: MemberCouponStatus.UNUSED, isDeleted: 0 },
       order: { createTime: "DESC" },
     });
+    if (rows.length === 0) return [];
+
+    const coupons = await manager.find(Coupon, {
+      where: {
+        id: In([...new Set(rows.map((row) => row.couponId))]),
+        status: CouponTemplateStatus.ACTIVE,
+        isDeleted: 0,
+      },
+    });
+    const now = new Date();
+    const validCoupons = coupons.filter(
+      (coupon) => coupon.validStart <= now && coupon.validEnd >= now
+    );
+    const couponMap = new Map(validCoupons.map((coupon) => [String(coupon.id), coupon]));
+
+    const scopedCouponIds = validCoupons
+      .filter((coupon) => coupon.scopeType !== CouponScopeType.ALL)
+      .map((coupon) => coupon.id);
+    const scopes = scopedCouponIds.length
+      ? await manager.find(CouponScope, {
+          where: { couponId: In(scopedCouponIds), isDeleted: 0 },
+        })
+      : [];
+    const targetsByCoupon = new Map<string, Set<string>>();
+    for (const scope of scopes) {
+      const key = String(scope.couponId);
+      const targets = targetsByCoupon.get(key) ?? new Set<string>();
+      targets.add(String(scope.targetId));
+      targetsByCoupon.set(key, targets);
+    }
+
+    const categoryIds = [...new Set(discountedLines.map((line) => line.categoryId))];
+    const categories = categoryIds.length
+      ? await manager.find(ProductCategory, {
+          where: { id: In(categoryIds), isDeleted: 0 },
+        })
+      : [];
+    const categoryMap = new Map(categories.map((category) => [String(category.id), category]));
     const available: Array<{
       memberCouponId: string;
       couponId: string;
@@ -138,20 +190,49 @@ export class OrderBenefitsService {
       validEnd: Date | null;
     }> = [];
     for (const row of rows) {
-      try {
-        const quote = await this.quote(manager, memberId, lines, row.id, 0);
-        const coupon = await manager.findOne(Coupon, { where: { id: row.couponId } });
-        available.push({
-          memberCouponId: row.id,
-          couponId: row.couponId,
-          couponName: quote.couponName,
-          couponType: quote.couponType,
-          couponAmount: quote.couponAmount,
-          validEnd: coupon?.validEnd ?? null,
+      const coupon = couponMap.get(String(row.couponId));
+      if (!coupon) continue;
+      let couponAmount = 0;
+      if (coupon.type === CouponType.EXCHANGE) {
+        const line = discountedLines.find(
+          (item) => String(item.skuId) === String(coupon.exchangeSkuId)
+        );
+        couponAmount = line?.discountedUnitPrice ?? 0;
+      } else {
+        const targets = targetsByCoupon.get(String(coupon.id)) ?? new Set<string>();
+        const applicable = discountedLines.filter((line) => {
+          if (coupon.scopeType === CouponScopeType.ALL) return true;
+          if (coupon.scopeType === CouponScopeType.PRODUCT) {
+            return targets.has(String(line.productId));
+          }
+          const category = categoryMap.get(String(line.categoryId));
+          return category
+            ? categoryInScope(String(category.id), category.treePath, targets)
+            : false;
         });
-      } catch {
-        // Invalid or inapplicable coupons are omitted from the available list.
+        const eligibleAmount = applicable.reduce(
+          (sum, line) => sum + line.discountedUnitPrice * line.quantity,
+          0
+        );
+        couponAmount = calculateCouponAmount(
+          coupon.type,
+          eligibleAmount,
+          coupon.thresholdAmount,
+          coupon.discountAmount,
+          coupon.discountRate,
+          coupon.maxDiscountAmount
+        );
       }
+      couponAmount = Math.min(couponAmount, afterMember);
+      if (couponAmount <= 0) continue;
+      available.push({
+        memberCouponId: row.id,
+        couponId: row.couponId,
+        couponName: coupon.name,
+        couponType: coupon.type,
+        couponAmount,
+        validEnd: coupon.validEnd,
+      });
     }
     return available.sort((a, b) => b.couponAmount - a.couponAmount);
   }
@@ -255,6 +336,7 @@ export class OrderBenefitsService {
     const currentLevel = member.levelId
       ? await manager.findOne(MemberLevel, {
           where: { id: member.levelId, status: 1, isDeleted: 0 },
+          lock: { mode: "pessimistic_read" },
         })
       : null;
     const nextLevel = await manager.findOne(MemberLevel, {
@@ -264,6 +346,7 @@ export class OrderBenefitsService {
         isDeleted: 0,
       },
       order: { thresholdAmount: "DESC", sort: "ASC" },
+      lock: { mode: "pessimistic_read" },
     });
     if (nextLevel && (!currentLevel || nextLevel.thresholdAmount > currentLevel.thresholdAmount)) {
       member.levelId = nextLevel.id;

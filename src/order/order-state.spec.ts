@@ -28,4 +28,9 @@ describe("order-state", () => {
       /非法订单状态流转/
     );
   });
+
+  it("取消后收到迟到支付时只允许在原路退款完成后进入已退款", () => {
+    expect(canTransition(OrderStatus.CANCELLED, OrderStatus.REFUNDED)).toBe(true);
+    expect(canTransition(OrderStatus.CANCELLED, OrderStatus.VERIFIED)).toBe(false);
+  });
 });

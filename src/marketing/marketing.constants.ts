@@ -31,13 +31,19 @@ export enum PointsBizType {
   ORDER_EARN = "ORDER_EARN",
 }
 
-export const POINTS_RULE_KEY = "marketing.points.rule";
-
 export interface PointsRule {
   earnPerYuan: number;
   redeemPointsPerYuan: number;
   maxDeductRate: number;
 }
+
+export const POINTS_RULE_LIMITS = {
+  maxEarnPerYuan: 10_000,
+  maxRedeemPointsPerYuan: 1_000_000,
+} as const;
+
+export const MAX_COUPON_SCOPE_IDS = 500;
+export const MAX_COUPON_ISSUE_MEMBERS = 500;
 
 export const DEFAULT_POINTS_RULE: PointsRule = {
   earnPerYuan: 1,

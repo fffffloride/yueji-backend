@@ -71,44 +71,40 @@ async function bootstrap() {
     })
   );
 
-  // Swagger 配置
-  // 接口约定：B 端管理接口走 /api/v1/**，C 端小程序接口统一走 /api/v1/app/**
-  const APP_API_PREFIX = "/api/v1/app";
+  // Swagger 默认仅在非生产环境启用；生产环境校验会拒绝 SWAGGER_ENABLED=true。
+  const swaggerEnabled = configService.get<string>("SWAGGER_ENABLED", "false") === "true";
+  if (swaggerEnabled) {
+    // 接口约定：B 端管理接口走 /api/v1/**，C 端小程序接口统一走 /api/v1/app/**
+    const APP_API_PREFIX = "/api/v1/app";
 
-  const config = new DocumentBuilder()
-    .setTitle("悦己DLumière 管理后台")
-    .setDescription("B 端管理接口文档（/api/v1/**，不含 C 端 /api/v1/app/**）")
-    .setVersion("1.0")
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  // B 端文档排除 C 端路径
-  document.paths = Object.fromEntries(
-    Object.entries(document.paths).filter(([path]) => !path.startsWith(APP_API_PREFIX))
-  );
-  // 使用 alpha 排序
-  SwaggerModule.setup("api-docs", app, document, {
-    swaggerOptions: {
-      tagsSorter: "alpha",
-    },
-  });
+    const config = new DocumentBuilder()
+      .setTitle("悦己DLumière 管理后台")
+      .setDescription("B 端管理接口文档（/api/v1/**，不含 C 端 /api/v1/app/**）")
+      .setVersion("1.0")
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    document.paths = Object.fromEntries(
+      Object.entries(document.paths).filter(([path]) => !path.startsWith(APP_API_PREFIX))
+    );
+    SwaggerModule.setup("api-docs", app, document, {
+      swaggerOptions: { tagsSorter: "alpha" },
+    });
 
-  // C 端（微信小程序）接口文档
-  const appApiConfig = new DocumentBuilder()
-    .setTitle("悦己DLumière 小程序")
-    .setDescription("C 端小程序接口文档（/api/v1/app/**）")
-    .setVersion("1.0")
-    .addBearerAuth()
-    .build();
-  const appApiDocument = SwaggerModule.createDocument(app, appApiConfig);
-  appApiDocument.paths = Object.fromEntries(
-    Object.entries(appApiDocument.paths).filter(([path]) => path.startsWith(APP_API_PREFIX))
-  );
-  SwaggerModule.setup("app-api-docs", app, appApiDocument, {
-    swaggerOptions: {
-      tagsSorter: "alpha",
-    },
-  });
+    const appApiConfig = new DocumentBuilder()
+      .setTitle("悦己DLumière 小程序")
+      .setDescription("C 端小程序接口文档（/api/v1/app/**）")
+      .setVersion("1.0")
+      .addBearerAuth()
+      .build();
+    const appApiDocument = SwaggerModule.createDocument(app, appApiConfig);
+    appApiDocument.paths = Object.fromEntries(
+      Object.entries(appApiDocument.paths).filter(([path]) => path.startsWith(APP_API_PREFIX))
+    );
+    SwaggerModule.setup("app-api-docs", app, appApiDocument, {
+      swaggerOptions: { tagsSorter: "alpha" },
+    });
+  }
 
   // Session 配置
   app.use(
@@ -127,8 +123,10 @@ async function bootstrap() {
   const port = Number(portRaw) || 8000;
   await app.listen(port);
   logger.log(`应用已启动: http://localhost:${port}`);
-  logger.log(`B端接口文档: http://localhost:${port}/api-docs`);
-  logger.log(`C端接口文档: http://localhost:${port}/app-api-docs`);
+  if (swaggerEnabled) {
+    logger.log(`B端接口文档: http://localhost:${port}/api-docs`);
+    logger.log(`C端接口文档: http://localhost:${port}/app-api-docs`);
+  }
 }
 
 void bootstrap();

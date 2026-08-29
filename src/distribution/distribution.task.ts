@@ -1,19 +1,30 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { Interval } from "@nestjs/schedule";
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 
 import { DistributionService } from "./distribution.service";
 import { DistributionSettlementService } from "./distribution-settlement.service";
 
 @Injectable()
-export class DistributionTask {
+export class DistributionTask implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DistributionTask.name);
+  private timer?: NodeJS.Timeout;
 
   constructor(
     private readonly service: DistributionService,
     private readonly settlementService: DistributionSettlementService
   ) {}
 
-  @Interval(60_000)
+  onModuleInit() {
+    this.timer = setInterval(() => {
+      this.reconcile().catch((error) => {
+        this.logger.warn(`分销补偿任务失败: ${String(error)}`);
+      });
+    }, 60_000);
+  }
+
+  onModuleDestroy() {
+    if (this.timer) clearInterval(this.timer);
+  }
+
   async reconcile() {
     const ids = await this.service.reconciliationOrderIds();
     for (const id of ids) {

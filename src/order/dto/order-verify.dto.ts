@@ -1,11 +1,11 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from "class-validator";
 
 export class OrderVerifyDto {
   @ApiProperty({ description: "核销码" })
   @IsNotEmpty({ message: "核销码不能为空" })
   @IsString()
-  @MaxLength(32)
+  @Matches(/^\d{8}$/, { message: "核销码必须为8位数字" })
   verifyCode: string;
 }
 

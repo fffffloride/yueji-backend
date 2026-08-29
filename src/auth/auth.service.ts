@@ -39,6 +39,24 @@ export class AuthService {
     return `${RedisConstants.Auth.USER_JWT_SESSION}:${userId}`;
   }
 
+  private getTokenFamilyBlacklistKey(sessionId: string): string {
+    return `${RedisConstants.Auth.TOKEN_FAMILY_BLACKLIST}:${sessionId}`;
+  }
+
+  private getLegacyTokenBlacklistKey(jti: string): string {
+    return `${RedisConstants.Auth.TOKEN_BLACKLIST}:${jti}`;
+  }
+
+  private getRedisTokenPairKey(accessToken: string): string {
+    return `${RedisConstants.Auth.TOKEN_PAIR}:${accessToken}`;
+  }
+
+  private async ensureAdminUserEnabled(userId: string): Promise<void> {
+    if (!(await this.userService.isUserEnabled(userId))) {
+      throw new BusinessException(ErrorCode.ACCESS_TOKEN_INVALID);
+    }
+  }
+
   /**
    * 签发令牌
    *
@@ -73,8 +91,10 @@ export class AuthService {
         refreshTtl
       );
 
-      // 构建 JWT payload
-      const jti = uuidv4();
+      // access/refresh 共用 sid 表示同一会话族，但使用不同 jti。
+      // 注销时撤销 sid，黑名单 TTL 覆盖整个 refresh 有效期。
+      const sessionId = uuidv4();
+      const sessionExpiresAt = Math.floor(Date.now() / 1000) + refreshTtl;
       const payload = {
         sub: userId,
         username: user.username,
@@ -83,17 +103,20 @@ export class AuthService {
         deptTreePath: user.deptTreePath,
         roles: user.roles,
         tokenVersion,
-        jti,
+        sid: sessionId,
+        sessionExp: sessionExpiresAt,
       };
 
-      const accessToken = await this.jwtService.signAsync(payload, {
-        expiresIn: this.config.expiresIn,
-      });
+      const accessToken = await this.jwtService.signAsync(
+        { ...payload, jti: uuidv4() },
+        { expiresIn: this.config.expiresIn }
+      );
 
       const refreshToken = await this.jwtService.signAsync(
         {
           ...payload,
           refreshToken: true,
+          jti: uuidv4(),
         },
         {
           expiresIn: this.config.expiresIn * 10,
@@ -115,6 +138,9 @@ export class AuthService {
 
     const accessTtl = this.config.expiresIn;
     const refreshTtl = this.config.expiresIn * 10;
+    const versionKey = `${RedisConstants.Auth.USER_TOKEN_VERSION}:${userId}`;
+    const currentVersionRaw = await this.redisCacheService.get<number>(versionKey);
+    const tokenVersion = currentVersionRaw ?? 0;
 
     // 用户会话（不包含 perms）
     const userSession = {
@@ -123,11 +149,17 @@ export class AuthService {
       deptId: user.deptId,
       dataScopes: user.dataScopes,
       roles: user.roles,
+      tokenVersion,
     };
 
     // 存储 access/refresh 双 Token 及 userId 反向索引
     await this.redisCacheService.set(`auth:token:access:${accessToken}`, userSession, accessTtl);
     await this.redisCacheService.set(`auth:token:refresh:${refreshToken}`, userSession, refreshTtl);
+    await this.redisCacheService.set(
+      this.getRedisTokenPairKey(accessToken),
+      refreshToken,
+      refreshTtl
+    );
     await this.redisCacheService.set(`auth:user:access:${userId}`, accessToken, accessTtl);
     await this.redisCacheService.set(`auth:user:refresh:${userId}`, refreshToken, refreshTtl);
 
@@ -258,6 +290,7 @@ export class AuthService {
         }
 
         const userId = payload.sub;
+        await this.ensureAdminUserEnabled(userId);
 
         // 校验 Token 版本
         const tokenVersion: number = payload.tokenVersion ?? 0;
@@ -268,12 +301,17 @@ export class AuthService {
           throw new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID);
         }
 
-        // 校验黑名单
-        const jti: string | undefined = payload.jti;
-        if (jti) {
-          const blacklistKey = `${RedisConstants.Auth.TOKEN_BLACKLIST}:${jti}`;
-          const inBlacklist = await this.redisCacheService.hasKey(blacklistKey);
-          if (inBlacklist) {
+        // 校验会话族黑名单；同时保留对升级前单 jti 黑名单的兼容。
+        const sessionId: string | undefined = payload.sid ?? payload.jti;
+        const sessionExpiresAt: number | undefined = payload.sessionExp ?? payload.exp;
+        if (sessionId) {
+          const inFamilyBlacklist = await this.redisCacheService.hasKey(
+            this.getTokenFamilyBlacklistKey(sessionId)
+          );
+          const inLegacyBlacklist = payload.jti
+            ? await this.redisCacheService.hasKey(this.getLegacyTokenBlacklistKey(payload.jti))
+            : false;
+          if (inFamilyBlacklist || inLegacyBlacklist) {
             throw new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID);
           }
         }
@@ -289,6 +327,8 @@ export class AuthService {
             deptTreePath: payload.deptTreePath,
             roles: payload.roles,
             tokenVersion: tokenVersion,
+            sid: sessionId,
+            sessionExp: sessionExpiresAt,
             jti: newJti,
           },
           {
@@ -312,11 +352,33 @@ export class AuthService {
     if (!userSession) {
       throw new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID);
     }
+    await this.ensureAdminUserEnabled(String(userSession.userId));
+
+    const currentVersionRaw = await this.redisCacheService.get<number>(
+      `${RedisConstants.Auth.USER_TOKEN_VERSION}:${userSession.userId}`
+    );
+    const currentVersion = currentVersionRaw ?? 0;
+    if ((userSession.tokenVersion ?? 0) < currentVersion) {
+      throw new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID);
+    }
 
     const accessToken = uuidv4();
     const accessTtl = this.config.expiresIn;
 
+    const previousAccessToken = await this.redisCacheService.get<string>(
+      `auth:user:access:${userSession.userId}`
+    );
+    if (previousAccessToken) {
+      await this.redisCacheService.del(`auth:token:access:${previousAccessToken}`);
+      await this.redisCacheService.del(this.getRedisTokenPairKey(previousAccessToken));
+    }
+
     await this.redisCacheService.set(`auth:token:access:${accessToken}`, userSession, accessTtl);
+    await this.redisCacheService.set(
+      this.getRedisTokenPairKey(accessToken),
+      refreshToken,
+      this.config.expiresIn * 10
+    );
     await this.redisCacheService.set(
       `auth:user:access:${userSession.userId}`,
       accessToken,
@@ -340,7 +402,7 @@ export class AuthService {
   }
 
   /**
-   * 将 JWT 令牌加入黑名单
+   * 撤销当前访问令牌及其配对的刷新令牌
    *
    * @param token Bearer Token 或裸 Token
    */
@@ -354,25 +416,61 @@ export class AuthService {
       token = token.substring("Bearer ".length);
     }
 
+    const sessionType = this.configService.get<string>("SESSION_TYPE") || "jwt";
+    if (sessionType === "redis-token") {
+      await this.revokeRedisTokenPair(token);
+      return;
+    }
+
     const decoded: any = this.jwtService.decode(token);
     if (!decoded) {
       return;
     }
 
-    const jti: string | undefined = decoded["jti"];
-    const exp: number | undefined = decoded["exp"];
+    const sessionId: string | undefined = decoded["sid"] ?? decoded["jti"];
+    const sessionExp: number | undefined =
+      decoded["sessionExp"] ??
+      (decoded["iat"] ? Number(decoded["iat"]) + this.config.expiresIn * 10 : decoded["exp"]);
 
-    if (!jti || !exp) {
+    if (!sessionId || !sessionExp) {
       return;
     }
 
     const nowSeconds = Math.floor(Date.now() / 1000);
-    const remaining = exp - nowSeconds;
+    const remaining = sessionExp - nowSeconds;
     if (remaining <= 0) {
       return;
     }
 
-    const blacklistKey = `${RedisConstants.Auth.TOKEN_BLACKLIST}:${jti}`;
-    await this.redisCacheService.set(blacklistKey, true, remaining);
+    await this.redisCacheService.set(this.getTokenFamilyBlacklistKey(sessionId), true, remaining);
+  }
+
+  private async revokeRedisTokenPair(accessToken: string): Promise<void> {
+    const userSession = await this.redisCacheService.get<any>(`auth:token:access:${accessToken}`);
+    const pairedRefreshToken = await this.redisCacheService.get<string>(
+      this.getRedisTokenPairKey(accessToken)
+    );
+
+    await this.redisCacheService.del(`auth:token:access:${accessToken}`);
+    await this.redisCacheService.del(this.getRedisTokenPairKey(accessToken));
+
+    const userId = userSession?.userId?.toString();
+    if (!userId) return;
+
+    const accessIndexKey = `auth:user:access:${userId}`;
+    const refreshIndexKey = `auth:user:refresh:${userId}`;
+    const indexedAccessToken = await this.redisCacheService.get<string>(accessIndexKey);
+    const indexedRefreshToken = await this.redisCacheService.get<string>(refreshIndexKey);
+    const refreshToken = pairedRefreshToken ?? indexedRefreshToken;
+
+    if (refreshToken) {
+      await this.redisCacheService.del(`auth:token:refresh:${refreshToken}`);
+    }
+    if (indexedAccessToken === accessToken) {
+      await this.redisCacheService.del(accessIndexKey);
+    }
+    if (!pairedRefreshToken || indexedRefreshToken === pairedRefreshToken) {
+      await this.redisCacheService.del(refreshIndexKey);
+    }
   }
 }

@@ -1,6 +1,8 @@
 -- 商品与分类按钮权限；可在已有阶段2数据库中单独执行。
 USE youlai_admin;
 
+SET NAMES utf8mb4;
+
 INSERT INTO `sys_menu`
 (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`)
 VALUES

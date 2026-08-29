@@ -1,6 +1,8 @@
-import { Column, Entity } from "typeorm";
+import { Column, Entity, Index } from "typeorm";
 import { BaseEntity } from "@/common/entities/base.entity";
 
+@Index("idx_order_item_order", ["orderId"])
+@Index("idx_order_item_product_sku", ["productId", "skuId"])
 @Entity("biz_order_item")
 export class BizOrderItem extends BaseEntity {
   @Column({ name: "order_id", type: "bigint", comment: "订单ID" })

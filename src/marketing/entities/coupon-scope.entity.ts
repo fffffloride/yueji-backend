@@ -3,7 +3,7 @@ import { Column, Entity, Index } from "typeorm";
 import { BaseEntity } from "@/common/entities/base.entity";
 
 @Entity("coupon_scope")
-@Index(["couponId", "targetType", "targetId"], { unique: true })
+@Index("idx_coupon_scope_coupon_active", ["couponId", "isDeleted"])
 export class CouponScope extends BaseEntity {
   @Column({ name: "coupon_id", type: "bigint", comment: "优惠券ID" })
   couponId: string;

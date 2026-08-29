@@ -1,9 +1,10 @@
-import { Column, Entity } from "typeorm";
+import { Column, Entity, Index } from "typeorm";
 
 import { BaseEntity } from "@/common/entities/base.entity";
 import { CouponScopeType, CouponType } from "../marketing.constants";
 
 @Entity("coupon")
+@Index("idx_coupon_status_time", ["status", "claimStart", "claimEnd"])
 export class Coupon extends BaseEntity {
   @Column({ length: 100, comment: "优惠券名称" })
   name: string;

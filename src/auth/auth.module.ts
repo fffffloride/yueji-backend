@@ -43,6 +43,6 @@ import { SysUserSocial } from "../system/user/entities/sys-user-social.entity";
   ],
   controllers: [AuthController, MemberAuthController],
   providers: [AuthService, MemberAuthService, JwtStrategy, RedisService, ToolsService],
-  exports: [AuthService, MemberAuthService],
+  exports: [AuthService, MemberAuthService, UserModule],
 })
 export class AuthModule {}

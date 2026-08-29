@@ -47,6 +47,7 @@ DELETE FROM `decoration_banner`;
 DELETE FROM `decoration_notice`;
 DELETE FROM `decoration_brand`;
 DELETE FROM `appointment`;
+DELETE FROM `marketing_points_rule`;
 DELETE FROM `member_coupon`;
 DELETE FROM `coupon_scope`;
 DELETE FROM `coupon`;
@@ -88,6 +89,11 @@ VALUES
   (2, '白银会员', 20000, 9800, 1, 2, NOW(), NOW(), 0),
   (3, '黄金会员', 60000, 9500, 1, 3, NOW(), NOW(), 0),
   (4, '黑钻会员', 100000, 9000, 1, 4, NOW(), NOW(), 0);
+
+INSERT INTO `marketing_points_rule`
+  (`id`, `earn_per_yuan`, `redeem_points_per_yuan`, `max_deduct_rate`,
+   `create_time`, `update_time`, `is_deleted`)
+VALUES (1, 1, 100, 5000, NOW(), NOW(), 0);
 
 INSERT INTO `member`
   (`id`, `openid`, `unionid`, `mobile`, `nickname`, `avatar`, `gender`, `status`, `points`,
@@ -375,8 +381,8 @@ SELECT
   0,
   IF(MOD(s.n, 4) = 0, s.n, NULL),
   0,
-  IF(MOD(s.n, 5) = 0, 300, 0),
-  IF(MOD(s.n, 5) = 0, 300, 0),
+  0,
+  0,
   0,
   IF(MOD(s.n - 1, 6) IN (1, 2, 3, 5), 2, NULL),
   IF(MOD(s.n - 1, 6) IN (1, 2, 3, 5), DATE_ADD(DATE_SUB(NOW(), INTERVAL MOD(s.n * 7, 90) DAY), INTERVAL 30 MINUTE), NULL),
@@ -384,7 +390,7 @@ SELECT
   COALESCE(m.mobile, CONCAT('139', LPAD(s.n, 8, '0'))),
   CASE MOD(s.n, 8)
     WHEN 0 THEN '希望安排安静房间' WHEN 1 THEN '到店前请电话确认' WHEN 2 THEN '皮肤较敏感，请先面诊' ELSE NULL END,
-  IF(MOD(s.n - 1, 6) IN (1, 2, 3), CONCAT('V', LPAD(s.n, 8, '0')), NULL),
+  IF(MOD(s.n - 1, 6) IN (1, 2, 3), LPAD(s.n, 8, '0'), NULL),
   IF(MOD(s.n - 1, 6) IN (2, 3), DATE_ADD(DATE_SUB(NOW(), INTERVAL MOD(s.n * 7, 90) DAY), INTERVAL 2 DAY), NULL),
   IF(MOD(s.n - 1, 6) IN (2, 3), 1, NULL),
   IF(MOD(s.n - 1, 6) = 4, DATE_ADD(DATE_SUB(NOW(), INTERVAL MOD(s.n * 7, 90) DAY), INTERVAL 2 HOUR), NULL),
@@ -455,11 +461,23 @@ SET o.total_amount = items.total_amount,
       WHEN 'FULL_REDUCTION' THEN LEAST(c.discount_amount, items.total_amount)
       WHEN 'DISCOUNT' THEN LEAST(COALESCE(c.max_discount_amount, items.total_amount), FLOOR(items.total_amount * (10000 - c.discount_rate) / 10000))
       ELSE 0
-    END;
-
-UPDATE `biz_order`
-SET discount_amount = member_discount + coupon_amount + points_deduct,
-    pay_amount = total_amount - member_discount - coupon_amount - points_deduct;
+    END,
+    o.points_used = IF(MOD(o.id, 5) = 0, 300, 0),
+    o.points_deduct = IF(MOD(o.id, 5) = 0, 300, 0),
+    o.discount_amount =
+      FLOOR(items.total_amount * (10000 - level_snapshot.discount_rate) / 10000) +
+      CASE c.type
+        WHEN 'FULL_REDUCTION' THEN LEAST(c.discount_amount, items.total_amount)
+        WHEN 'DISCOUNT' THEN LEAST(COALESCE(c.max_discount_amount, items.total_amount), FLOOR(items.total_amount * (10000 - c.discount_rate) / 10000))
+        ELSE 0
+      END + IF(MOD(o.id, 5) = 0, 300, 0),
+    o.pay_amount = items.total_amount -
+      FLOOR(items.total_amount * (10000 - level_snapshot.discount_rate) / 10000) -
+      CASE c.type
+        WHEN 'FULL_REDUCTION' THEN LEAST(c.discount_amount, items.total_amount)
+        WHEN 'DISCOUNT' THEN LEAST(COALESCE(c.max_discount_amount, items.total_amount), FLOOR(items.total_amount * (10000 - c.discount_rate) / 10000))
+        ELSE 0
+      END - IF(MOD(o.id, 5) = 0, 300, 0);
 
 UPDATE `member_coupon` mc
 JOIN `biz_order` o ON o.id = mc.id AND MOD(mc.id, 4) = 0 AND mc.id <= 120
@@ -522,8 +540,8 @@ SELECT
   p.id,
   o.id,
   o.member_id,
-  FLOOR(o.pay_amount / 2),
-  '客户申请部分退款，等待审核',
+  o.pay_amount,
+  '客户申请整单退款，等待渠道结果',
   IF(MOD(FLOOR(o.id / 6), 2) = 0, 0, 2),
   NULL,
   NULL,

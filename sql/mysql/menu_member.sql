@@ -1,6 +1,8 @@
 -- 会员管理菜单（阶段4）
 USE youlai_admin;
 
+SET NAMES utf8mb4;
+
 INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`)
 VALUES (3200, 0, '0', '会员管理', 'C', '', '/member', 'Layout', NULL, NULL, NULL, 1, 2, 'el-icon-User', '/member/index', now(), now(), NULL);
 

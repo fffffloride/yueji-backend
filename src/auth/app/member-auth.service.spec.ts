@@ -6,14 +6,23 @@ const createService = (configValues: Record<string, string> = {}) => {
   const configService = {
     get: jest.fn((key: string, defaultValue?: string) => configValues[key] ?? defaultValue),
   };
+  const jwtService = {
+    verifyAsync: jest.fn(),
+    sign: jest.fn(),
+  };
+  const memberService = {
+    findById: jest.fn(),
+    findOrCreateByOpenid: jest.fn(),
+    touchLastLogin: jest.fn(),
+  };
   const service = new MemberAuthService(
     { expiresIn: 7200 } as never,
-    {} as never,
+    jwtService as never,
     configService as never,
     {} as never,
-    {} as never
+    memberService as never
   );
-  return { service, configService };
+  return { service, configService, jwtService, memberService };
 };
 
 describe("MemberAuthService", () => {
@@ -33,10 +42,63 @@ describe("MemberAuthService", () => {
     );
   });
 
+  it("手机号登录把微信身份和手机号交给同一次会员创建", async () => {
+    const { service, jwtService, memberService } = createService();
+    jest.spyOn(service as any, "getJsCodeSession").mockResolvedValue({
+      openid: "openid-1",
+      unionid: "unionid-1",
+    });
+    jest.spyOn(service as any, "getPhoneNumber").mockResolvedValue("13800000000");
+    memberService.findOrCreateByOpenid.mockResolvedValue({
+      id: "1",
+      openid: "openid-1",
+      mobile: "13800000000",
+      status: 1,
+    });
+    jwtService.sign.mockReturnValueOnce("access").mockReturnValueOnce("refresh");
+
+    await service.phoneLogin("login-code", "phone-code");
+
+    expect(memberService.findOrCreateByOpenid).toHaveBeenCalledWith(
+      "openid-1",
+      "unionid-1",
+      "13800000000"
+    );
+    expect(memberService.touchLastLogin).toHaveBeenCalledWith("1");
+  });
+
   it("开发环境默认也关闭 Mock 登录", async () => {
     const { service } = createService({ NODE_ENV: "dev" });
     await expect(service.mockLogin()).rejects.toMatchObject({
       response: { msg: "Mock 登录未启用" },
     });
+  });
+
+  it("使用有效会员刷新令牌签发新令牌", async () => {
+    const { service, jwtService, memberService } = createService();
+    jwtService.verifyAsync.mockResolvedValue({ typ: "member-refresh", sub: "1" });
+    jwtService.sign.mockReturnValueOnce("new-access").mockReturnValueOnce("new-refresh");
+    memberService.findById.mockResolvedValue({
+      id: "1",
+      openid: "openid-1",
+      mobile: "13800000000",
+      status: 1,
+    });
+
+    await expect(service.refreshToken("refresh-token")).resolves.toMatchObject({
+      accessToken: "new-access",
+      refreshToken: "new-refresh",
+      hasMobile: true,
+    });
+  });
+
+  it("拒绝管理员或会员 access token 走会员刷新接口", async () => {
+    const { service, jwtService, memberService } = createService();
+    jwtService.verifyAsync.mockResolvedValue({ typ: "member", sub: "1" });
+
+    await expect(service.refreshToken("access-token")).rejects.toMatchObject({
+      response: expect.objectContaining({ code: expect.any(String) }),
+    });
+    expect(memberService.findById).not.toHaveBeenCalled();
   });
 });

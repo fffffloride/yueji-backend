@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Not, Repository } from "typeorm";
+import { DataSource, Not, Repository } from "typeorm";
 
 import { MemberLevelSaveDto, PageDto } from "./dto/marketing.dto";
 import { MemberLevel } from "./entities/member-level.entity";
@@ -13,8 +13,7 @@ export class MemberLevelService {
   constructor(
     @InjectRepository(MemberLevel)
     private readonly levelRepository: Repository<MemberLevel>,
-    @InjectRepository(Member)
-    private readonly memberRepository: Repository<Member>
+    private readonly dataSource: DataSource
   ) {}
 
   async page(query: PageDto) {
@@ -36,23 +35,39 @@ export class MemberLevelService {
 
   async create(dto: MemberLevelSaveDto) {
     await this.assertThresholdAvailable(dto.thresholdAmount);
-    return this.levelRepository.save(this.levelRepository.create({ ...dto, isDeleted: 0 }));
+    try {
+      return await this.levelRepository.save(this.levelRepository.create({ ...dto, isDeleted: 0 }));
+    } catch (error) {
+      if (this.isDuplicateEntry(error)) throw this.userError("累计实付门槛不能重复");
+      throw error;
+    }
   }
 
   async update(id: string, dto: MemberLevelSaveDto) {
     const level = await this.get(id);
     await this.assertThresholdAvailable(dto.thresholdAmount, id);
     Object.assign(level, dto);
-    return this.levelRepository.save(level);
+    try {
+      return await this.levelRepository.save(level);
+    } catch (error) {
+      if (this.isDuplicateEntry(error)) throw this.userError("累计实付门槛不能重复");
+      throw error;
+    }
   }
 
   async remove(id: string) {
-    const level = await this.get(id);
-    const used = await this.memberRepository.count({ where: { levelId: id, isDeleted: 0 } });
-    if (used > 0) throw this.userError("该等级已有会员使用，不能删除");
-    level.isDeleted = 1;
-    await this.levelRepository.save(level);
-    return true;
+    return this.dataSource.transaction(async (manager) => {
+      const level = await manager.findOne(MemberLevel, {
+        where: { id, isDeleted: 0 },
+        lock: { mode: "pessimistic_write" },
+      });
+      if (!level) throw this.userError("会员等级不存在");
+      const used = await manager.count(Member, { where: { levelId: id, isDeleted: 0 } });
+      if (used > 0) throw this.userError("该等级已有会员使用，不能删除");
+      level.isDeleted = 1;
+      await manager.save(level);
+      return true;
+    });
   }
 
   private async get(id: string) {
@@ -72,5 +87,10 @@ export class MemberLevelService {
 
   private userError(msg: string) {
     return new BusinessException({ ...ErrorCode.USER_ERROR, msg });
+  }
+
+  private isDuplicateEntry(error: unknown): boolean {
+    const candidate = error as { code?: string; driverError?: { code?: string } };
+    return (candidate.driverError?.code ?? candidate.code) === "ER_DUP_ENTRY";
   }
 }

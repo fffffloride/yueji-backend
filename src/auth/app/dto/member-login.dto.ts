@@ -42,6 +42,16 @@ export class MockLoginDto {
 }
 
 /**
+ * 会员刷新令牌参数
+ */
+export class MemberRefreshTokenDto {
+  @ApiProperty({ description: "会员刷新令牌" })
+  @IsNotEmpty({ message: "refreshToken 不能为空" })
+  @IsString()
+  refreshToken: string;
+}
+
+/**
  * 会员登录结果
  */
 export class MemberLoginResultDto {

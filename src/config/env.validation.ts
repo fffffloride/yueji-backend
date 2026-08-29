@@ -21,6 +21,8 @@ export function validateEnvironment(config: Record<string, unknown>): Record<str
   const paymentDriver = valueOf(config, "PAYMENT_DRIVER").toLowerCase() || "mock";
   const ossType = valueOf(config, "OSS_TYPE").toLowerCase() || "minio";
   const mockLogin = valueOf(config, "MOCK_LOGIN_ENABLED").toLowerCase() || "false";
+  const swaggerEnabled =
+    valueOf(config, "SWAGGER_ENABLED").toLowerCase() || (nodeEnv === "prod" ? "false" : "true");
 
   if (!NODE_ENVS.has(nodeEnv)) throw new Error(`NODE_ENV 不支持：${nodeEnv}`);
   if (!SESSION_TYPES.has(sessionType)) throw new Error(`SESSION_TYPE 不支持：${sessionType}`);
@@ -30,6 +32,9 @@ export function validateEnvironment(config: Record<string, unknown>): Record<str
   if (!OSS_TYPES.has(ossType)) throw new Error(`OSS_TYPE 不支持：${ossType}`);
   if (!BOOLEAN_VALUES.has(mockLogin)) {
     throw new Error("MOCK_LOGIN_ENABLED 只能是 true 或 false");
+  }
+  if (!BOOLEAN_VALUES.has(swaggerEnabled)) {
+    throw new Error("SWAGGER_ENABLED 只能是 true 或 false");
   }
 
   for (const key of [
@@ -51,11 +56,13 @@ export function validateEnvironment(config: Record<string, unknown>): Record<str
     PAYMENT_DRIVER: paymentDriver,
     OSS_TYPE: ossType,
     MOCK_LOGIN_ENABLED: mockLogin,
+    SWAGGER_ENABLED: swaggerEnabled,
   });
 
   if (nodeEnv !== "prod") return normalized;
   if (paymentDriver === "mock") throw new Error("生产环境禁止使用 Mock 支付驱动");
   if (mockLogin === "true") throw new Error("生产环境禁止启用 Mock 登录");
+  if (swaggerEnabled === "true") throw new Error("生产环境禁止启用 Swagger");
 
   requireKeys(normalized, [
     "MYSQL_HOST",

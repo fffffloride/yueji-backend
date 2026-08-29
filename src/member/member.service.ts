@@ -4,7 +4,7 @@ import { Repository } from "typeorm";
 
 import { Member } from "./entities/member.entity";
 import { MemberQueryDto } from "./dto/member-query.dto";
-import { MemberProfileDto } from "./dto/member-profile.dto";
+import { MemberProfileDto, MemberProfileResponseDto } from "./dto/member-profile.dto";
 import { MemberUpdateDto } from "./dto/member-update.dto";
 import { buildMemberStats, PAID_MEMBER_ORDER_STATUSES } from "./member-stats";
 import { BizOrder } from "@/order/entities/order.entity";
@@ -43,22 +43,43 @@ export class MemberService {
     return this.memberRepository.findOne({ where: { openid, isDeleted: 0 } });
   }
 
+  private async findByOpenidIncludingDeleted(openid: string): Promise<Member | null> {
+    return this.memberRepository.findOne({ where: { openid } });
+  }
+
   async findByMobile(mobile: string): Promise<Member | null> {
     return this.memberRepository.findOne({ where: { mobile, isDeleted: 0 } });
+  }
+
+  private async findByUnionidIncludingDeleted(unionid: string): Promise<Member | null> {
+    return this.memberRepository.findOne({ where: { unionid } });
+  }
+
+  private async findByMobileIncludingDeleted(mobile: string): Promise<Member | null> {
+    return this.memberRepository.findOne({ where: { mobile } });
   }
 
   /**
    * 按 openid 查找会员，不存在则创建
    */
-  async findOrCreateByOpenid(openid: string, unionid?: string | null): Promise<Member> {
-    const existing = await this.findByOpenid(openid);
+  async findOrCreateByOpenid(
+    openid: string,
+    unionid?: string | null,
+    mobile?: string | null
+  ): Promise<Member> {
+    const existing = await this.findByOpenidIncludingDeleted(openid);
     if (existing) {
-      if (unionid && !existing.unionid) {
-        existing.unionid = unionid;
-        await this.memberRepository.save(existing);
-      }
+      this.ensureMemberNotDeleted(existing);
+      await this.assertMobileAvailable(existing.id, mobile);
+      await this.bindUnionid(existing, unionid);
+      if (mobile) await this.attachMobile(existing.id, mobile);
       return existing;
     }
+
+    if (unionid && (await this.findByUnionidIncludingDeleted(unionid))) {
+      throw this.identityError("该微信身份已绑定其他会员，请联系客服");
+    }
+    await this.assertMobileAvailable(undefined, mobile);
 
     const defaultLevel = await this.levelRepository.findOne({
       where: { thresholdAmount: 0, status: 1, isDeleted: 0 },
@@ -66,6 +87,7 @@ export class MemberService {
     const member = this.memberRepository.create({
       openid,
       unionid: unionid || null,
+      mobile: mobile || null,
       nickname: "微信用户",
       status: 1,
       points: 0,
@@ -73,9 +95,24 @@ export class MemberService {
       levelId: defaultLevel?.id ?? null,
       isDeleted: 0,
     });
-    await this.memberRepository.save(member);
-    this.logger.log(`创建新会员：memberId=${member.id}, openid=${openid}`);
-    return member;
+    try {
+      await this.memberRepository.save(member);
+      this.logger.log(`创建新会员：memberId=${member.id}`);
+      return member;
+    } catch (error) {
+      if (!this.isDuplicateEntry(error)) throw error;
+
+      // 两个首次登录请求可能同时通过前置查询；唯一键冲突后回读胜出的记录。
+      const concurrent = await this.findByOpenidIncludingDeleted(openid);
+      if (concurrent) {
+        this.ensureMemberNotDeleted(concurrent);
+        await this.assertMobileAvailable(concurrent.id, mobile);
+        await this.bindUnionid(concurrent, unionid);
+        if (mobile) await this.attachMobile(concurrent.id, mobile);
+        return concurrent;
+      }
+      throw this.identityError("该微信身份已绑定其他会员，请联系客服");
+    }
   }
 
   /**
@@ -83,9 +120,22 @@ export class MemberService {
    */
   async attachMobile(memberId: string, mobile: string): Promise<Member> {
     const member = await this.getById(memberId);
+    const holder = await this.findByMobileIncludingDeleted(mobile);
+    if (holder && holder.id !== member.id) {
+      throw this.identityError("该手机号已绑定其他会员，请联系客服");
+    }
+    if (member.mobile === mobile) return member;
+
     member.mobile = mobile;
-    await this.memberRepository.save(member);
-    return member;
+    try {
+      await this.memberRepository.save(member);
+      return member;
+    } catch (error) {
+      if (this.isDuplicateEntry(error)) {
+        throw this.identityError("该手机号已绑定其他会员，请联系客服");
+      }
+      throw error;
+    }
   }
 
   async touchLastLogin(memberId: string): Promise<void> {
@@ -93,15 +143,22 @@ export class MemberService {
   }
 
   /**
+   * C端：获取会员资料白名单响应
+   */
+  async getAppProfile(memberId: string): Promise<MemberProfileResponseDto> {
+    return this.toAppProfile(await this.getById(memberId));
+  }
+
+  /**
    * C端：更新会员资料
    */
-  async updateProfile(memberId: string, dto: MemberProfileDto): Promise<Member> {
+  async updateProfile(memberId: string, dto: MemberProfileDto): Promise<MemberProfileResponseDto> {
     const member = await this.getById(memberId);
     if (dto.nickname !== undefined) member.nickname = dto.nickname;
     if (dto.avatar !== undefined) member.avatar = dto.avatar;
     if (dto.gender !== undefined) member.gender = dto.gender;
-    await this.memberRepository.save(member);
-    return member;
+    const saved = await this.memberRepository.save(member);
+    return this.toAppProfile(saved);
   }
 
   /**
@@ -113,10 +170,13 @@ export class MemberService {
 
     const qb = this.memberRepository.createQueryBuilder("member").where("member.isDeleted = 0");
 
-    if (query.keywords) {
-      qb.andWhere("(member.nickname LIKE :kw OR member.mobile LIKE :kw)", {
-        kw: `%${query.keywords}%`,
-      });
+    const keywords = query.keywords?.trim();
+    if (keywords) {
+      if (/^\d{6,20}$/.test(keywords)) {
+        qb.andWhere("member.mobile = :mobile", { mobile: keywords });
+      } else {
+        qb.andWhere("member.nickname LIKE :nickname", { nickname: `${keywords}%` });
+      }
     }
     if (query.status !== undefined) {
       qb.andWhere("member.status = :status", { status: query.status });
@@ -184,5 +244,74 @@ export class MemberService {
         createTime: order.createTime,
       })),
     };
+  }
+
+  private async bindUnionid(member: Member, unionid?: string | null): Promise<void> {
+    if (!unionid) return;
+    if (member.unionid) {
+      if (member.unionid !== unionid) {
+        throw this.identityError("微信身份信息不一致，请联系客服");
+      }
+      return;
+    }
+
+    const holder = await this.findByUnionidIncludingDeleted(unionid);
+    if (holder && holder.id !== member.id) {
+      throw this.identityError("该微信身份已绑定其他会员，请联系客服");
+    }
+
+    member.unionid = unionid;
+    try {
+      await this.memberRepository.save(member);
+    } catch (error) {
+      if (this.isDuplicateEntry(error)) {
+        throw this.identityError("该微信身份已绑定其他会员，请联系客服");
+      }
+      throw error;
+    }
+  }
+
+  private async assertMobileAvailable(
+    memberId: string | undefined,
+    mobile?: string | null
+  ): Promise<void> {
+    if (!mobile) return;
+    const holder = await this.findByMobileIncludingDeleted(mobile);
+    if (holder && holder.id !== memberId) {
+      throw this.identityError("该手机号已绑定其他会员，请联系客服");
+    }
+  }
+
+  private ensureMemberNotDeleted(member: Member): void {
+    if (member.isDeleted !== 0) {
+      throw this.identityError("会员账号已注销，请联系客服恢复");
+    }
+  }
+
+  private toAppProfile(member: Member): MemberProfileResponseDto {
+    return {
+      id: member.id,
+      nickname: member.nickname,
+      avatar: member.avatar ?? null,
+      mobile: member.mobile ?? null,
+      gender: member.gender,
+      points: member.points,
+      totalSpent: member.totalSpent,
+      levelId: member.levelId ?? null,
+    };
+  }
+
+  private identityError(msg: string): BusinessException {
+    return new BusinessException({ ...ErrorCode.USER_LOGIN_EXCEPTION, msg });
+  }
+
+  private isDuplicateEntry(error: unknown): boolean {
+    if (!error || typeof error !== "object") return false;
+    const detail = error as { code?: string; errno?: number; driverError?: { code?: string } };
+    return (
+      detail.code === "ER_DUP_ENTRY" ||
+      detail.errno === 1062 ||
+      detail.driverError?.code === "ER_DUP_ENTRY"
+    );
   }
 }

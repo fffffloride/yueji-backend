@@ -1,6 +1,10 @@
-import { Column, Entity } from "typeorm";
+import { Column, Entity, Index } from "typeorm";
 import { BaseEntity } from "@/common/entities/base.entity";
 
+@Index("uk_order_no", ["orderNo"], { unique: true })
+@Index("uk_order_verify_code", ["verifyCode"], { unique: true })
+@Index("idx_order_member_active_created", ["memberId", "isDeleted", "createTime", "id"])
+@Index("idx_order_timeout_scan", ["status", "isDeleted", "createTime", "id"])
 @Entity("biz_order")
 export class BizOrder extends BaseEntity {
   @Column({ name: "order_no", length: 32, comment: "订单号" })
@@ -63,7 +67,7 @@ export class BizOrder extends BaseEntity {
   @Column({ length: 255, nullable: true, comment: "订单备注" })
   remark?: string | null;
 
-  @Column({ name: "verify_code", length: 32, nullable: true, comment: "核销码" })
+  @Column({ name: "verify_code", length: 8, nullable: true, comment: "核销码" })
   verifyCode?: string | null;
 
   @Column({ name: "verify_time", type: "datetime", nullable: true, comment: "核销时间" })

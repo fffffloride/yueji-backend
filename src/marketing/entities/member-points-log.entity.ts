@@ -3,7 +3,9 @@ import { Column, Entity, Index } from "typeorm";
 import { BaseEntity } from "@/common/entities/base.entity";
 
 @Entity("member_points_log")
-@Index(["memberId", "bizType", "bizId"], { unique: true })
+@Index("uk_points_biz", ["memberId", "bizType", "bizId"], { unique: true })
+@Index("idx_points_member_time", ["memberId", "createTime"])
+@Index("idx_points_order", ["orderId"])
 export class MemberPointsLog extends BaseEntity {
   @Column({ name: "member_id", type: "bigint", comment: "会员ID" })
   memberId: string;

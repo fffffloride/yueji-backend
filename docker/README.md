@@ -37,8 +37,7 @@ docker-compose up -d
 - 用户名：minioadmin
 - 密码：minioadmin
 - 控制台：http://localhost:9001
-
-> MinIO 首次使用需登录控制台创建名为 `public` 的 bucket（与 `.env.dev` 中 `OSS_MINIO_BUCKET` 对应），并将访问策略设为 public。
+- 启动时 `minio-init` 会创建 `public` bucket（对应 `.env.dev` 的 `OSS_MINIO_BUCKET`），并设为公开下载
 
 ## 目录结构
 

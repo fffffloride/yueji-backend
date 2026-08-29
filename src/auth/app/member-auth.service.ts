@@ -100,13 +100,8 @@ export class MemberAuthService {
 
     const mobile = await this.getPhoneNumber(phoneCode);
 
-    const member = await this.memberService.findOrCreateByOpenid(openid, session.unionid);
+    const member = await this.memberService.findOrCreateByOpenid(openid, session.unionid, mobile);
     ensureMemberEnabled(member);
-
-    if (mobile && member.mobile !== mobile) {
-      await this.memberService.attachMobile(member.id, mobile);
-      member.mobile = mobile;
-    }
     await this.memberService.touchLastLogin(member.id);
 
     this.logger.log(`会员手机号登录：memberId=${member.id}, mobile=${mobile}`);
@@ -127,16 +122,31 @@ export class MemberAuthService {
     }
 
     const mockOpenid = openid || "mock_openid_dev";
-    const member = await this.memberService.findOrCreateByOpenid(mockOpenid);
+    const member = await this.memberService.findOrCreateByOpenid(mockOpenid, undefined, mobile);
     ensureMemberEnabled(member);
-
-    if (mobile && member.mobile !== mobile) {
-      await this.memberService.attachMobile(member.id, mobile);
-      member.mobile = mobile;
-    }
     await this.memberService.touchLastLogin(member.id);
 
     this.logger.log(`Mock 登录：memberId=${member.id}, openid=${mockOpenid}`);
+    return this.generateMemberToken(member);
+  }
+
+  /**
+   * 刷新会员访问令牌：只接受 typ=member-refresh，并重新校验会员当前状态。
+   */
+  async refreshToken(refreshToken: string): Promise<MemberLoginResultDto> {
+    let payload: any;
+    try {
+      payload = await this.jwtService.verifyAsync(refreshToken);
+    } catch {
+      throw new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID);
+    }
+
+    if (payload?.typ !== "member-refresh" || !payload?.sub) {
+      throw new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID);
+    }
+
+    const member = await this.memberService.findById(String(payload.sub));
+    ensureMemberEnabled(member);
     return this.generateMemberToken(member);
   }
 
@@ -154,7 +164,7 @@ export class MemberAuthService {
 
     const refreshToken = this.jwtService.sign(
       { sub: member.id, typ: "member-refresh" },
-      { expiresIn: this.jwtConfigData.expiresIn * 10 }
+      { expiresIn: this.jwtConfigData.expiresIn * 10, jwtid: uuidv4() }
     );
 
     return {

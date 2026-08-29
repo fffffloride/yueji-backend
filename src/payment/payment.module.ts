@@ -10,10 +10,12 @@ import { WechatPaymentDriver } from "./wechat-payment.driver";
 import { PaymentService } from "./payment.service";
 import { PaymentAppController } from "./app/payment-app.controller";
 import { PaymentAdminController } from "./admin/payment-admin.controller";
+import { PaymentReconcileTask } from "./payment-reconcile.task";
 import { OrderModule } from "@/order/order.module";
+import { RedisSharedModule } from "@/common/redis/redis.module";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Payment, Refund]), OrderModule],
+  imports: [TypeOrmModule.forFeature([Payment, Refund]), OrderModule, RedisSharedModule],
   controllers: [PaymentAppController, PaymentAdminController],
   providers: [
     MockPaymentDriver,
@@ -33,6 +35,7 @@ import { OrderModule } from "@/order/order.module";
       },
     },
     PaymentService,
+    PaymentReconcileTask,
   ],
   exports: [PaymentService],
 })

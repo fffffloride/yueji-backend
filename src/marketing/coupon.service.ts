@@ -8,7 +8,12 @@ import {
   CouponType,
   MemberCouponStatus,
 } from "./marketing.constants";
-import { CouponQueryDto, CouponSaveDto, MemberCouponQueryDto } from "./dto/marketing.dto";
+import {
+  ClaimableCouponQueryDto,
+  CouponQueryDto,
+  CouponSaveDto,
+  MemberCouponQueryDto,
+} from "./dto/marketing.dto";
 import { Coupon } from "./entities/coupon.entity";
 import { CouponScope } from "./entities/coupon-scope.entity";
 import { MemberCoupon } from "./entities/member-coupon.entity";
@@ -99,11 +104,17 @@ export class CouponService {
   }
 
   async remove(id: string) {
-    const coupon = await this.get(id);
-    if (coupon.issuedQuantity > 0) throw this.userError("已有领取记录的优惠券不能删除");
-    coupon.isDeleted = 1;
-    await this.couponRepository.save(coupon);
-    return true;
+    return this.dataSource.transaction(async (manager) => {
+      const coupon = await manager.findOne(Coupon, {
+        where: { id, isDeleted: 0 },
+        lock: { mode: "pessimistic_write" },
+      });
+      if (!coupon) throw this.userError("优惠券不存在");
+      if (coupon.issuedQuantity > 0) throw this.userError("已有领取记录的优惠券不能删除");
+      coupon.isDeleted = 1;
+      await manager.save(coupon);
+      return true;
+    });
   }
 
   async claim(memberId: string, couponId: string) {
@@ -120,35 +131,60 @@ export class CouponService {
         where: { id: In(uniqueIds), isDeleted: 0 },
       });
       if (existingMembers.length !== uniqueIds.length) throw this.userError("部分会员不存在");
-      const issued: MemberCoupon[] = [];
-      let skipped = 0;
-      for (const memberId of uniqueIds) {
-        const count = await manager.count(MemberCoupon, {
-          where: { couponId, memberId, isDeleted: 0 },
-        });
-        if (count >= coupon.perMemberLimit) {
-          skipped += 1;
-          continue;
-        }
-        if (coupon.issuedQuantity >= coupon.totalQuantity) throw this.userError("优惠券库存不足");
-        issued.push(await this.createMemberCoupon(manager, coupon, memberId));
+      const counts = await manager
+        .createQueryBuilder(MemberCoupon, "mc")
+        .select("mc.memberId", "memberId")
+        .addSelect("COUNT(*)", "count")
+        .where("mc.couponId = :couponId", { couponId })
+        .andWhere("mc.memberId IN (:...memberIds)", { memberIds: uniqueIds })
+        .andWhere("mc.isDeleted = 0")
+        .groupBy("mc.memberId")
+        .getRawMany<{ memberId: string; count: string }>();
+      const countMap = new Map(counts.map((item) => [String(item.memberId), Number(item.count)]));
+      const eligibleIds = uniqueIds.filter(
+        (memberId) => (countMap.get(String(memberId)) ?? 0) < coupon.perMemberLimit
+      );
+      if (coupon.issuedQuantity + eligibleIds.length > coupon.totalQuantity) {
+        throw this.userError("优惠券库存不足");
       }
+      const now = new Date();
+      const issued = eligibleIds.map((memberId) =>
+        manager.create(MemberCoupon, {
+          couponId: coupon.id,
+          memberId,
+          status: MemberCouponStatus.UNUSED,
+          claimedAt: now,
+          isDeleted: 0,
+        })
+      );
+      if (issued.length > 0) await manager.save(issued);
+      coupon.issuedQuantity += issued.length;
       await manager.save(coupon);
-      return { issued: issued.length, skipped };
+      return { issued: issued.length, skipped: uniqueIds.length - issued.length };
     });
   }
 
-  async claimable(memberId: string) {
+  async claimable(memberId: string, query: ClaimableCouponQueryDto) {
     const now = new Date();
-    const coupons = await this.couponRepository
+    const qb = this.couponRepository
       .createQueryBuilder("coupon")
       .where("coupon.isDeleted = 0")
       .andWhere("coupon.status = :status", { status: CouponTemplateStatus.ACTIVE })
       .andWhere("coupon.claimStart <= :now AND coupon.claimEnd >= :now", { now })
       .andWhere("coupon.validEnd >= :now")
       .andWhere("coupon.issuedQuantity < coupon.totalQuantity")
+      .andWhere(
+        `(SELECT COUNT(*) FROM member_coupon mc
+          WHERE mc.coupon_id = coupon.id
+            AND mc.member_id = :memberId
+            AND mc.is_deleted = 0) < coupon.perMemberLimit`,
+        { memberId }
+      )
       .orderBy("coupon.validEnd", "ASC")
-      .getMany();
+      .addOrderBy("coupon.id", "ASC")
+      .skip((query.pageNum - 1) * query.pageSize)
+      .take(query.pageSize);
+    const [coupons, total] = await qb.getManyAndCount();
     const counts = coupons.length
       ? await this.memberCouponRepository
           .createQueryBuilder("mc")
@@ -161,13 +197,14 @@ export class CouponService {
           .getRawMany<{ couponId: string; count: string }>()
       : [];
     const countMap = new Map(counts.map((item) => [String(item.couponId), Number(item.count)]));
-    return coupons
-      .map((coupon) => ({
+    return {
+      data: coupons.map((coupon) => ({
         ...coupon,
         receivedCount: countMap.get(String(coupon.id)) ?? 0,
-        canClaim: (countMap.get(String(coupon.id)) ?? 0) < coupon.perMemberLimit,
-      }))
-      .filter((coupon) => coupon.canClaim);
+        canClaim: true,
+      })),
+      page: { pageNum: query.pageNum, pageSize: query.pageSize, total },
+    };
   }
 
   async mine(memberId: string, query: MemberCouponQueryDto) {
@@ -291,6 +328,9 @@ export class CouponService {
     if (dto.type === CouponType.EXCHANGE && !dto.exchangeSkuId) {
       throw this.userError("兑换券必须选择SKU");
     }
+    if (dto.perMemberLimit > dto.totalQuantity) {
+      throw this.userError("每人限领数量不能超过发放总量");
+    }
     if (
       dto.type !== CouponType.EXCHANGE &&
       dto.scopeType !== CouponScopeType.ALL &&
@@ -370,7 +410,11 @@ export class CouponService {
   }
 
   private async replaceScopes(manager: EntityManager, couponId: string, dto: CouponSaveDto) {
-    await manager.delete(CouponScope, { couponId });
+    const current = await manager.find(CouponScope, { where: { couponId, isDeleted: 0 } });
+    if (current.length > 0) {
+      for (const scope of current) scope.isDeleted = 1;
+      await manager.save(current);
+    }
     if (dto.type === CouponType.EXCHANGE || dto.scopeType === CouponScopeType.ALL) return;
     await manager.save(
       (dto.scopeIds ?? []).map((targetId) =>

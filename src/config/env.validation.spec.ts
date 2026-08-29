@@ -32,6 +32,12 @@ describe("validateEnvironment", () => {
     ).toThrow("OSS_LOCAL_STORAGE_PATH");
   });
 
+  it("拒绝生产环境启用 Swagger", () => {
+    expect(() => validateEnvironment({ ...productionConfig(), SWAGGER_ENABLED: "true" })).toThrow(
+      "生产环境禁止启用 Swagger"
+    );
+  });
+
   it("拒绝无效端口", () => {
     expect(() => validateEnvironment({ NODE_ENV: "dev", MYSQL_PORT: "abc" })).toThrow(
       "MYSQL_PORT 必须是正整数"
@@ -43,6 +49,7 @@ describe("validateEnvironment", () => {
       NODE_ENV: "prod",
       PAYMENT_DRIVER: "wechat",
       MOCK_LOGIN_ENABLED: "false",
+      SWAGGER_ENABLED: "false",
     });
   });
 });

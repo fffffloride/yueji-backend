@@ -26,12 +26,22 @@ CREATE TABLE `biz_payment` (
     `create_time` datetime NULL COMMENT '创建时间',
     `update_by` bigint NULL COMMENT '修改人ID',
     `update_time` datetime NULL COMMENT '更新时间',
-    `is_deleted` tinyint DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
+    `is_deleted` tinyint NOT NULL DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
     PRIMARY KEY (`id`) USING BTREE,
     UNIQUE INDEX `uk_payment_no` (`payment_no`) USING BTREE,
     UNIQUE INDEX `uk_payment_order_id` (`order_id`) USING BTREE,
+    UNIQUE INDEX `uk_payment_third_party_no` (`third_party_no`) USING BTREE,
     INDEX `idx_payment_member_id` (`member_id`) USING BTREE,
-    INDEX `idx_payment_status` (`status`) USING BTREE
+    INDEX `idx_payment_status` (`status`) USING BTREE,
+    INDEX `idx_payment_reconcile` (`status`, `is_deleted`, `update_time`, `id`) USING BTREE,
+    CONSTRAINT `fk_biz_payment_order` FOREIGN KEY (`order_id`) REFERENCES `biz_order` (`id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `fk_biz_payment_member` FOREIGN KEY (`member_id`) REFERENCES `member` (`id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `chk_biz_payment_amount` CHECK (`amount` > 0),
+    CONSTRAINT `chk_biz_payment_channel` CHECK (`channel` IN ('mock', 'wechat')),
+    CONSTRAINT `chk_biz_payment_status` CHECK (`status` IN (0, 1, 2, 3)),
+    CONSTRAINT `chk_biz_payment_is_deleted` CHECK (`is_deleted` IN (0, 1))
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COMMENT = '支付流水表';
 
 CREATE TABLE `biz_refund` (
@@ -49,13 +59,25 @@ CREATE TABLE `biz_refund` (
     `create_time` datetime NULL COMMENT '创建时间',
     `update_by` bigint NULL COMMENT '修改人ID',
     `update_time` datetime NULL COMMENT '更新时间',
-    `is_deleted` tinyint DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
+    `is_deleted` tinyint NOT NULL DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
     PRIMARY KEY (`id`) USING BTREE,
     UNIQUE INDEX `uk_refund_no` (`refund_no`) USING BTREE,
     UNIQUE INDEX `uk_refund_order_id` (`order_id`) USING BTREE,
+    UNIQUE INDEX `uk_refund_third_party_no` (`third_party_no`) USING BTREE,
     INDEX `idx_refund_payment_id` (`payment_id`) USING BTREE,
     INDEX `idx_refund_member_id` (`member_id`) USING BTREE,
-    INDEX `idx_refund_status` (`status`) USING BTREE
+    INDEX `idx_refund_status` (`status`) USING BTREE,
+    INDEX `idx_refund_reconcile` (`status`, `is_deleted`, `update_time`, `id`) USING BTREE,
+    CONSTRAINT `fk_biz_refund_payment` FOREIGN KEY (`payment_id`) REFERENCES `biz_payment` (`id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `fk_biz_refund_order` FOREIGN KEY (`order_id`) REFERENCES `biz_order` (`id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `fk_biz_refund_member` FOREIGN KEY (`member_id`) REFERENCES `member` (`id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `chk_biz_refund_amount` CHECK (`amount` > 0),
+    CONSTRAINT `chk_biz_refund_reason` CHECK (CHAR_LENGTH(TRIM(`reason`)) > 0),
+    CONSTRAINT `chk_biz_refund_status` CHECK (`status` IN (0, 1, 2)),
+    CONSTRAINT `chk_biz_refund_is_deleted` CHECK (`is_deleted` IN (0, 1))
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COMMENT = '退款流水表';
 
 -- 订单管理下新增退款按钮，并授权 ROOT / ADMIN。

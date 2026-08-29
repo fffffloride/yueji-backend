@@ -4,6 +4,8 @@
 -- ----------------------------------------------------
 USE youlai_admin;
 
+SET NAMES utf8mb4;
+
 INSERT INTO `sys_menu` (`id`, `parent_id`, `tree_path`, `name`, `type`, `route_name`, `route_path`, `component`, `perm`, `always_show`, `keep_alive`, `visible`, `sort`, `icon`, `redirect`, `create_time`, `update_time`, `params`)
 VALUES (3000, 0, '0', '商品管理', 'C', '', '/product', 'Layout', NULL, NULL, NULL, 1, 0, 'el-icon-Goods', '/product/goods', now(), now(), NULL);
 

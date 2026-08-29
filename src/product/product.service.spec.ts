@@ -31,6 +31,40 @@ describe("ProductService", () => {
     });
   });
 
+  it("拒绝没有主图或轮播图的商品", async () => {
+    const dto = {
+      name: "商品",
+      categoryId: "1",
+      status: 0,
+      skus: [{ name: "规格A", price: 100, stock: 1 }],
+    } as ProductFormDto;
+
+    await expect(createService().create(dto)).rejects.toMatchObject({
+      response: { msg: "请上传主图" },
+    });
+    await expect(
+      createService().create({ ...dto, mainImage: "http://localhost/a.png" })
+    ).rejects.toMatchObject({
+      response: { msg: "请至少上传一张轮播图" },
+    });
+  });
+
+  it("拒绝商品编辑表单中的重复SKU ID", async () => {
+    const dto = {
+      name: "商品",
+      categoryId: "1",
+      status: 0,
+      skus: [
+        { id: "10", name: "规格A", price: 100, stock: 1 },
+        { id: "10", name: "规格A重复", price: 200, stock: 2 },
+      ],
+    } as ProductFormDto;
+
+    await expect(createService().update("1", dto)).rejects.toMatchObject({
+      response: { msg: "SKU ID不能重复" },
+    });
+  });
+
   it("回补已删除SKU后按当前可售SKU重算商品库存", async () => {
     const sku = { id: "10", productId: "1", stock: 2, status: 0, isDeleted: 1 };
     const product = { id: "1", stock: 9 };
@@ -52,6 +86,23 @@ describe("ProductService", () => {
     expect(manager.findOne).toHaveBeenNthCalledWith(2, Product, {
       where: { id: "1" },
       lock: { mode: "pessimistic_write" },
+    });
+  });
+
+  it("订单试算读取商品时不申请写锁", async () => {
+    const sku = { id: "10", productId: "1", status: 1, isDeleted: 0 };
+    const product = { id: "1", status: 1, isDeleted: 0 };
+    const manager = {
+      findOne: jest.fn().mockResolvedValueOnce(sku).mockResolvedValueOnce(product),
+    } as unknown as EntityManager;
+
+    await expect(createService().getSkuForQuote(manager, "10")).resolves.toEqual({ sku, product });
+
+    expect(manager.findOne).toHaveBeenNthCalledWith(1, ProductSku, {
+      where: { id: "10", isDeleted: 0 },
+    });
+    expect(manager.findOne).toHaveBeenNthCalledWith(2, Product, {
+      where: { id: "1", isDeleted: 0 },
     });
   });
 
