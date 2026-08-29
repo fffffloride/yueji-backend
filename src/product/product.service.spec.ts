@@ -181,6 +181,45 @@ describe("ProductService", () => {
     expect(result).toEqual({
       groups: [
         {
+          id: "featured-recommended",
+          name: "今日主推",
+          fixed: true,
+          sections: [
+            {
+              id: "featured-recommended",
+              name: "今日主推",
+              total: 1,
+              products: [expect.objectContaining({ id: "101" })],
+            },
+          ],
+        },
+        {
+          id: "featured-hot",
+          name: "明星单品",
+          fixed: true,
+          sections: [
+            {
+              id: "featured-hot",
+              name: "明星单品",
+              total: 1,
+              products: [expect.objectContaining({ id: "101" })],
+            },
+          ],
+        },
+        {
+          id: "featured-new",
+          name: "产品上新",
+          fixed: true,
+          sections: [
+            {
+              id: "featured-new",
+              name: "产品上新",
+              total: 0,
+              products: [],
+            },
+          ],
+        },
+        {
           id: "1",
           name: "水光抗衰",
           sections: [

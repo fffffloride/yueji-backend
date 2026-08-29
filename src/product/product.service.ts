@@ -339,6 +339,24 @@ export class ProductService {
       total: items.length,
       products: items.map((product) => this.toAppCard(product)),
     });
+    const hasTag = (product: Product, tag: string) =>
+      (product.tags?.split(",").map((item) => item.trim()) ?? []).includes(tag);
+    const fixedGroups = [
+      { id: "featured-recommended", name: "今日主推", tag: "推荐" },
+      { id: "featured-hot", name: "明星单品", tag: "热卖" },
+      { id: "featured-new", name: "产品上新", tag: "新品" },
+    ].map(({ id, name, tag }) => ({
+      id,
+      name,
+      fixed: true,
+      sections: [
+        toSection(
+          id,
+          name,
+          products.filter((product) => hasTag(product, tag))
+        ),
+      ],
+    }));
 
     const groups = tree
       .map((group) => {
@@ -358,7 +376,7 @@ export class ProductService {
       })
       .filter((group) => group.sections.length > 0);
 
-    return { groups };
+    return { groups: [...fixedGroups, ...groups] };
   }
 
   async appDetail(id: string) {
