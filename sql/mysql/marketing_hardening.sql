@@ -30,7 +30,7 @@ BEGIN
         );
 
         CREATE TABLE `marketing_points_rule` (
-            `id` bigint NOT NULL AUTO_INCREMENT,
+            `id` bigint NOT NULL,
             `earn_per_yuan` int NOT NULL DEFAULT 1 COMMENT '每实付1元赠送积分',
             `redeem_points_per_yuan` int NOT NULL DEFAULT 100 COMMENT '抵扣1元所需积分',
             `max_deduct_rate` int NOT NULL DEFAULT 5000 COMMENT '单笔最高抵扣万分比',
