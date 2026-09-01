@@ -96,13 +96,17 @@ export class DistributionService implements OnModuleInit {
 
   async createType(dto: AgentTypeFormDto) {
     await this.ensureTypeName(dto.name);
-    return this.typeRepository.save(this.typeRepository.create({ ...dto, isDeleted: 0 }));
+    const sort =
+      dto.sort ?? ((await this.typeRepository.maximum("sort", { isDeleted: 0 })) ?? 0) + 1;
+    return this.typeRepository.save(this.typeRepository.create({ ...dto, sort, isDeleted: 0 }));
   }
 
   async updateType(id: string, dto: AgentTypeFormDto) {
     const row = await this.findType(id);
     await this.ensureTypeName(dto.name, id);
-    Object.assign(row, dto);
+    const { sort, ...fields } = dto;
+    Object.assign(row, fields);
+    if (sort !== undefined) row.sort = sort;
     return this.typeRepository.save(row);
   }
 
@@ -128,8 +132,7 @@ export class DistributionService implements OnModuleInit {
     if (query.status !== undefined) qb.andWhere("l.status = :status", { status: query.status });
     if (query.keywords) qb.andWhere("l.name LIKE :kw", { kw: `%${query.keywords}%` });
     const [data, total] = await qb
-      .orderBy("l.sort", "ASC")
-      .addOrderBy("l.rank", "ASC")
+      .orderBy("l.rank", "ASC")
       .skip((pageNum - 1) * pageSize)
       .take(pageSize)
       .getManyAndCount();
@@ -147,7 +150,10 @@ export class DistributionService implements OnModuleInit {
       where: { rank: dto.rank, isDeleted: 1 },
     });
     return this.levelRepository.save(
-      Object.assign(deleted ?? this.levelRepository.create(), dto, { isDeleted: 0 })
+      Object.assign(deleted ?? this.levelRepository.create(), dto, {
+        sort: dto.rank,
+        isDeleted: 0,
+      })
     );
   }
 
@@ -162,6 +168,7 @@ export class DistributionService implements OnModuleInit {
       if (customSecond) throw this.userError("该等级仍有代理配置二级专属比例");
     }
     Object.assign(row, dto);
+    row.sort = dto.rank;
     return this.levelRepository.save(row);
   }
 

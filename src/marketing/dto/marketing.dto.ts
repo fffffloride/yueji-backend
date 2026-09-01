@@ -42,7 +42,8 @@ export class MemberLevelSaveDto {
   status: number;
 
   @IsInt()
-  sort: number;
+  @IsOptional()
+  sort?: number;
 }
 
 export class PointsRuleDto {

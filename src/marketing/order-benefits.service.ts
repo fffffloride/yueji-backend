@@ -347,7 +347,7 @@ export class OrderBenefitsService {
         status: 1,
         isDeleted: 0,
       },
-      order: { thresholdAmount: "DESC", sort: "ASC" },
+      order: { thresholdAmount: "DESC" },
       lock: { mode: "pessimistic_read" },
     });
     if (nextLevel && (!currentLevel || nextLevel.thresholdAmount > currentLevel.thresholdAmount)) {

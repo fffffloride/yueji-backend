@@ -19,7 +19,7 @@ export class MemberLevelService {
   async page(query: PageDto) {
     const [data, total] = await this.levelRepository.findAndCount({
       where: { isDeleted: 0 },
-      order: { thresholdAmount: "ASC", sort: "ASC" },
+      order: { thresholdAmount: "ASC" },
       skip: (query.pageNum - 1) * query.pageSize,
       take: query.pageSize,
     });
@@ -29,14 +29,17 @@ export class MemberLevelService {
   list() {
     return this.levelRepository.find({
       where: { isDeleted: 0, status: 1 },
-      order: { thresholdAmount: "ASC", sort: "ASC" },
+      order: { thresholdAmount: "ASC" },
     });
   }
 
   async create(dto: MemberLevelSaveDto) {
     await this.assertThresholdAvailable(dto.thresholdAmount);
     try {
-      return await this.levelRepository.save(this.levelRepository.create({ ...dto, isDeleted: 0 }));
+      const { sort: _sort, ...fields } = dto;
+      return await this.levelRepository.save(
+        this.levelRepository.create({ ...fields, sort: 0, isDeleted: 0 })
+      );
     } catch (error) {
       if (this.isDuplicateEntry(error)) throw this.userError("累计实付门槛不能重复");
       throw error;
@@ -46,7 +49,8 @@ export class MemberLevelService {
   async update(id: string, dto: MemberLevelSaveDto) {
     const level = await this.get(id);
     await this.assertThresholdAvailable(dto.thresholdAmount, id);
-    Object.assign(level, dto);
+    const { sort: _sort, ...fields } = dto;
+    Object.assign(level, fields);
     try {
       return await this.levelRepository.save(level);
     } catch (error) {

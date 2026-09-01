@@ -35,6 +35,7 @@ import { GroupBuyModule } from "./group-buy/group-buy.module";
 import { DistributionModule } from "./distribution/distribution.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { AgreementModule } from "./agreement/agreement.module";
+import { AdminSortModule } from "./admin-sort/admin-sort.module";
 
 import { LoggerMiddleware } from "./common/middleware/logger.middleware";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
@@ -134,6 +135,7 @@ const envPath = `.env.${nodeEnv}`;
     DistributionModule,
     DashboardModule,
     AgreementModule,
+    AdminSortModule,
   ],
   controllers: [],
   providers: [

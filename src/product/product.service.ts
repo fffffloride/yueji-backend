@@ -113,6 +113,9 @@ export class ProductService {
       await this.ensureCategoryExists(manager, dto.categoryId);
       const product = manager.create(Product, {
         ...this.formToEntityFields(dto),
+        sort:
+          dto.sort ??
+          ((await manager.getRepository(Product).maximum("sort", { isDeleted: 0 })) ?? 0) + 1,
         sales: 0,
         stock: this.sumStock(dto.skus),
         isDeleted: 0,
@@ -566,7 +569,7 @@ export class ProductService {
   }
 
   private formToEntityFields(dto: ProductFormDto) {
-    return {
+    const fields = {
       name: dto.name,
       categoryId: dto.categoryId,
       subTitle: dto.subTitle ?? null,
@@ -579,8 +582,8 @@ export class ProductService {
       detail: dto.detail ?? null,
       usageNote: dto.usageNote ?? null,
       status: dto.status ?? 0,
-      sort: dto.sort ?? 0,
     };
+    return dto.sort === undefined ? fields : { ...fields, sort: dto.sort };
   }
 
   private sumStock(skus: SkuFormDto[]): number {

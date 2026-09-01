@@ -20,6 +20,6 @@ export async function resolveEffectiveMemberLevel(
       status: 1,
       isDeleted: 0,
     },
-    order: { thresholdAmount: "DESC", sort: "ASC" },
+    order: { thresholdAmount: "DESC" },
   });
 }

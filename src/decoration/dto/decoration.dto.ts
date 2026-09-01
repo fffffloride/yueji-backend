@@ -30,11 +30,12 @@ export class BannerFormDto {
   @MaxLength(500)
   linkUrl?: string;
 
-  @ApiProperty({ default: 0 })
+  @ApiProperty({ required: false })
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  sort: number;
+  sort?: number;
 
   @ApiProperty({ enum: [0, 1], default: 1 })
   @Type(() => Number)
@@ -54,11 +55,12 @@ export class NoticeFormDto {
   @MaxLength(10000)
   content: string;
 
-  @ApiProperty({ default: 0 })
+  @ApiProperty({ required: false })
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  sort: number;
+  sort?: number;
 
   @ApiProperty({ enum: [0, 1], default: 1 })
   @Type(() => Number)

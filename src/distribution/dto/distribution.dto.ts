@@ -43,11 +43,12 @@ export class AgentTypeFormDto {
   @IsIn([0, 1])
   status: number;
 
-  @ApiProperty({ default: 0 })
+  @ApiProperty({ required: false })
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  sort: number;
+  sort?: number;
 }
 
 export class DistributionLevelFormDto extends AgentTypeFormDto {

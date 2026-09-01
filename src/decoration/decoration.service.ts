@@ -28,9 +28,11 @@ export class DecorationService {
     return this.find(this.bannerRepository, id, "Banner不存在");
   }
 
-  createBanner(dto: BannerFormDto) {
+  async createBanner(dto: BannerFormDto) {
+    const sort =
+      dto.sort ?? ((await this.bannerRepository.maximum("sort", { isDeleted: 0 })) ?? 0) + 1;
     return this.bannerRepository.save(
-      this.bannerRepository.create({ ...dto, linkUrl: dto.linkUrl || null, isDeleted: 0 })
+      this.bannerRepository.create({ ...dto, sort, linkUrl: dto.linkUrl || null, isDeleted: 0 })
     );
   }
 
@@ -60,8 +62,10 @@ export class DecorationService {
     return this.find(this.noticeRepository, id, "公告不存在");
   }
 
-  createNotice(dto: NoticeFormDto) {
-    return this.noticeRepository.save(this.noticeRepository.create({ ...dto, isDeleted: 0 }));
+  async createNotice(dto: NoticeFormDto) {
+    const sort =
+      dto.sort ?? ((await this.noticeRepository.maximum("sort", { isDeleted: 0 })) ?? 0) + 1;
+    return this.noticeRepository.save(this.noticeRepository.create({ ...dto, sort, isDeleted: 0 }));
   }
 
   async updateNotice(id: string, dto: NoticeFormDto) {

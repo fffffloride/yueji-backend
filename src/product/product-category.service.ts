@@ -97,7 +97,12 @@ export class ProductCategoryService {
         treePath,
         level,
         icon: dto.icon ?? null,
-        sort: dto.sort ?? 0,
+        sort:
+          dto.sort ??
+          ((await manager.getRepository(ProductCategory).maximum("sort", {
+            parentId,
+            isDeleted: 0,
+          })) ?? 0) + 1,
         status: dto.status ?? 1,
         isDeleted: 0,
       });
