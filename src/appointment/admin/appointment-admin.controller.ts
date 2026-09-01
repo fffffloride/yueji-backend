@@ -1,8 +1,9 @@
-import { Controller, Get, Query } from "@nestjs/common";
+import { Body, Controller, Get, Put, Query } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 
 import { AppointmentService } from "../appointment.service";
 import { AppointmentCalendarQueryDto } from "../dto/appointment-calendar-query.dto";
+import { AppointmentConfigDto } from "../dto/appointment-config.dto";
 import { AppointmentQueryDto } from "../dto/appointment-query.dto";
 import { Permissions } from "@/common/decorators/auth.decorator";
 
@@ -23,5 +24,19 @@ export class AppointmentAdminController {
   @Permissions("biz:appointment:query")
   async calendar(@Query() query: AppointmentCalendarQueryDto) {
     return this.appointmentService.listByMonth(query.month);
+  }
+
+  @ApiOperation({ summary: "查询预约容量配置" })
+  @Get("config")
+  @Permissions("biz:appointment:query")
+  config() {
+    return this.appointmentService.getConfig();
+  }
+
+  @ApiOperation({ summary: "修改预约容量配置" })
+  @Put("config")
+  @Permissions("biz:appointment:config")
+  updateConfig(@Body() dto: AppointmentConfigDto) {
+    return this.appointmentService.updateConfig(dto);
   }
 }

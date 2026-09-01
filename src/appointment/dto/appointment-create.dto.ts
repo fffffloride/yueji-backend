@@ -10,7 +10,7 @@ export class AppointmentCreateDto {
   @Matches(APPOINTMENT_DATE_PATTERN, { message: "预约日期格式应为YYYY-MM-DD" })
   appointmentDate: string;
 
-  @ApiProperty({ description: "预约时间(HH:mm)", example: "14:30" })
+  @ApiProperty({ description: "预约时间(HH:mm)", example: "14:00" })
   @IsString()
   @Matches(APPOINTMENT_TIME_PATTERN, { message: "预约时间格式应为HH:mm" })
   appointmentTime: string;

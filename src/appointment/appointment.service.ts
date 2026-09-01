@@ -4,8 +4,10 @@ import * as dayjs from "dayjs";
 import * as customParseFormat from "dayjs/plugin/customParseFormat";
 import { Repository } from "typeorm";
 
+import { AppointmentConfigDto } from "./dto/appointment-config.dto";
 import { AppointmentCreateDto } from "./dto/appointment-create.dto";
 import { AppointmentQueryDto } from "./dto/appointment-query.dto";
+import { AppointmentConfig } from "./entities/appointment-config.entity";
 import { Appointment } from "./entities/appointment.entity";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
@@ -13,11 +15,19 @@ import { Member } from "@/member/entities/member.entity";
 
 dayjs.extend(customParseFormat);
 
+const APPOINTMENT_CONFIG_ID = "1";
+const APPOINTMENT_TIME_SLOTS = Array.from(
+  { length: 9 },
+  (_, index) => `${String(index + 10).padStart(2, "0")}:00`
+);
+
 @Injectable()
 export class AppointmentService {
   constructor(
     @InjectRepository(Appointment)
-    private readonly appointmentRepository: Repository<Appointment>
+    private readonly appointmentRepository: Repository<Appointment>,
+    @InjectRepository(AppointmentConfig)
+    private readonly configRepository: Repository<AppointmentConfig>
   ) {}
 
   async create(memberId: string, dto: AppointmentCreateDto) {
@@ -29,34 +39,101 @@ export class AppointmentService {
     if (!appointmentAt.isValid()) {
       throw this.userError("预约日期或时间无效");
     }
+    if (!APPOINTMENT_TIME_SLOTS.includes(dto.appointmentTime)) {
+      throw this.userError("请选择有效预约时间段");
+    }
     if (!appointmentAt.isAfter(dayjs())) {
       throw this.userError("预约时间不能早于当前时间");
     }
 
-    const exists = await this.appointmentRepository.findOne({
-      where: {
-        memberId,
-        appointmentDate: dto.appointmentDate,
-        appointmentTime: `${dto.appointmentTime}:00`,
-        isDeleted: 0,
-      },
-    });
-    if (exists) {
-      throw this.duplicateError();
-    }
-
-    const appointment = this.appointmentRepository.create({
-      memberId,
-      appointmentDate: dto.appointmentDate,
-      appointmentTime: `${dto.appointmentTime}:00`,
-      isDeleted: 0,
-    });
     try {
-      return await this.appointmentRepository.save(appointment);
+      return await this.appointmentRepository.manager.transaction(async (manager) => {
+        const configRepository = manager.getRepository(AppointmentConfig);
+        // ponytail: 全局配置行锁串行化创建；吞吐不足时改为按日期+时段号源行锁。
+        const config = await this.ensureConfig(configRepository, true);
+        const repository = manager.getRepository(Appointment);
+        const appointmentTime = `${dto.appointmentTime}:00`;
+        const exists = await repository.findOne({
+          where: {
+            memberId,
+            appointmentDate: dto.appointmentDate,
+            appointmentTime,
+            isDeleted: 0,
+          },
+        });
+        if (exists) throw this.duplicateError();
+
+        const bookedCount = await repository.count({
+          where: { appointmentDate: dto.appointmentDate, appointmentTime, isDeleted: 0 },
+        });
+        if (bookedCount >= config.slotCapacity) throw this.slotFullError();
+
+        return repository.save(
+          repository.create({
+            memberId,
+            appointmentDate: dto.appointmentDate,
+            appointmentTime,
+            isDeleted: 0,
+          })
+        );
+      });
     } catch (error) {
       if (this.isDuplicateEntry(error)) throw this.duplicateError();
       throw error;
     }
+  }
+
+  async getConfig() {
+    const config = await this.ensureConfig(this.configRepository);
+    return { slotCapacity: config.slotCapacity };
+  }
+
+  async updateConfig(dto: AppointmentConfigDto) {
+    if (!Number.isInteger(dto.slotCapacity) || dto.slotCapacity < 1) {
+      throw this.userError("每时段预约上限必须是正整数");
+    }
+    const config = await this.ensureConfig(this.configRepository);
+    config.slotCapacity = dto.slotCapacity;
+    config.isDeleted = 0;
+    await this.configRepository.save(config);
+    return { slotCapacity: config.slotCapacity };
+  }
+
+  async listSlots(appointmentDate: string) {
+    const date = dayjs(appointmentDate, "YYYY-MM-DD", true);
+    if (!date.isValid()) throw this.userError("预约日期无效");
+
+    const [{ slotCapacity }, rows] = await Promise.all([
+      this.getConfig(),
+      this.appointmentRepository
+        .createQueryBuilder("appointment")
+        .select("appointment.appointmentTime", "time")
+        .addSelect("COUNT(*)", "bookedCount")
+        .where("appointment.isDeleted = 0")
+        .andWhere("appointment.appointmentDate = :appointmentDate", { appointmentDate })
+        .andWhere("appointment.appointmentTime IN (:...times)", {
+          times: APPOINTMENT_TIME_SLOTS.map((time) => `${time}:00`),
+        })
+        .groupBy("appointment.appointmentTime")
+        .getRawMany<{ time: string; bookedCount: string }>(),
+    ]);
+    const counts = new Map(
+      rows.map((row) => [String(row.time).slice(0, 5), Number(row.bookedCount)])
+    );
+
+    return APPOINTMENT_TIME_SLOTS.map((time) => {
+      const bookedCount = counts.get(time) ?? 0;
+      const full = bookedCount >= slotCapacity;
+      return {
+        time,
+        bookedCount,
+        capacity: slotCapacity,
+        remainingCount: Math.max(slotCapacity - bookedCount, 0),
+        full,
+        available:
+          !full && dayjs(`${appointmentDate} ${time}`, "YYYY-MM-DD HH:mm", true).isAfter(dayjs()),
+      };
+    });
   }
 
   async pageQuery(query: AppointmentQueryDto) {
@@ -137,6 +214,33 @@ export class AppointmentService {
       ...ErrorCode.DUPLICATE_SUBMISSION,
       msg: "该时间已预约，请勿重复提交",
     });
+  }
+
+  private slotFullError() {
+    return this.userError("该时间段已约满，请选择其他时间");
+  }
+
+  private async ensureConfig(
+    repository: Repository<AppointmentConfig>,
+    lock = false
+  ): Promise<AppointmentConfig> {
+    const options = {
+      where: { id: APPOINTMENT_CONFIG_ID },
+      ...(lock ? { lock: { mode: "pessimistic_write" as const } } : {}),
+    };
+    const existing = await repository.findOne(options);
+    if (existing) return existing;
+
+    try {
+      return await repository.save(
+        repository.create({ id: APPOINTMENT_CONFIG_ID, slotCapacity: 1, isDeleted: 0 })
+      );
+    } catch (error) {
+      if (!this.isDuplicateEntry(error)) throw error;
+      const created = await repository.findOne(options);
+      if (created) return created;
+      throw error;
+    }
   }
 
   private isDuplicateEntry(error: unknown): boolean {
