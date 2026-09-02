@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import * as dayjs from "dayjs";
 import * as customParseFormat from "dayjs/plugin/customParseFormat";
-import { Repository } from "typeorm";
+import { In, Repository } from "typeorm";
 
 import { AppointmentConfigDto } from "./dto/appointment-config.dto";
 import { AppointmentCreateDto } from "./dto/appointment-create.dto";
@@ -12,6 +12,9 @@ import { Appointment } from "./entities/appointment.entity";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
 import { Member } from "@/member/entities/member.entity";
+import { BizOrderItem } from "@/order/entities/order-item.entity";
+import { BizOrder } from "@/order/entities/order.entity";
+import { OrderStatus } from "@/order/order-status";
 
 dayjs.extend(customParseFormat);
 
@@ -27,7 +30,11 @@ export class AppointmentService {
     @InjectRepository(Appointment)
     private readonly appointmentRepository: Repository<Appointment>,
     @InjectRepository(AppointmentConfig)
-    private readonly configRepository: Repository<AppointmentConfig>
+    private readonly configRepository: Repository<AppointmentConfig>,
+    @InjectRepository(BizOrder)
+    private readonly orderRepository: Repository<BizOrder>,
+    @InjectRepository(BizOrderItem)
+    private readonly orderItemRepository: Repository<BizOrderItem>
   ) {}
 
   async create(memberId: string, dto: AppointmentCreateDto) {
@@ -63,6 +70,22 @@ export class AppointmentService {
         });
         if (exists) throw this.duplicateError();
 
+        let sceneType: Appointment["sceneType"] = "CONSULTATION";
+        let orderId: string | null = null;
+        if (dto.orderId) {
+          const order = await manager.getRepository(BizOrder).findOne({
+            where: { id: dto.orderId, isDeleted: 0 },
+            lock: { mode: "pessimistic_read" },
+          });
+          this.assertOrderEligible(order, memberId);
+          const orderAppointment = await repository.findOne({
+            where: { orderId: dto.orderId, isDeleted: 0 },
+          });
+          if (orderAppointment) throw this.orderDuplicateError();
+          sceneType = "ORDER";
+          orderId = dto.orderId;
+        }
+
         const bookedCount = await repository.count({
           where: { appointmentDate: dto.appointmentDate, appointmentTime, isDeleted: 0 },
         });
@@ -73,14 +96,30 @@ export class AppointmentService {
             memberId,
             appointmentDate: dto.appointmentDate,
             appointmentTime,
+            sceneType,
+            orderId,
             isDeleted: 0,
           })
         );
       });
     } catch (error) {
-      if (this.isDuplicateEntry(error)) throw this.duplicateError();
+      if (this.isDuplicateEntry(error)) {
+        if (dto.orderId) throw this.orderDuplicateError();
+        throw this.duplicateError();
+      }
       throw error;
     }
+  }
+
+  async getOrderEligibility(memberId: string, orderId: string) {
+    const order = await this.orderRepository.findOne({ where: { id: orderId, isDeleted: 0 } });
+    const reason = this.getOrderIneligibleReason(order, memberId);
+    if (reason) return { eligible: false, reason };
+
+    const exists = await this.appointmentRepository.findOne({
+      where: { orderId, isDeleted: 0 },
+    });
+    return exists ? { eligible: false, reason: "该订单已预约" } : { eligible: true, reason: "" };
   }
 
   async getConfig() {
@@ -164,6 +203,8 @@ export class AppointmentService {
         "member.mobile AS memberMobile",
         "DATE_FORMAT(appointment.appointmentDate, '%Y-%m-%d') AS appointmentDate",
         "TIME_FORMAT(appointment.appointmentTime, '%H:%i') AS appointmentTime",
+        "appointment.sceneType AS sceneType",
+        "appointment.orderId AS orderId",
         "appointment.createTime AS createTime",
       ])
       .orderBy("appointment.appointmentDate", "DESC")
@@ -173,7 +214,7 @@ export class AppointmentService {
       .limit(pageSize)
       .getRawMany();
 
-    return { data, page: { pageNum, pageSize, total } };
+    return { data: await this.enrichOrderScenes(data), page: { pageNum, pageSize, total } };
   }
 
   async listByMonth(month: string) {
@@ -182,7 +223,7 @@ export class AppointmentService {
       throw this.userError("月份无效");
     }
 
-    return this.appointmentRepository
+    const data = await this.appointmentRepository
       .createQueryBuilder("appointment")
       .innerJoin(Member, "member", "member.id = appointment.memberId AND member.isDeleted = 0")
       .where("appointment.isDeleted = 0")
@@ -197,12 +238,15 @@ export class AppointmentService {
         "member.mobile AS memberMobile",
         "DATE_FORMAT(appointment.appointmentDate, '%Y-%m-%d') AS appointmentDate",
         "TIME_FORMAT(appointment.appointmentTime, '%H:%i') AS appointmentTime",
+        "appointment.sceneType AS sceneType",
+        "appointment.orderId AS orderId",
         "appointment.createTime AS createTime",
       ])
       .orderBy("appointment.appointmentDate", "ASC")
       .addOrderBy("appointment.appointmentTime", "ASC")
       .addOrderBy("appointment.id", "ASC")
       .getRawMany();
+    return this.enrichOrderScenes(data);
   }
 
   private userError(msg: string) {
@@ -216,8 +260,58 @@ export class AppointmentService {
     });
   }
 
+  private orderDuplicateError() {
+    return new BusinessException({
+      ...ErrorCode.DUPLICATE_SUBMISSION,
+      msg: "该订单已预约",
+    });
+  }
+
   private slotFullError() {
     return this.userError("该时间段已约满，请选择其他时间");
+  }
+
+  private assertOrderEligible(order: BizOrder | null, memberId: string): asserts order is BizOrder {
+    const reason = this.getOrderIneligibleReason(order, memberId);
+    if (reason) throw this.userError(reason);
+  }
+
+  private getOrderIneligibleReason(order: BizOrder | null, memberId: string): string {
+    if (!order || String(order.memberId) !== String(memberId)) return "订单不可预约";
+    if (order.status !== OrderStatus.PAID) return "当前订单状态不可预约";
+    return "";
+  }
+
+  private async enrichOrderScenes<T extends { orderId?: string | null }>(rows: T[]) {
+    const orderIds = Array.from(
+      new Set(rows.map((row) => row.orderId).filter((id): id is string => Boolean(id)))
+    );
+    if (!orderIds.length) {
+      return rows.map((row) => ({ ...row, orderNo: null, productNames: [] as string[] }));
+    }
+
+    const [orders, items] = await Promise.all([
+      this.orderRepository.find({ where: { id: In(orderIds), isDeleted: 0 } }),
+      this.orderItemRepository.find({
+        where: { orderId: In(orderIds), isDeleted: 0 },
+        order: { id: "ASC" },
+      }),
+    ]);
+    const orderMap = new Map(orders.map((order) => [String(order.id), order.orderNo]));
+    const productMap = new Map<string, string[]>();
+    for (const item of items) {
+      const id = String(item.orderId);
+      productMap.set(id, [...(productMap.get(id) ?? []), item.productName]);
+    }
+
+    return rows.map((row) => {
+      const orderId = row.orderId ? String(row.orderId) : "";
+      return {
+        ...row,
+        orderNo: orderMap.get(orderId) ?? null,
+        productNames: productMap.get(orderId) ?? [],
+      };
+    });
   }
 
   private async ensureConfig(

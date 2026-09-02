@@ -1,6 +1,8 @@
 import { AppointmentService } from "./appointment.service";
 import { AppointmentConfig } from "./entities/appointment-config.entity";
 import { BusinessException } from "@/common/exceptions/business.exception";
+import { BizOrder } from "@/order/entities/order.entity";
+import { OrderStatus } from "@/order/order-status";
 
 describe("AppointmentService", () => {
   const transactionAppointmentRepository = {
@@ -14,16 +16,27 @@ describe("AppointmentService", () => {
     create: jest.fn((value) => value),
     save: jest.fn(),
   };
+  const transactionOrderRepository = { findOne: jest.fn() };
   const manager = {
-    getRepository: jest.fn((entity) =>
-      entity === AppointmentConfig ? configRepository : transactionAppointmentRepository
-    ),
+    getRepository: jest.fn((entity) => {
+      if (entity === AppointmentConfig) return configRepository;
+      if (entity === BizOrder) return transactionOrderRepository;
+      return transactionAppointmentRepository;
+    }),
   };
   const appointmentRepository = {
     manager: { transaction: jest.fn(async (callback) => callback(manager)) },
     createQueryBuilder: jest.fn(),
+    findOne: jest.fn(),
   };
-  const service = new AppointmentService(appointmentRepository as any, configRepository as any);
+  const orderRepository = { findOne: jest.fn(), find: jest.fn() };
+  const orderItemRepository = { find: jest.fn() };
+  const service = new AppointmentService(
+    appointmentRepository as any,
+    configRepository as any,
+    orderRepository as any,
+    orderItemRepository as any
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -35,6 +48,11 @@ describe("AppointmentService", () => {
       id: "1",
       ...value,
     }));
+    transactionOrderRepository.findOne.mockResolvedValue(null);
+    appointmentRepository.findOne.mockResolvedValue(null);
+    orderRepository.findOne.mockResolvedValue(null);
+    orderRepository.find.mockResolvedValue([]);
+    orderItemRepository.find.mockResolvedValue([]);
   });
 
   it("保存容量内的未来预约", async () => {
@@ -48,10 +66,68 @@ describe("AppointmentService", () => {
       memberId: "10",
       appointmentDate: "2099-08-20",
       appointmentTime: "14:00:00",
+      sceneType: "CONSULTATION",
+      orderId: null,
     });
     expect(configRepository.findOne).toHaveBeenCalledWith({
       where: { id: "1" },
       lock: { mode: "pessimistic_write" },
+    });
+  });
+
+  it("保存当前会员的已支付订单预约", async () => {
+    transactionOrderRepository.findOne.mockResolvedValue({
+      id: "20",
+      memberId: "10",
+      status: OrderStatus.PAID,
+    });
+
+    await expect(
+      service.create("10", {
+        appointmentDate: "2099-08-20",
+        appointmentTime: "15:00",
+        orderId: "20",
+      })
+    ).resolves.toMatchObject({ sceneType: "ORDER", orderId: "20" });
+  });
+
+  it("拒绝非已支付订单预约", async () => {
+    transactionOrderRepository.findOne.mockResolvedValue({ id: "20", memberId: "10", status: 0 });
+
+    const error = await service
+      .create("10", {
+        appointmentDate: "2099-08-20",
+        appointmentTime: "15:00",
+        orderId: "20",
+      })
+      .catch((reason) => reason as BusinessException);
+
+    expect((error as BusinessException).getResponse()).toMatchObject({
+      msg: "当前订单状态不可预约",
+    });
+    expect(transactionAppointmentRepository.save).not.toHaveBeenCalled();
+  });
+
+  it("拒绝非本人和已预约订单", async () => {
+    orderRepository.findOne.mockResolvedValue({
+      id: "20",
+      memberId: "11",
+      status: OrderStatus.PAID,
+    });
+    await expect(service.getOrderEligibility("10", "20")).resolves.toEqual({
+      eligible: false,
+      reason: "订单不可预约",
+    });
+
+    orderRepository.findOne.mockResolvedValue({
+      id: "20",
+      memberId: "10",
+      status: OrderStatus.PAID,
+    });
+    appointmentRepository.findOne.mockResolvedValue({ id: "30" });
+    await expect(service.getOrderEligibility("10", "20")).resolves.toEqual({
+      eligible: false,
+      reason: "该订单已预约",
     });
   });
 
@@ -175,11 +251,40 @@ describe("AppointmentService", () => {
     };
     appointmentRepository.createQueryBuilder.mockReturnValue(queryBuilder);
 
-    await expect(service.listByMonth("2026-08")).resolves.toEqual(rows);
+    await expect(service.listByMonth("2026-08")).resolves.toEqual([
+      { ...rows[0], orderNo: null, productNames: [] },
+    ]);
     expect(queryBuilder.andWhere).toHaveBeenCalledWith(
       "appointment.appointmentDate BETWEEN :startDate AND :endDate",
       { startDate: "2026-08-01", endDate: "2026-08-31" }
     );
+  });
+
+  it("为后台订单预约批量补充订单号和商品名称", async () => {
+    const rows = [{ id: "1", sceneType: "ORDER", orderId: "20" }];
+    const queryBuilder = {
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue(rows),
+    };
+    appointmentRepository.createQueryBuilder.mockReturnValue(queryBuilder);
+    orderRepository.find.mockResolvedValue([{ id: "20", orderNo: "YJ20" }]);
+    orderItemRepository.find.mockResolvedValue([
+      { id: "1", orderId: "20", productName: "水光项目" },
+      { id: "2", orderId: "20", productName: "护理项目" },
+    ]);
+
+    await expect(service.listByMonth("2026-08")).resolves.toEqual([
+      {
+        ...rows[0],
+        orderNo: "YJ20",
+        productNames: ["水光项目", "护理项目"],
+      },
+    ]);
   });
 
   it("拒绝无效月份", async () => {
