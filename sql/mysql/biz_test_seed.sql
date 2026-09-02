@@ -1,6 +1,6 @@
 -- 悦己 DLumière 本地测试环境业务数据
 -- 警告：会清空阶段 1–8E 的业务表；保留全部 sys_* 系统表。
--- 依赖：MySQL 8，已执行 biz_p0.sql、biz_phase4.sql、biz_phase5.sql、biz_phase6.sql、biz_phase7.sql、biz_phase8_distribution.sql、biz_phase8c_settlement.sql、biz_phase8d_distribution_task.sql、biz_phase8e_sales_analytics.sql。
+-- 依赖：MySQL 8，已执行包含预约生命周期最终结构的 biz_phase6.sql，以及阶段 0–8E 其余建表 SQL。
 -- 阶段8E直接复用下方跨90天订单、少量直属业绩和多等级代理，不增加统计汇总数据。
 
 USE youlai_admin;
@@ -46,6 +46,7 @@ DELETE FROM `group_buy_activity`;
 DELETE FROM `decoration_banner`;
 DELETE FROM `decoration_notice`;
 DELETE FROM `decoration_brand`;
+DELETE FROM `appointment_operation_log`;
 DELETE FROM `appointment`;
 DELETE FROM `marketing_points_rule`;
 DELETE FROM `member_coupon`;
@@ -166,19 +167,6 @@ VALUES
   (1,4,3,DATE_SUB(NOW(),INTERVAL 20 DAY),DATE_SUB(NOW(),INTERVAL 19 DAY),NOW(),NOW(),0),
   (2,5,2,DATE_SUB(NOW(),INTERVAL 15 DAY),DATE_SUB(NOW(),INTERVAL 14 DAY),NOW(),NOW(),0),
   (3,6,1,DATE_SUB(NOW(),INTERVAL 10 DAY),DATE_SUB(NOW(),INTERVAL 9 DAY),NOW(),NOW(),0);
-
-INSERT INTO `appointment`
-  (`id`, `member_id`, `appointment_date`, `appointment_time`, `create_time`, `update_time`, `is_deleted`)
-SELECT
-  n,
-  1 + MOD(n - 1, 60),
-  DATE_ADD(CURDATE(), INTERVAL (MOD(n * 7, 61) - 30) DAY),
-  MAKETIME(9 + MOD(n, 9), IF(MOD(n, 2) = 0, 0, 30), 0),
-  DATE_SUB(NOW(), INTERVAL MOD(n * 5, 90) DAY),
-  NOW(),
-  0
-FROM `_seed_seq`
-WHERE n <= 90;
 
 INSERT INTO `product_category`
   (`id`, `name`, `parent_id`, `tree_path`, `level`, `icon`, `sort`, `status`, `create_time`, `update_time`, `is_deleted`)
@@ -486,6 +474,88 @@ SET mc.status = CASE o.status WHEN 1 THEN 1 WHEN 3 THEN 2 ELSE 0 END,
     mc.used_at = CASE WHEN o.status = 3 THEN o.update_time ELSE NULL END,
     mc.update_time = NOW();
 
+INSERT INTO `appointment`
+  (`id`, `member_id`, `appointment_date`, `appointment_time`, `scene_type`, `order_id`, `status`,
+   `complete_time`, `cancel_time`, `cancel_reason`, `create_time`, `update_time`, `is_deleted`)
+SELECT
+  n,
+  1 + MOD(n - 1, 60),
+  CASE
+    WHEN n <= 40 THEN DATE_ADD(CURDATE(), INTERVAL (1 + MOD(n, 30)) DAY)
+    ELSE DATE_SUB(CURDATE(), INTERVAL (1 + MOD(n, 30)) DAY)
+  END,
+  MAKETIME(10 + MOD(n - 1, 9), 0, 0),
+  'CONSULTATION',
+  NULL,
+  CASE WHEN n <= 40 THEN 0 WHEN n <= 64 THEN 1 ELSE 2 END,
+  CASE WHEN n BETWEEN 41 AND 64 THEN DATE_SUB(NOW(), INTERVAL MOD(n, 20) DAY) ELSE NULL END,
+  CASE WHEN n BETWEEN 65 AND 84 THEN DATE_SUB(NOW(), INTERVAL MOD(n, 20) DAY) ELSE NULL END,
+  CASE WHEN n BETWEEN 65 AND 84 THEN '测试取消原因' ELSE NULL END,
+  DATE_SUB(NOW(), INTERVAL MOD(n * 5, 90) DAY),
+  NOW(),
+  0
+FROM `_seed_seq`
+WHERE n <= 84;
+
+INSERT INTO `appointment`
+  (`id`, `member_id`, `appointment_date`, `appointment_time`, `scene_type`, `order_id`, `status`,
+   `complete_time`, `cancel_time`, `cancel_reason`, `create_time`, `update_time`, `is_deleted`)
+SELECT 85, member_id, DATE_ADD(CURDATE(), INTERVAL 35 DAY), '14:00:00', 'ORDER', id, 0,
+       NULL, NULL, NULL, create_time, NOW(), 0 FROM `biz_order` WHERE id = 2
+UNION ALL
+SELECT 86, member_id, DATE_ADD(CURDATE(), INTERVAL 36 DAY), '15:00:00', 'ORDER', id, 0,
+       NULL, NULL, NULL, create_time, NOW(), 0 FROM `biz_order` WHERE id = 8
+UNION ALL
+SELECT 87, member_id, DATE_ADD(CURDATE(), INTERVAL 37 DAY), '16:00:00', 'ORDER', id, 2,
+       NULL, NOW(), '用户取消', create_time, NOW(), 0 FROM `biz_order` WHERE id = 14
+UNION ALL
+SELECT 88, member_id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), '14:00:00', 'ORDER', id, 1,
+       COALESCE(verify_time, update_time), NULL, NULL, create_time, NOW(), 0 FROM `biz_order` WHERE id = 4
+UNION ALL
+SELECT 89, member_id, DATE_SUB(CURDATE(), INTERVAL 6 DAY), '15:00:00', 'ORDER', id, 1,
+       COALESCE(verify_time, update_time), NULL, NULL, create_time, NOW(), 0 FROM `biz_order` WHERE id = 10
+UNION ALL
+SELECT 90, member_id, DATE_ADD(CURDATE(), INTERVAL 38 DAY), '17:00:00', 'ORDER', id, 2,
+       NULL, NOW(), '订单预约取消后可重约', create_time, NOW(), 0 FROM `biz_order` WHERE id = 20;
+
+INSERT INTO `appointment_operation_log`
+  (`appointment_id`, `action`, `operator_type`, `operator_id`, `before_date`, `before_time`,
+   `after_date`, `after_time`, `reason`, `create_time`, `update_time`, `is_deleted`)
+SELECT
+  id, 'CREATE', 'MEMBER', member_id, NULL, NULL,
+  IF(id = 1, DATE_SUB(appointment_date, INTERVAL 1 DAY), appointment_date),
+  appointment_time, NULL, create_time, create_time, 0
+FROM `appointment`;
+
+INSERT INTO `appointment_operation_log`
+  (`appointment_id`, `action`, `operator_type`, `operator_id`, `before_date`, `before_time`,
+   `after_date`, `after_time`, `reason`, `create_time`, `update_time`, `is_deleted`)
+SELECT
+  id, 'COMPLETE', 'ADMIN', 1, appointment_date, appointment_time,
+  appointment_date, appointment_time, IF(scene_type = 'ORDER', '订单核销', NULL),
+  complete_time, complete_time, 0
+FROM `appointment`
+WHERE status = 1;
+
+INSERT INTO `appointment_operation_log`
+  (`appointment_id`, `action`, `operator_type`, `operator_id`, `before_date`, `before_time`,
+   `after_date`, `after_time`, `reason`, `create_time`, `update_time`, `is_deleted`)
+SELECT
+  id, 'CANCEL', 'MEMBER', member_id, appointment_date, appointment_time,
+  appointment_date, appointment_time, cancel_reason, cancel_time, cancel_time, 0
+FROM `appointment`
+WHERE status = 2;
+
+INSERT INTO `appointment_operation_log`
+  (`appointment_id`, `action`, `operator_type`, `operator_id`, `before_date`, `before_time`,
+   `after_date`, `after_time`, `reason`, `create_time`, `update_time`, `is_deleted`)
+SELECT
+  id, 'RESCHEDULE', 'MEMBER', member_id, DATE_SUB(appointment_date, INTERVAL 1 DAY), appointment_time,
+  appointment_date, appointment_time, '测试改期', DATE_ADD(create_time, INTERVAL 1 HOUR),
+  DATE_ADD(create_time, INTERVAL 1 HOUR), 0
+FROM `appointment`
+WHERE id = 1;
+
 INSERT INTO `biz_payment`
   (`id`, `payment_no`, `order_id`, `member_id`, `amount`, `channel`, `status`, `third_party_no`,
    `paid_time`, `create_time`, `update_time`, `is_deleted`)
@@ -747,6 +817,7 @@ SELECT
   (SELECT COUNT(*) <> 4 FROM `distribution_task`) +
   (SELECT COUNT(*) <> 6 FROM `distribution_task_assignee`) +
   (SELECT COUNT(*) <> 90 FROM `appointment`) +
+  (SELECT COUNT(*) <> 139 FROM `appointment_operation_log`) +
   (SELECT COUNT(*) <> 4 FROM `member_level`) +
   (SELECT COUNT(*) <> 20 FROM `product_category`) +
   (SELECT COUNT(*) <> 36 FROM `product`) +
@@ -784,6 +855,8 @@ SELECT
   (SELECT COUNT(*) FROM `biz_order_item` i LEFT JOIN `product` p ON p.id = i.product_id LEFT JOIN `product_sku` s ON s.id = i.sku_id WHERE p.id IS NULL OR s.id IS NULL) +
   (SELECT COUNT(*) FROM `cart` c LEFT JOIN `member` m ON m.id = c.member_id LEFT JOIN `product` p ON p.id = c.product_id LEFT JOIN `product_sku` s ON s.id = c.sku_id WHERE m.id IS NULL OR p.id IS NULL OR s.id IS NULL) +
   (SELECT COUNT(*) FROM `appointment` a LEFT JOIN `member` m ON m.id = a.member_id WHERE m.id IS NULL) +
+  (SELECT COUNT(*) FROM `appointment` a LEFT JOIN `biz_order` o ON o.id = a.order_id WHERE a.scene_type = 'ORDER' AND o.id IS NULL) +
+  (SELECT COUNT(*) FROM `appointment_operation_log` l LEFT JOIN `appointment` a ON a.id = l.appointment_id WHERE a.id IS NULL) +
   (SELECT COUNT(*) FROM `group_buy_activity` a LEFT JOIN `product_sku` s ON s.id = a.sku_id WHERE s.id IS NULL) +
   (SELECT COUNT(*) FROM `group_buy_group` g LEFT JOIN `group_buy_activity` a ON a.id = g.activity_id LEFT JOIN `member` m ON m.id = g.leader_member_id WHERE a.id IS NULL OR m.id IS NULL) +
   (SELECT COUNT(*) FROM `group_buy_member` gm LEFT JOIN `group_buy_group` g ON g.id = gm.group_id LEFT JOIN `member` m ON m.id = gm.member_id LEFT JOIN `biz_order` o ON o.id = gm.order_id WHERE g.id IS NULL OR m.id IS NULL OR o.id IS NULL) +
@@ -815,6 +888,7 @@ UNION ALL SELECT 'distribution_withdrawal', COUNT(*) FROM `distribution_withdraw
 UNION ALL SELECT 'distribution_task', COUNT(*) FROM `distribution_task`
 UNION ALL SELECT 'distribution_task_assignee', COUNT(*) FROM `distribution_task_assignee`
 UNION ALL SELECT 'appointment', COUNT(*) FROM `appointment`
+UNION ALL SELECT 'appointment_operation_log', COUNT(*) FROM `appointment_operation_log`
 UNION ALL SELECT 'product', COUNT(*) FROM `product`
 UNION ALL SELECT 'product_sku', COUNT(*) FROM `product_sku`
 UNION ALL SELECT 'cart', COUNT(*) FROM `cart`

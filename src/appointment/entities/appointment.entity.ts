@@ -1,12 +1,17 @@
 import { Column, Entity, Index } from "typeorm";
 
+import type { AppointmentStatusValue } from "../appointment.constants";
 import { BaseEntity } from "@/common/entities/base.entity";
 
 @Entity("appointment")
-@Index("uk_member_appointment_time", ["memberId", "appointmentDate", "appointmentTime"], {
-  unique: true,
-})
-@Index("uk_appointment_order_id", ["orderId"], { unique: true })
+@Index("idx_appointment_member_status_time", [
+  "memberId",
+  "status",
+  "appointmentDate",
+  "appointmentTime",
+])
+@Index("idx_appointment_status_time", ["status", "appointmentDate", "appointmentTime"])
+@Index("idx_appointment_order_status", ["orderId", "status"])
 export class Appointment extends BaseEntity {
   @Column({ name: "member_id", type: "bigint", comment: "会员ID" })
   memberId: string;
@@ -27,4 +32,16 @@ export class Appointment extends BaseEntity {
 
   @Column({ name: "order_id", type: "bigint", nullable: true, comment: "关联订单ID" })
   orderId?: string | null;
+
+  @Column({ type: "tinyint", default: 0, comment: "预约状态(0-待到店 1-已完成 2-已取消)" })
+  status: AppointmentStatusValue;
+
+  @Column({ name: "complete_time", type: "datetime", nullable: true, comment: "服务完成时间" })
+  completeTime?: Date | null;
+
+  @Column({ name: "cancel_time", type: "datetime", nullable: true, comment: "取消时间" })
+  cancelTime?: Date | null;
+
+  @Column({ name: "cancel_reason", length: 255, nullable: true, comment: "取消原因" })
+  cancelReason?: string | null;
 }

@@ -19,6 +19,7 @@ import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
 import { OrderBenefitsService } from "@/marketing/order-benefits.service";
 import { PointsBizType } from "@/marketing/marketing.constants";
+import { AppointmentService } from "@/appointment/appointment.service";
 
 const ORDER_TIMEOUT_BATCH_SIZE = 100;
 const ORDER_TIMEOUT_MAX_BATCHES = 5;
@@ -41,7 +42,8 @@ export class OrderService {
     private readonly cartService: CartService,
     private readonly orderBenefits: OrderBenefitsService,
     private readonly domainEvents: DomainEvents,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    private readonly appointmentService: AppointmentService
   ) {}
 
   async create(memberId: string, dto: OrderCreateDto) {
@@ -277,12 +279,18 @@ export class OrderService {
       const key = String(item.orderId);
       itemMap.set(key, [...(itemMap.get(key) ?? []), item]);
     }
+    const appointmentMap = await this.appointmentService.getOrderAppointmentMap(ids);
 
     return {
-      data: list.map((o) => ({
-        ...this.toListVo(o),
-        items: itemMap.get(String(o.id)) ?? [],
-      })),
+      data: list.map((o) => {
+        const appointment = appointmentMap.get(String(o.id)) ?? null;
+        return {
+          ...this.toListVo(o),
+          items: itemMap.get(String(o.id)) ?? [],
+          appointment,
+          canBookAppointment: o.status === OrderStatus.PAID && !appointment,
+        };
+      }),
       page: { pageNum, pageSize, total },
     };
   }
@@ -295,11 +303,15 @@ export class OrderService {
     if (memberId && String(order.memberId) !== String(memberId)) {
       throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "订单不存在" });
     }
-    const items = await this.itemRepository.find({
-      where: { orderId: id, isDeleted: 0 },
-      order: { id: "ASC" },
-    });
-    const member = await this.memberRepository.findOne({ where: { id: order.memberId } });
+    const [items, member, appointmentMap] = await Promise.all([
+      this.itemRepository.find({
+        where: { orderId: id, isDeleted: 0 },
+        order: { id: "ASC" },
+      }),
+      this.memberRepository.findOne({ where: { id: order.memberId } }),
+      this.appointmentService.getOrderAppointmentMap([id]),
+    ]);
+    const appointment = appointmentMap.get(String(id)) ?? null;
     return {
       ...this.toListVo(order),
       contactName: order.contactName,
@@ -313,6 +325,8 @@ export class OrderService {
       memberNickname: member?.nickname ?? "",
       memberMobile: member?.mobile ?? "",
       items,
+      appointment,
+      canBookAppointment: order.status === OrderStatus.PAID && !appointment,
       pricing: {
         totalAmount: order.totalAmount,
         memberLevelId: order.memberLevelId,
@@ -380,6 +394,7 @@ export class OrderService {
       await this.productService.increaseSales(manager, productId, -qty);
     }
     await this.orderBenefits.releaseOrder(manager, order, PointsBizType.ORDER_REFUND_RETURN);
+    await this.appointmentService.cancelOrderAppointment(manager, order.id);
     return order;
   }
 
@@ -573,6 +588,7 @@ export class OrderService {
       current.status = OrderStatus.COMPLETED;
       await manager.save(current);
       await this.orderBenefits.completeOrder(manager, current);
+      await this.appointmentService.completeOrderAppointment(manager, current.id, operatorId);
       return current;
     });
 

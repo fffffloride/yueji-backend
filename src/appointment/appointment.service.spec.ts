@@ -16,6 +16,7 @@ describe("AppointmentService", () => {
     create: jest.fn((value) => value),
     save: jest.fn(),
   };
+  const operationLogRepository = { find: jest.fn() };
   const transactionOrderRepository = { findOne: jest.fn() };
   const manager = {
     getRepository: jest.fn((entity) => {
@@ -33,6 +34,7 @@ describe("AppointmentService", () => {
   const orderItemRepository = { find: jest.fn() };
   const service = new AppointmentService(
     appointmentRepository as any,
+    operationLogRepository as any,
     configRepository as any,
     orderRepository as any,
     orderItemRepository as any
@@ -239,9 +241,19 @@ describe("AppointmentService", () => {
   });
 
   it("按月返回预约列表", async () => {
-    const rows = [{ id: "1", appointmentDate: "2026-08-20", appointmentTime: "14:00" }];
+    const rows = [
+      {
+        id: "1",
+        memberId: "10",
+        status: 0,
+        sceneType: "CONSULTATION",
+        appointmentDate: "2026-08-20",
+        appointmentTime: "14:00",
+      },
+    ];
     const queryBuilder = {
       innerJoin: jest.fn().mockReturnThis(),
+      leftJoin: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
@@ -252,7 +264,7 @@ describe("AppointmentService", () => {
     appointmentRepository.createQueryBuilder.mockReturnValue(queryBuilder);
 
     await expect(service.listByMonth("2026-08")).resolves.toEqual([
-      { ...rows[0], orderNo: null, productNames: [] },
+      expect.objectContaining({ ...rows[0], orderNo: null, productNames: [] }),
     ]);
     expect(queryBuilder.andWhere).toHaveBeenCalledWith(
       "appointment.appointmentDate BETWEEN :startDate AND :endDate",
@@ -261,9 +273,20 @@ describe("AppointmentService", () => {
   });
 
   it("为后台订单预约批量补充订单号和商品名称", async () => {
-    const rows = [{ id: "1", sceneType: "ORDER", orderId: "20" }];
+    const rows = [
+      {
+        id: "1",
+        memberId: "10",
+        status: 0,
+        sceneType: "ORDER",
+        orderId: "20",
+        appointmentDate: "2026-08-20",
+        appointmentTime: "14:00",
+      },
+    ];
     const queryBuilder = {
       innerJoin: jest.fn().mockReturnThis(),
+      leftJoin: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
@@ -279,11 +302,11 @@ describe("AppointmentService", () => {
     ]);
 
     await expect(service.listByMonth("2026-08")).resolves.toEqual([
-      {
+      expect.objectContaining({
         ...rows[0],
         orderNo: "YJ20",
         productNames: ["水光项目", "护理项目"],
-      },
+      }),
     ]);
   });
 

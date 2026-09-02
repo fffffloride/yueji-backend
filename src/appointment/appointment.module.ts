@@ -6,15 +6,24 @@ import { AppointmentAppController } from "./app/appointment-app.controller";
 import { AppointmentService } from "./appointment.service";
 import { Appointment } from "./entities/appointment.entity";
 import { AppointmentConfig } from "./entities/appointment-config.entity";
+import { AppointmentOperationLog } from "./entities/appointment-operation-log.entity";
 import { Member } from "@/member/entities/member.entity";
 import { BizOrder } from "@/order/entities/order.entity";
 import { BizOrderItem } from "@/order/entities/order-item.entity";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Appointment, AppointmentConfig, Member, BizOrder, BizOrderItem]),
+    TypeOrmModule.forFeature([
+      Appointment,
+      AppointmentOperationLog,
+      AppointmentConfig,
+      Member,
+      BizOrder,
+      BizOrderItem,
+    ]),
   ],
   controllers: [AppointmentAdminController, AppointmentAppController],
   providers: [AppointmentService],
+  exports: [AppointmentService],
 })
 export class AppointmentModule {}

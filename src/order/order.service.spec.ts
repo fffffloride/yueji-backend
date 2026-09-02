@@ -22,12 +22,20 @@ describe("OrderService hardening", () => {
     getSkuForQuote: jest.fn(),
     getSkuForOrder: jest.fn(),
     increaseSales: jest.fn(),
+    adjustStock: jest.fn(),
   };
   const cartService = { findOwnedByIds: jest.fn() };
   const orderBenefits = {
     quote: jest.fn(),
     availableCoupons: jest.fn(),
     markPaid: jest.fn(),
+    releaseOrder: jest.fn(),
+    completeOrder: jest.fn(),
+  };
+  const appointmentService = {
+    getOrderAppointmentMap: jest.fn().mockResolvedValue(new Map()),
+    completeOrderAppointment: jest.fn(),
+    cancelOrderAppointment: jest.fn(),
   };
   const service = new OrderService(
     orderRepository as never,
@@ -38,7 +46,8 @@ describe("OrderService hardening", () => {
     cartService as never,
     orderBenefits as never,
     { emit: jest.fn() } as never,
-    { get: jest.fn().mockReturnValue(30) } as never
+    { get: jest.fn().mockReturnValue(30) } as never,
+    appointmentService as never
   );
 
   beforeEach(() => {
@@ -147,5 +156,33 @@ describe("OrderService hardening", () => {
     ).rejects.toMatchObject({
       response: { msg: "购物车下单和立即购买不能同时提交" },
     });
+  });
+
+  it("退款订单时在同一事务管理器内取消关联预约", async () => {
+    const order = { id: "20", status: OrderStatus.PAID } as any;
+    manager.save.mockResolvedValue(order);
+    manager.find.mockResolvedValue([]);
+
+    await service.markRefunded(manager as never, order);
+
+    expect(order.status).toBe(OrderStatus.REFUNDED);
+    expect(appointmentService.cancelOrderAppointment).toHaveBeenCalledWith(manager, "20");
+  });
+
+  it("核销订单时在同一事务管理器内完成关联预约", async () => {
+    const order = {
+      id: "20",
+      orderNo: "YJ20",
+      memberId: "10",
+      status: OrderStatus.PAID,
+    } as any;
+    dataSource.transaction.mockImplementation(async (callback) => callback(manager));
+    manager.findOne.mockResolvedValue(order);
+    manager.save.mockResolvedValue(order);
+    jest.spyOn(service, "getDetail").mockResolvedValue({ id: "20" } as any);
+
+    await service.verifyById("20", "99");
+
+    expect(appointmentService.completeOrderAppointment).toHaveBeenCalledWith(manager, "20", "99");
   });
 });
