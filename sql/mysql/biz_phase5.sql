@@ -30,7 +30,11 @@ CREATE TABLE `member_level` (
 
 INSERT INTO `member_level`
     (`name`, `threshold_amount`, `discount_rate`, `status`, `sort`, `create_time`, `update_time`, `is_deleted`)
-VALUES ('普通会员', 0, 10000, 1, 1, now(), now(), 0);
+VALUES
+    ('普通会员', 0, 10000, 1, 1, now(), now(), 0),
+    ('白银会员', 5000000, 9000, 1, 2, now(), now(), 0),
+    ('黄金会员', 10000000, 8000, 1, 3, now(), now(), 0),
+    ('白金会员', 20000000, 7000, 1, 4, now(), now(), 0);
 
 ALTER TABLE `member`
     ADD COLUMN `total_spent` int NOT NULL DEFAULT 0 COMMENT '累计完成订单实付(分)' AFTER `level_id`;

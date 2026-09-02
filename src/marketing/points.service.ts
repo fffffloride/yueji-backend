@@ -11,6 +11,7 @@ import {
 import { PointsLogQueryDto, PointsRuleDto } from "./dto/marketing.dto";
 import { MemberPointsLog } from "./entities/member-points-log.entity";
 import { MarketingPointsRule } from "./entities/points-rule.entity";
+import { MemberLevel } from "./entities/member-level.entity";
 import { Member } from "@/member/entities/member.entity";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
@@ -94,10 +95,27 @@ export class PointsService {
     });
     if (!member) throw this.userError("会员不存在");
     const level = await resolveEffectiveMemberLevel(this.logRepository.manager, member);
+    const levels = await this.logRepository.manager.find(MemberLevel, {
+      where: { status: 1, isDeleted: 0 },
+      order: { thresholdAmount: "ASC" },
+    });
+    const levelItems = levels.map((item, index) => ({
+      id: item.id,
+      name: item.name,
+      code: `L${index + 1}`,
+      thresholdAmount: item.thresholdAmount,
+      discountRate: item.discountRate,
+    }));
+    const currentIndex = level ? levelItems.findIndex((item) => item.id === level.id) : -1;
     return {
       points: member.points,
       totalSpent: member.totalSpent,
-      level: level ? { id: level.id, name: level.name, discountRate: level.discountRate } : null,
+      level: currentIndex >= 0 ? levelItems[currentIndex] : null,
+      nextLevel:
+        currentIndex >= 0
+          ? (levelItems[currentIndex + 1] ?? null)
+          : (levelItems.find((item) => item.thresholdAmount > member.totalSpent) ?? null),
+      levels: levelItems,
       rule: await this.getRule(),
     };
   }
