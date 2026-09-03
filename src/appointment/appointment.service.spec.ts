@@ -93,6 +93,31 @@ describe("AppointmentService", () => {
     ).resolves.toMatchObject({ sceneType: "ORDER", orderId: "20" });
   });
 
+  it("允许当前权益人预约受赠订单并拒绝原购买人", async () => {
+    transactionOrderRepository.findOne.mockResolvedValue({
+      id: "20",
+      memberId: "10",
+      beneficiaryMemberId: "11",
+      status: OrderStatus.PAID,
+    });
+
+    await expect(
+      service.create("11", {
+        appointmentDate: "2099-08-20",
+        appointmentTime: "15:00",
+        orderId: "20",
+      })
+    ).resolves.toMatchObject({ memberId: "11", sceneType: "ORDER", orderId: "20" });
+
+    await expect(
+      service.create("10", {
+        appointmentDate: "2099-08-21",
+        appointmentTime: "15:00",
+        orderId: "20",
+      })
+    ).rejects.toMatchObject({ response: { msg: "订单不可预约" } });
+  });
+
   it("拒绝非已支付订单预约", async () => {
     transactionOrderRepository.findOne.mockResolvedValue({ id: "20", memberId: "10", status: 0 });
 

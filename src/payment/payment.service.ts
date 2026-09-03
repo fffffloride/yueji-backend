@@ -14,6 +14,7 @@ import {
 } from "./payment-driver";
 import { PaymentStatus, RefundStatus } from "./payment-status";
 import { OrderService } from "@/order/order.service";
+import { OrderGiftService } from "@/order/order-gift.service";
 import { OrderStatus } from "@/order/order-status";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
@@ -34,7 +35,8 @@ export class PaymentService {
     private readonly driver: PaymentDriver,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
-    private readonly orderService: OrderService
+    private readonly orderService: OrderService,
+    private readonly orderGiftService: OrderGiftService
   ) {}
 
   async create(memberId: string, orderId: string) {
@@ -185,6 +187,7 @@ export class PaymentService {
       if (order.status !== OrderStatus.PAID && order.status !== OrderStatus.CANCELLED) {
         throw this.userError("仅已付款待核销订单或取消后的迟到支付可退款");
       }
+      this.orderGiftService.assertRefundAllowed(order);
 
       if (refund) {
         refund.reason = normalizedReason;
@@ -399,6 +402,7 @@ export class PaymentService {
       } else if (order.status !== OrderStatus.REFUNDED) {
         throw this.userError("订单状态与退款结果不一致，请人工处理");
       }
+      await this.orderGiftService.revokePendingForRefund(manager, order.id);
 
       refund.status = RefundStatus.SUCCESS;
       refund.refundTime = driverResult.refundedAt ?? new Date();

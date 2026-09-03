@@ -6,6 +6,11 @@ export const AppointmentStatus = {
 
 export type AppointmentStatusValue = (typeof AppointmentStatus)[keyof typeof AppointmentStatus];
 
+export const ACTIVE_ORDER_APPOINTMENT_STATUSES: AppointmentStatusValue[] = [
+  AppointmentStatus.BOOKED,
+  AppointmentStatus.COMPLETED,
+];
+
 export const AppointmentTab = {
   PENDING_BOOKING: "PENDING_BOOKING",
   PENDING_ARRIVAL: "PENDING_ARRIVAL",

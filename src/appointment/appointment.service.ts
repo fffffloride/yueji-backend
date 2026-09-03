@@ -5,6 +5,7 @@ import * as customParseFormat from "dayjs/plugin/customParseFormat";
 import { EntityManager, In, Not, Repository, SelectQueryBuilder } from "typeorm";
 
 import {
+  ACTIVE_ORDER_APPOINTMENT_STATUSES,
   AppointmentOperationAction,
   AppointmentOperatorType,
   AppointmentStatus,
@@ -34,8 +35,6 @@ const APPOINTMENT_TIME_SLOTS = Array.from(
   { length: 9 },
   (_, index) => `${String(index + 10).padStart(2, "0")}:00`
 );
-const ACTIVE_ORDER_APPOINTMENT_STATUSES = [AppointmentStatus.BOOKED, AppointmentStatus.COMPLETED];
-
 type AppointmentPageFilters = Partial<AppointmentQueryDto> & {
   pageNum?: number;
   pageSize?: number;
@@ -551,7 +550,7 @@ export class AppointmentService {
       .select([
         "o.id AS orderId",
         "o.orderNo AS orderNo",
-        "o.memberId AS memberId",
+        "o.beneficiaryMemberId AS memberId",
         "member.nickname AS memberNickname",
         "member.mobile AS memberMobile",
         "o.payTime AS payTime",
@@ -650,7 +649,7 @@ export class AppointmentService {
   private pendingOrderQuery(memberId?: string) {
     const qb = this.orderRepository
       .createQueryBuilder("o")
-      .innerJoin(Member, "member", "member.id = o.memberId AND member.isDeleted = 0")
+      .innerJoin(Member, "member", "member.id = o.beneficiaryMemberId AND member.isDeleted = 0")
       .where("o.isDeleted = 0")
       .andWhere("o.status = :paidStatus", { paidStatus: OrderStatus.PAID })
       .andWhere(
@@ -662,7 +661,7 @@ export class AppointmentService {
         )`,
         { activeStatuses: ACTIVE_ORDER_APPOINTMENT_STATUSES }
       );
-    if (memberId) qb.andWhere("o.memberId = :memberId", { memberId });
+    if (memberId) qb.andWhere("o.beneficiaryMemberId = :memberId", { memberId });
     return qb;
   }
 
@@ -840,7 +839,9 @@ export class AppointmentService {
   }
 
   private getOrderIneligibleReason(order: BizOrder | null, memberId: string): string {
-    if (!order || String(order.memberId) !== String(memberId)) return "订单不可预约";
+    if (!order || String(order.beneficiaryMemberId ?? order.memberId) !== String(memberId)) {
+      return "订单不可预约";
+    }
     if (order.status !== OrderStatus.PAID) return "当前订单状态不可预约";
     return "";
   }

@@ -4,6 +4,12 @@ import { BaseEntity } from "@/common/entities/base.entity";
 @Index("uk_order_no", ["orderNo"], { unique: true })
 @Index("uk_order_verify_code", ["verifyCode"], { unique: true })
 @Index("idx_order_member_active_created", ["memberId", "isDeleted", "createTime", "id"])
+@Index("idx_order_beneficiary_active_created", [
+  "beneficiaryMemberId",
+  "isDeleted",
+  "createTime",
+  "id",
+])
 @Index("idx_order_timeout_scan", ["status", "isDeleted", "createTime", "id"])
 @Entity("biz_order")
 export class BizOrder extends BaseEntity {
@@ -12,6 +18,9 @@ export class BizOrder extends BaseEntity {
 
   @Column({ name: "member_id", type: "bigint", comment: "会员ID" })
   memberId: string;
+
+  @Column({ name: "beneficiary_member_id", type: "bigint", comment: "当前服务权益会员ID" })
+  beneficiaryMemberId: string;
 
   @Column({
     type: "tinyint",

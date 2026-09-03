@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectRepository } from "@nestjs/typeorm";
-import { randomBytes, randomInt } from "crypto";
+import { randomBytes } from "crypto";
 import { DataSource, EntityManager, In, Repository } from "typeorm";
 
 import { BizOrder } from "./entities/order.entity";
@@ -11,6 +11,8 @@ import { AppOrderQueryDto, OrderQueryDto } from "./dto/order-query.dto";
 import { OrderStatus, ORDER_STATUS_LABEL } from "./order-status";
 import { assertTransition } from "./order-state";
 import { ORDER_EVENTS, type OrderEventPayload } from "./order.events";
+import { OrderGiftService, type OrderViewerCapabilities } from "./order-gift.service";
+import { saveOrderWithFreshVerifyCode } from "./order-verify-code";
 import { CartService } from "@/cart/cart.service";
 import { ProductService } from "@/product/product.service";
 import { Member } from "@/member/entities/member.entity";
@@ -43,7 +45,8 @@ export class OrderService {
     private readonly orderBenefits: OrderBenefitsService,
     private readonly domainEvents: DomainEvents,
     private readonly configService: ConfigService,
-    private readonly appointmentService: AppointmentService
+    private readonly appointmentService: AppointmentService,
+    private readonly orderGiftService: OrderGiftService
   ) {}
 
   async create(memberId: string, dto: OrderCreateDto) {
@@ -100,6 +103,7 @@ export class OrderService {
       const created = manager.create(BizOrder, {
         orderNo: this.nextOrderNo(),
         memberId,
+        beneficiaryMemberId: memberId,
         status: OrderStatus.UNPAID,
         totalAmount: pricing.totalAmount,
         discountAmount: pricing.discountAmount,
@@ -205,6 +209,7 @@ export class OrderService {
     const order = manager.create(BizOrder, {
       orderNo: this.nextOrderNo(),
       memberId,
+      beneficiaryMemberId: memberId,
       status: OrderStatus.UNPAID,
       totalAmount: groupPrice,
       discountAmount: 0,
@@ -260,7 +265,7 @@ export class OrderService {
     const qb = this.orderRepository
       .createQueryBuilder("o")
       .where("o.isDeleted = 0")
-      .andWhere("o.memberId = :memberId", { memberId });
+      .andWhere("(o.memberId = :memberId OR o.beneficiaryMemberId = :memberId)", { memberId });
     if (query.status !== undefined) {
       qb.andWhere("o.status = :status", { status: query.status });
     }
@@ -280,15 +285,22 @@ export class OrderService {
       itemMap.set(key, [...(itemMap.get(key) ?? []), item]);
     }
     const appointmentMap = await this.appointmentService.getOrderAppointmentMap(ids);
+    const capabilityMap = await this.orderGiftService.getOrderCapabilities(
+      memberId,
+      list,
+      appointmentMap
+    );
 
     return {
       data: list.map((o) => {
         const appointment = appointmentMap.get(String(o.id)) ?? null;
+        const capabilities = capabilityMap.get(String(o.id));
+        const financialVisible = String(o.memberId) === String(memberId);
+        const serviceVisible = String(this.beneficiaryId(o)) === String(memberId);
         return {
-          ...this.toListVo(o),
-          items: itemMap.get(String(o.id)) ?? [],
-          appointment,
-          canBookAppointment: o.status === OrderStatus.PAID && !appointment,
+          ...this.toListVo(o, financialVisible, capabilities),
+          items: this.toViewerItems(itemMap.get(String(o.id)) ?? [], financialVisible),
+          appointment: serviceVisible ? appointment : null,
         };
       }),
       page: { pageNum, pageSize, total },
@@ -300,7 +312,9 @@ export class OrderService {
     if (!order) {
       throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "订单不存在" });
     }
-    if (memberId && String(order.memberId) !== String(memberId)) {
+    const purchaser = !memberId || String(order.memberId) === String(memberId);
+    const beneficiary = !memberId || String(this.beneficiaryId(order)) === String(memberId);
+    if (memberId && !purchaser && !beneficiary) {
       throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "订单不存在" });
     }
     const [items, member, appointmentMap] = await Promise.all([
@@ -312,32 +326,40 @@ export class OrderService {
       this.appointmentService.getOrderAppointmentMap([id]),
     ]);
     const appointment = appointmentMap.get(String(id)) ?? null;
+    const capabilities = memberId
+      ? (await this.orderGiftService.getOrderCapabilities(memberId, [order], appointmentMap)).get(
+          String(id)
+        )
+      : undefined;
     return {
-      ...this.toListVo(order),
-      contactName: order.contactName,
-      contactMobile: order.contactMobile,
-      remark: order.remark,
-      verifyCode: order.verifyCode,
+      ...this.toListVo(order, purchaser, capabilities),
+      ...(purchaser
+        ? {
+            contactName: order.contactName,
+            contactMobile: order.contactMobile,
+            remark: order.remark,
+            memberNickname: member?.nickname ?? "",
+            memberMobile: member?.mobile ?? "",
+            pricing: {
+              totalAmount: order.totalAmount,
+              memberLevelId: order.memberLevelId,
+              memberDiscount: order.memberDiscount,
+              memberCouponId: order.memberCouponId,
+              couponAmount: order.couponAmount,
+              pointsUsed: order.pointsUsed,
+              pointsDeduct: order.pointsDeduct,
+              discountAmount: order.discountAmount,
+              payAmount: order.payAmount,
+            },
+          }
+        : {}),
+      ...(beneficiary ? { verifyCode: order.verifyCode } : {}),
       verifyTime: order.verifyTime,
       verifyBy: order.verifyBy,
       cancelTime: order.cancelTime,
       cancelReason: order.cancelReason,
-      memberNickname: member?.nickname ?? "",
-      memberMobile: member?.mobile ?? "",
-      items,
-      appointment,
-      canBookAppointment: order.status === OrderStatus.PAID && !appointment,
-      pricing: {
-        totalAmount: order.totalAmount,
-        memberLevelId: order.memberLevelId,
-        memberDiscount: order.memberDiscount,
-        memberCouponId: order.memberCouponId,
-        couponAmount: order.couponAmount,
-        pointsUsed: order.pointsUsed,
-        pointsDeduct: order.pointsDeduct,
-        discountAmount: order.discountAmount,
-        payAmount: order.payAmount,
-      },
+      items: this.toViewerItems(items, purchaser),
+      appointment: beneficiary ? appointment : null,
     };
   }
 
@@ -359,7 +381,7 @@ export class OrderService {
     order.status = OrderStatus.PAID;
     order.payType = payType;
     order.payTime = paidAt;
-    await this.savePaidOrder(manager, order);
+    await saveOrderWithFreshVerifyCode(manager, order);
 
     const items = await manager.find(BizOrderItem, {
       where: { orderId: order.id, isDeleted: 0 },
@@ -489,7 +511,7 @@ export class OrderService {
     if (!order) {
       throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "核销码无效" });
     }
-    return this.verifyInternal(order.id, undefined, operatorId);
+    return this.verifyInternal(order.id, verifyCode, operatorId);
   }
 
   async adminPage(query: OrderQueryDto) {
@@ -575,9 +597,16 @@ export class OrderService {
     return qb;
   }
 
-  private async verifyInternal(id: string, _unused: undefined, operatorId: string) {
+  private async verifyInternal(
+    id: string,
+    expectedVerifyCode: string | undefined,
+    operatorId: string
+  ) {
     const order = await this.dataSource.transaction(async (manager) => {
       const current = await this.lockOrder(manager, id);
+      if (expectedVerifyCode && current.verifyCode !== expectedVerifyCode) {
+        throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "核销码无效" });
+      }
       this.safeTransition(current.status, OrderStatus.VERIFIED);
       current.status = OrderStatus.VERIFIED;
       current.verifyTime = new Date();
@@ -669,30 +698,9 @@ export class OrderService {
     return `YJ${stamp}${randomBytes(6).toString("hex").toUpperCase()}`;
   }
 
-  private async nextVerifyCode(manager: EntityManager): Promise<string> {
-    for (let i = 0; i < UNIQUE_RETRY_LIMIT; i++) {
-      const code = String(randomInt(10_000_000, 100_000_000));
-      const exists = await manager.findOne(BizOrder, { where: { verifyCode: code } });
-      if (!exists) return code;
-    }
-    throw new Error("生成唯一核销码失败");
-  }
-
   private async saveNewOrder(manager: EntityManager, order: BizOrder): Promise<void> {
     for (let attempt = 0; attempt < UNIQUE_RETRY_LIMIT; attempt++) {
       order.orderNo = this.nextOrderNo();
-      try {
-        await manager.save(order);
-        return;
-      } catch (error) {
-        if (!this.isDuplicateEntry(error) || attempt === UNIQUE_RETRY_LIMIT - 1) throw error;
-      }
-    }
-  }
-
-  private async savePaidOrder(manager: EntityManager, order: BizOrder): Promise<void> {
-    for (let attempt = 0; attempt < UNIQUE_RETRY_LIMIT; attempt++) {
-      order.verifyCode = await this.nextVerifyCode(manager);
       try {
         await manager.save(order);
         return;
@@ -719,19 +727,46 @@ export class OrderService {
     this.domainEvents.emit(event, payload);
   }
 
-  private toListVo(order: BizOrder) {
+  private toListVo(
+    order: BizOrder,
+    financialVisible = true,
+    capabilities?: OrderViewerCapabilities
+  ) {
     return {
       id: order.id,
       orderNo: order.orderNo,
-      memberId: order.memberId,
       status: order.status,
       statusLabel: ORDER_STATUS_LABEL[order.status] ?? String(order.status),
-      totalAmount: order.totalAmount,
-      discountAmount: order.discountAmount,
-      payAmount: order.payAmount,
-      payType: order.payType,
-      payTime: order.payTime,
       createTime: order.createTime,
+      ...(financialVisible
+        ? {
+            memberId: order.memberId,
+            totalAmount: order.totalAmount,
+            discountAmount: order.discountAmount,
+            payAmount: order.payAmount,
+            payType: order.payType,
+            payTime: order.payTime,
+          }
+        : {}),
+      ...(capabilities ?? {}),
     };
+  }
+
+  private toViewerItems(items: BizOrderItem[], financialVisible: boolean) {
+    if (financialVisible) return items;
+    return items.map((item) => ({
+      id: item.id,
+      orderId: item.orderId,
+      productId: item.productId,
+      skuId: item.skuId,
+      productName: item.productName,
+      productImage: item.productImage ?? null,
+      skuName: item.skuName ?? null,
+      quantity: item.quantity,
+    }));
+  }
+
+  private beneficiaryId(order: BizOrder): string {
+    return order.beneficiaryMemberId ?? order.memberId;
   }
 }

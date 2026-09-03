@@ -88,6 +88,10 @@ describe("PaymentService", () => {
       publishPaid: jest.fn(),
       publishRefunded: jest.fn(),
     };
+    const orderGiftService = {
+      assertRefundAllowed: jest.fn(),
+      revokePendingForRefund: jest.fn(),
+    };
     const config = {
       get: jest.fn((key: string, fallback: string) => {
         if (key === "NODE_ENV") return "dev";
@@ -101,7 +105,8 @@ describe("PaymentService", () => {
       driver as never,
       config as never,
       dataSource as never,
-      orderService as never
+      orderService as never,
+      orderGiftService as never
     );
     return {
       service,
@@ -114,6 +119,7 @@ describe("PaymentService", () => {
       manager,
       dataSource,
       orderService,
+      orderGiftService,
       isInTransaction: () => inTransaction,
     };
   }
@@ -192,6 +198,7 @@ describe("PaymentService", () => {
       expect.objectContaining({ refundNo: "R1", reason: "测试退款" })
     );
     expect(ctx.orderService.markRefunded).not.toHaveBeenCalled();
+    expect(ctx.orderGiftService.revokePendingForRefund).not.toHaveBeenCalled();
   });
 
   it("渠道网络失败后重试仍复用已持久化的退款号", async () => {
@@ -220,8 +227,22 @@ describe("PaymentService", () => {
       status: RefundStatus.SUCCESS,
     });
     expect(ctx.orderService.markRefunded).toHaveBeenCalledTimes(1);
+    expect(ctx.orderGiftService.revokePendingForRefund).toHaveBeenCalledWith(ctx.manager, "1");
     expect(ctx.orderService.publishRefunded).toHaveBeenCalledTimes(1);
     expect(payment.status).toBe(PaymentStatus.REFUNDED);
+  });
+
+  it("订单权益已转赠时拒绝创建退款意图", async () => {
+    const payment = { ...pendingPayment(), status: PaymentStatus.SUCCESS };
+    const ctx = setup({ payment, refund: null });
+    ctx.orderGiftService.assertRefundAllowed.mockImplementation(() => {
+      throw { response: { msg: "订单已转赠，请由受赠人退回后再退款" } };
+    });
+
+    await expect(ctx.service.refund("P1", "测试退款")).rejects.toMatchObject({
+      response: { msg: "订单已转赠，请由受赠人退回后再退款" },
+    });
+    expect(ctx.driver.refund).not.toHaveBeenCalled();
   });
 
   it("补偿任务使用原退款号安全重放未完成退款", async () => {

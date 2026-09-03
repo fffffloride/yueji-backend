@@ -1,6 +1,6 @@
 -- 悦己 DLumière 本地测试环境业务数据
 -- 警告：会清空阶段 1–8E 的业务表；保留全部 sys_* 系统表。
--- 依赖：MySQL 8，已执行包含预约生命周期最终结构的 biz_phase6.sql，以及阶段 0–8E 其余建表 SQL。
+-- 依赖：MySQL 8，已执行包含预约生命周期最终结构的 biz_phase6.sql、order_gifting.sql，以及阶段 0–8E 其余建表 SQL。
 -- 阶段8E直接复用下方跨90天订单、少量直属业绩和多等级代理，不增加统计汇总数据。
 
 USE youlai_admin;
@@ -55,6 +55,7 @@ DELETE FROM `coupon`;
 DELETE FROM `member_points_log`;
 DELETE FROM `biz_refund`;
 DELETE FROM `biz_payment`;
+DELETE FROM `biz_order_gift`;
 DELETE FROM `biz_order_item`;
 DELETE FROM `biz_order`;
 DELETE FROM `cart`;
@@ -354,13 +355,14 @@ SET c.issued_quantity = COALESCE(mc.issued, 0),
     c.total_quantity = IF(c.id = 10, COALESCE(mc.issued, 0), c.total_quantity);
 
 INSERT INTO `biz_order`
-  (`id`, `order_no`, `member_id`, `status`, `total_amount`, `discount_amount`, `member_level_id`,
+  (`id`, `order_no`, `member_id`, `beneficiary_member_id`, `status`, `total_amount`, `discount_amount`, `member_level_id`,
    `member_discount`, `member_coupon_id`, `coupon_amount`, `points_used`, `points_deduct`, `pay_amount`,
    `pay_type`, `pay_time`, `contact_name`, `contact_mobile`, `remark`, `verify_code`, `verify_time`,
    `verify_by`, `cancel_time`, `cancel_reason`, `create_time`, `update_time`, `is_deleted`)
 SELECT
   s.n,
   CONCAT('DL', DATE_FORMAT(DATE_SUB(NOW(), INTERVAL MOD(s.n * 7, 90) DAY), '%Y%m%d'), LPAD(s.n, 6, '0')),
+  m.id,
   m.id,
   MOD(s.n - 1, 6),
   0,
@@ -824,6 +826,7 @@ SELECT
   (SELECT COUNT(*) <> 72 FROM `product_sku`) +
   (SELECT COUNT(*) <> 30 FROM `cart`) +
   (SELECT COUNT(*) <> 120 FROM `biz_order`) +
+  (SELECT COUNT(*) FROM `biz_order` WHERE `beneficiary_member_id` IS NULL OR `beneficiary_member_id` <> `member_id`) +
   (SELECT COUNT(*) <> 160 FROM `biz_order_item`) +
   (SELECT COUNT(*) <> 100 FROM `biz_payment`) +
   (SELECT COUNT(*) <> 26 FROM `biz_refund`) +

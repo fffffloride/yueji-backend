@@ -37,6 +37,9 @@ describe("OrderService hardening", () => {
     completeOrderAppointment: jest.fn(),
     cancelOrderAppointment: jest.fn(),
   };
+  const orderGiftService = {
+    getOrderCapabilities: jest.fn().mockResolvedValue(new Map()),
+  };
   const service = new OrderService(
     orderRepository as never,
     itemRepository as never,
@@ -47,11 +50,15 @@ describe("OrderService hardening", () => {
     orderBenefits as never,
     { emit: jest.fn() } as never,
     { get: jest.fn().mockReturnValue(30) } as never,
-    appointmentService as never
+    appointmentService as never,
+    orderGiftService as never
   );
 
   beforeEach(() => {
+    jest.restoreAllMocks();
     jest.clearAllMocks();
+    appointmentService.getOrderAppointmentMap.mockResolvedValue(new Map());
+    orderGiftService.getOrderCapabilities.mockResolvedValue(new Map());
   });
 
   it("订单试算使用无锁商品读取且不开启数据库事务", async () => {
@@ -184,5 +191,76 @@ describe("OrderService hardening", () => {
     await service.verifyById("20", "99");
 
     expect(appointmentService.completeOrderAppointment).toHaveBeenCalledWith(manager, "20", "99");
+  });
+
+  it("锁定订单后再次核对核销码并拒绝已经轮换的旧码", async () => {
+    orderRepository.findOne.mockResolvedValue({ id: "20", verifyCode: "11111111" });
+    dataSource.transaction.mockImplementation(async (callback) => callback(manager));
+    manager.findOne.mockResolvedValue({
+      id: "20",
+      verifyCode: "22222222",
+      status: OrderStatus.PAID,
+    });
+
+    await expect(service.verifyByCode("11111111", "99")).rejects.toMatchObject({
+      response: { msg: "核销码无效" },
+    });
+    expect(manager.save).not.toHaveBeenCalled();
+  });
+
+  it("购买人转赠后不再获得核销码，受赠人视图不含金额", async () => {
+    const order = {
+      id: "20",
+      orderNo: "YJ20",
+      memberId: "10",
+      beneficiaryMemberId: "11",
+      status: OrderStatus.PAID,
+      totalAmount: 1000,
+      discountAmount: 100,
+      payAmount: 900,
+      verifyCode: "22222222",
+    } as any;
+    orderRepository.findOne.mockResolvedValue(order);
+    itemRepository.find.mockResolvedValue([
+      {
+        id: "30",
+        orderId: "20",
+        productId: "40",
+        skuId: "50",
+        productName: "护理项目",
+        productImage: "image",
+        skuName: "单次",
+        quantity: 1,
+        price: 1000,
+        subtotal: 1000,
+      },
+    ]);
+    memberRepository.findOne.mockResolvedValue({ id: "10", nickname: "购买人" });
+    orderGiftService.getOrderCapabilities.mockImplementation(
+      async (memberId: string) =>
+        new Map([
+          [
+            "20",
+            {
+              viewerRole: memberId === "10" ? "PURCHASER" : "BENEFICIARY",
+              giftId: "60",
+              canGift: false,
+              canReturnGift: memberId === "11",
+              canBookAppointment: memberId === "11",
+            },
+          ],
+        ])
+    );
+
+    const purchaser = await service.getDetail("20", "10");
+    const recipient = await service.getDetail("20", "11");
+
+    expect(purchaser).toMatchObject({ payAmount: 900, viewerRole: "PURCHASER" });
+    expect(purchaser).not.toHaveProperty("verifyCode");
+    expect(recipient).toMatchObject({ verifyCode: "22222222", viewerRole: "BENEFICIARY" });
+    expect(recipient).not.toHaveProperty("payAmount");
+    expect(recipient).not.toHaveProperty("pricing");
+    expect(recipient.items[0]).not.toHaveProperty("price");
+    expect(recipient.items[0]).not.toHaveProperty("subtotal");
   });
 });

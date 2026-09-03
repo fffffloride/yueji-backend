@@ -164,11 +164,13 @@ CREATE TABLE `cart` (
 -- ----------------------------
 -- 订单表（表名加 biz_ 前缀避开 MySQL 保留字 ORDER）
 -- ----------------------------
+DROP TABLE IF EXISTS `biz_order_gift`;
 DROP TABLE IF EXISTS `biz_order`;
 CREATE TABLE `biz_order` (
     `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
     `order_no` varchar(32) NOT NULL COMMENT '订单号',
     `member_id` bigint NOT NULL COMMENT '会员ID',
+    `beneficiary_member_id` bigint NOT NULL COMMENT '当前服务权益会员ID',
     `status` tinyint NOT NULL DEFAULT 0 COMMENT '订单状态(0-待付款 1-已付款/待核销 2-已核销 3-已完成 4-已取消 5-已退款)',
     `total_amount` int NOT NULL DEFAULT 0 COMMENT '商品总额(分)',
     `discount_amount` int NOT NULL DEFAULT 0 COMMENT '优惠金额(分)',
@@ -192,9 +194,13 @@ CREATE TABLE `biz_order` (
     UNIQUE INDEX `uk_order_no`(`order_no` ASC) USING BTREE,
     UNIQUE INDEX `uk_order_verify_code`(`verify_code` ASC) USING BTREE,
     INDEX `idx_order_member_active_created`(`member_id` ASC, `is_deleted` ASC, `create_time` DESC, `id` DESC) USING BTREE,
+    INDEX `idx_order_beneficiary_active_created`(`beneficiary_member_id` ASC, `is_deleted` ASC, `create_time` DESC, `id` DESC) USING BTREE,
     INDEX `idx_order_timeout_scan`(`status` ASC, `is_deleted` ASC, `create_time` ASC, `id` ASC) USING BTREE,
     CONSTRAINT `fk_biz_order_member`
         FOREIGN KEY (`member_id`) REFERENCES `member` (`id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `fk_biz_order_beneficiary_member`
+        FOREIGN KEY (`beneficiary_member_id`) REFERENCES `member` (`id`)
         ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT `chk_biz_order_status` CHECK (`status` IN (0, 1, 2, 3, 4, 5)),
     CONSTRAINT `chk_biz_order_amounts` CHECK (
@@ -242,5 +248,45 @@ CREATE TABLE `biz_order_item` (
     ),
     CONSTRAINT `chk_biz_order_item_is_deleted` CHECK (`is_deleted` IN (0, 1))
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COMMENT = '订单明细表';
+
+-- ----------------------------
+-- 订单赠礼记录表
+-- ----------------------------
+CREATE TABLE `biz_order_gift` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `order_id` bigint NOT NULL COMMENT '订单ID',
+    `sender_member_id` bigint NOT NULL COMMENT '赠送会员ID',
+    `recipient_member_id` bigint NULL COMMENT '领取会员ID',
+    `token_hash` char(64) NOT NULL COMMENT '分享令牌SHA-256',
+    `status` tinyint NOT NULL DEFAULT 0 COMMENT '赠礼状态(0-待领取 1-已领取 2-已撤回 3-已过期 4-已退回)',
+    `expires_at` datetime NOT NULL COMMENT '领取截止时间',
+    `claimed_at` datetime NULL COMMENT '领取时间',
+    `revoked_at` datetime NULL COMMENT '撤回时间',
+    `returned_at` datetime NULL COMMENT '退回时间',
+    `create_by` bigint NULL COMMENT '创建人ID',
+    `create_time` datetime NULL COMMENT '创建时间',
+    `update_by` bigint NULL COMMENT '修改人ID',
+    `update_time` datetime NULL COMMENT '更新时间',
+    `is_deleted` tinyint NOT NULL DEFAULT 0 COMMENT '逻辑删除标识(1-已删除 0-未删除)',
+    `pending_order_id` bigint GENERATED ALWAYS AS (
+        CASE WHEN `status` = 0 AND `is_deleted` = 0 THEN `order_id` ELSE NULL END
+    ) STORED COMMENT '待领取订单ID',
+    PRIMARY KEY (`id`) USING BTREE,
+    UNIQUE INDEX `uk_order_gift_token_hash`(`token_hash` ASC) USING BTREE,
+    UNIQUE INDEX `uk_order_gift_pending_order`(`pending_order_id` ASC) USING BTREE,
+    INDEX `idx_order_gift_sender_status_created`(`sender_member_id` ASC, `status` ASC, `create_time` DESC, `id` DESC) USING BTREE,
+    INDEX `idx_order_gift_recipient_status_created`(`recipient_member_id` ASC, `status` ASC, `create_time` DESC, `id` DESC) USING BTREE,
+    CONSTRAINT `fk_biz_order_gift_order`
+        FOREIGN KEY (`order_id`) REFERENCES `biz_order` (`id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `fk_biz_order_gift_sender_member`
+        FOREIGN KEY (`sender_member_id`) REFERENCES `member` (`id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `fk_biz_order_gift_recipient_member`
+        FOREIGN KEY (`recipient_member_id`) REFERENCES `member` (`id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `chk_order_gift_status` CHECK (`status` IN (0, 1, 2, 3, 4)),
+    CONSTRAINT `chk_order_gift_is_deleted` CHECK (`is_deleted` IN (0, 1))
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COMMENT = '订单赠礼记录表';
 
 SET FOREIGN_KEY_CHECKS = 1;
