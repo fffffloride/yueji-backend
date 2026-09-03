@@ -1,4 +1,4 @@
--- 用户协议与隐私政策管理
+-- 协议管理
 USE youlai_admin;
 
 SET NAMES utf8mb4;
@@ -27,6 +27,10 @@ WHERE NOT EXISTS (SELECT 1 FROM `agreement` WHERE `type`='USER_AGREEMENT' AND `i
 INSERT INTO `agreement` (`type`,`draft_title`,`draft_content`,`create_time`,`update_time`,`is_deleted`)
 SELECT 'PRIVACY_POLICY','隐私政策','<p>请在管理后台编辑并发布隐私政策。</p>',NOW(),NOW(),0
 WHERE NOT EXISTS (SELECT 1 FROM `agreement` WHERE `type`='PRIVACY_POLICY' AND `is_deleted`=0);
+
+INSERT INTO `agreement` (`type`,`draft_title`,`draft_content`,`create_time`,`update_time`,`is_deleted`)
+SELECT 'MEDICAL_INFORMED_CONSENT','用户就诊告知及知情同意书','<p>请在管理后台编辑并发布用户就诊告知及知情同意书。</p>',NOW(),NOW(),0
+WHERE NOT EXISTS (SELECT 1 FROM `agreement` WHERE `type`='MEDICAL_INFORMED_CONSENT' AND `is_deleted`=0);
 
 DELETE FROM `sys_role_menu` WHERE `menu_id` IN (3530,3531,3532,3533);
 DELETE FROM `sys_menu` WHERE `id` IN (3533,3532,3531,3530);
