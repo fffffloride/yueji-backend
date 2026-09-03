@@ -46,7 +46,7 @@ export class XRequestInterceptor implements NestInterceptor {
         if (isCheckAPI) {
           this.logger.info("API Response", {
             ...logRequest(),
-            response: data,
+            response: LoggerUtils.redact(data),
           });
 
           if (res.statusCode === HttpStatus.CREATED && req.method === "POST") {
