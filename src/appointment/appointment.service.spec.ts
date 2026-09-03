@@ -3,6 +3,8 @@ import { AppointmentConfig } from "./entities/appointment-config.entity";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { BizOrder } from "@/order/entities/order.entity";
 import { OrderStatus } from "@/order/order-status";
+import { Refund } from "@/payment/entities/refund.entity";
+import { RefundStatus } from "@/payment/payment-status";
 
 describe("AppointmentService", () => {
   const transactionAppointmentRepository = {
@@ -22,6 +24,7 @@ describe("AppointmentService", () => {
     getRepository: jest.fn((entity) => {
       if (entity === AppointmentConfig) return configRepository;
       if (entity === BizOrder) return transactionOrderRepository;
+      if (entity === Refund) return refundRepository;
       return transactionAppointmentRepository;
     }),
   };
@@ -32,12 +35,14 @@ describe("AppointmentService", () => {
   };
   const orderRepository = { findOne: jest.fn(), find: jest.fn() };
   const orderItemRepository = { find: jest.fn() };
+  const refundRepository = { findOne: jest.fn() };
   const service = new AppointmentService(
     appointmentRepository as any,
     operationLogRepository as any,
     configRepository as any,
     orderRepository as any,
-    orderItemRepository as any
+    orderItemRepository as any,
+    refundRepository as any
   );
 
   beforeEach(() => {
@@ -55,6 +60,7 @@ describe("AppointmentService", () => {
     orderRepository.findOne.mockResolvedValue(null);
     orderRepository.find.mockResolvedValue([]);
     orderItemRepository.find.mockResolvedValue([]);
+    refundRepository.findOne.mockResolvedValue(null);
   });
 
   it("保存容量内的未来预约", async () => {
@@ -117,6 +123,30 @@ describe("AppointmentService", () => {
       })
     ).rejects.toMatchObject({ response: { msg: "订单不可预约" } });
   });
+
+  it.each([RefundStatus.PROCESSING, RefundStatus.CLOSED, RefundStatus.ABNORMAL])(
+    "主支付退款状态 %s 时拒绝创建订单预约",
+    async (status) => {
+      transactionOrderRepository.findOne.mockResolvedValue({
+        id: "20",
+        memberId: "10",
+        beneficiaryMemberId: "10",
+        paidPaymentId: "90",
+        status: OrderStatus.PAID,
+      });
+      refundRepository.findOne.mockResolvedValue({ id: "70", paymentId: "90", status });
+
+      await expect(
+        service.create("10", {
+          appointmentDate: "2099-08-20",
+          appointmentTime: "15:00",
+          orderId: "20",
+        })
+      ).rejects.toMatchObject({
+        response: { msg: "订单正在退款或退款异常，暂不可预约" },
+      });
+    }
+  );
 
   it("拒绝非已支付订单预约", async () => {
     transactionOrderRepository.findOne.mockResolvedValue({ id: "20", memberId: "10", status: 0 });

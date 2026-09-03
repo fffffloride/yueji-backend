@@ -10,7 +10,7 @@ import { ensureMemberEnabled } from "@/member/member-status";
 import { MemberLoginResultDto } from "./dto/member-login.dto";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
-import { RedisService } from "@/common/redis/redis.service";
+import { WechatAccessTokenService } from "@/common/wechat/wechat-access-token.service";
 import jwtConfig from "@/config/jwt.config";
 
 interface WechatSessionResponse {
@@ -31,13 +31,6 @@ interface WechatPhoneResponse {
   };
 }
 
-interface WechatTokenResponse {
-  access_token: string;
-  expires_in: number;
-  errcode?: number;
-  errmsg?: string;
-}
-
 /**
  * C端会员认证服务（微信小程序）
  *
@@ -56,7 +49,7 @@ export class MemberAuthService {
     private readonly jwtConfigData: ConfigType<typeof jwtConfig>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly redisService: RedisService,
+    private readonly wechatAccessTokenService: WechatAccessTokenService,
     private readonly memberService: MemberService
   ) {
     this.appId = this.configService.get<string>("WX_MINIAPP_APP_ID") || "";
@@ -104,7 +97,7 @@ export class MemberAuthService {
     ensureMemberEnabled(member);
     await this.memberService.touchLastLogin(member.id);
 
-    this.logger.log(`会员手机号登录：memberId=${member.id}, mobile=${mobile}`);
+    this.logger.log(`会员手机号登录：memberId=${member.id}`);
     return this.generateMemberToken(member);
   }
 
@@ -126,7 +119,7 @@ export class MemberAuthService {
     ensureMemberEnabled(member);
     await this.memberService.touchLastLogin(member.id);
 
-    this.logger.log(`Mock 登录：memberId=${member.id}, openid=${mockOpenid}`);
+    this.logger.log(`Mock 登录：memberId=${member.id}`);
     return this.generateMemberToken(member);
   }
 
@@ -177,83 +170,66 @@ export class MemberAuthService {
   }
 
   private async getJsCodeSession(code: string): Promise<WechatSessionResponse> {
-    const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${this.appId}&secret=${this.appSecret}&js_code=${code}&grant_type=authorization_code`;
-
     try {
-      const response = await axios.get<WechatSessionResponse>(url);
+      const response = await axios.get<WechatSessionResponse>(
+        "https://api.weixin.qq.com/sns/jscode2session",
+        {
+          params: {
+            appid: this.appId,
+            secret: this.appSecret,
+            js_code: code,
+            grant_type: "authorization_code",
+          },
+        }
+      );
       const data = response.data;
 
       if (data.errcode && data.errcode !== 0) {
-        this.logger.error(`获取微信会话信息失败：errcode=${data.errcode}, errmsg=${data.errmsg}`);
+        this.logger.error(`获取微信会话信息失败：errcode=${data.errcode}`);
         throw new BusinessException({
           ...ErrorCode.USER_LOGIN_EXCEPTION,
-          msg: `微信登录失败：${data.errmsg}`,
+          msg: "微信登录失败，请稍后重试",
         });
       }
 
       return data;
     } catch (error) {
       if (error instanceof BusinessException) throw error;
-      const errMsg = error instanceof Error ? error.message : String(error);
-      this.logger.error(`获取微信会话信息失败：error=${errMsg}`);
+      this.logger.error("获取微信会话信息失败：微信接口请求异常");
       throw new BusinessException({
         ...ErrorCode.USER_LOGIN_EXCEPTION,
-        msg: `微信登录失败：${errMsg}`,
+        msg: "微信登录失败，请稍后重试",
       });
     }
   }
 
   private async getPhoneNumber(phoneCode: string): Promise<string> {
-    const accessToken = await this.getAccessToken();
-    const url = `https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=${accessToken}`;
+    const accessToken = await this.wechatAccessTokenService.getAccessToken();
 
     try {
-      const response = await axios.post<WechatPhoneResponse>(url, { code: phoneCode });
+      const response = await axios.post<WechatPhoneResponse>(
+        "https://api.weixin.qq.com/wxa/business/getuserphonenumber",
+        { code: phoneCode },
+        { params: { access_token: accessToken } }
+      );
       const data = response.data;
 
       if (data.errcode !== 0) {
-        this.logger.error(`获取微信手机号失败：errcode=${data.errcode}, errmsg=${data.errmsg}`);
+        this.logger.error(`获取微信手机号失败：errcode=${data.errcode}`);
         throw new BusinessException({
           ...ErrorCode.USER_LOGIN_EXCEPTION,
-          msg: `获取手机号失败：${data.errmsg}`,
+          msg: "获取手机号失败，请稍后重试",
         });
       }
 
       return data.phone_info?.phoneNumber || "";
     } catch (error) {
       if (error instanceof BusinessException) throw error;
-      const errMsg = error instanceof Error ? error.message : String(error);
-      this.logger.error(`获取微信手机号失败：error=${errMsg}`);
+      this.logger.error("获取微信手机号失败：微信接口请求异常");
       throw new BusinessException({
         ...ErrorCode.USER_LOGIN_EXCEPTION,
-        msg: `获取手机号失败：${errMsg}`,
+        msg: "获取手机号失败，请稍后重试",
       });
     }
-  }
-
-  private async getAccessToken(): Promise<string> {
-    const cacheKey = `wechat:access_token:${this.appId}`;
-
-    const cached = await this.redisService.get<string>(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    const url = `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${this.appId}&secret=${this.appSecret}`;
-
-    const response = await axios.get<WechatTokenResponse>(url);
-    const data = response.data;
-
-    if (data.errcode && data.errcode !== 0) {
-      throw new BusinessException({
-        ...ErrorCode.USER_LOGIN_EXCEPTION,
-        msg: `获取微信AccessToken失败：${data.errmsg}`,
-      });
-    }
-
-    const expiresIn = Math.max((data.expires_in || 7200) - 300, 60);
-    await this.redisService.set(cacheKey, data.access_token, expiresIn);
-
-    return data.access_token;
   }
 }

@@ -1,5 +1,7 @@
 import { OrderService } from "./order.service";
 import { OrderStatus } from "./order-status";
+import { Refund } from "@/payment/entities/refund.entity";
+import { RefundStatus } from "@/payment/payment-status";
 
 describe("OrderService hardening", () => {
   const orderRepository = {
@@ -184,7 +186,7 @@ describe("OrderService hardening", () => {
       status: OrderStatus.PAID,
     } as any;
     dataSource.transaction.mockImplementation(async (callback) => callback(manager));
-    manager.findOne.mockResolvedValue(order);
+    manager.findOne.mockImplementation(async (entity) => (entity === Refund ? null : order));
     manager.save.mockResolvedValue(order);
     jest.spyOn(service, "getDetail").mockResolvedValue({ id: "20" } as any);
 
@@ -192,6 +194,28 @@ describe("OrderService hardening", () => {
 
     expect(appointmentService.completeOrderAppointment).toHaveBeenCalledWith(manager, "20", "99");
   });
+
+  it.each([RefundStatus.PROCESSING, RefundStatus.CLOSED, RefundStatus.ABNORMAL])(
+    "主支付退款状态 %s 时拒绝核销",
+    async (status) => {
+      const order = {
+        id: "20",
+        orderNo: "YJ20",
+        memberId: "10",
+        paidPaymentId: "90",
+        status: OrderStatus.PAID,
+      } as any;
+      dataSource.transaction.mockImplementation(async (callback) => callback(manager));
+      manager.findOne.mockImplementation(async (entity) =>
+        entity === Refund ? { id: "70", paymentId: "90", status } : order
+      );
+
+      await expect(service.verifyById("20", "99")).rejects.toMatchObject({
+        response: { msg: "订单正在退款或退款异常，暂不可核销" },
+      });
+      expect(appointmentService.completeOrderAppointment).not.toHaveBeenCalled();
+    }
+  );
 
   it("锁定订单后再次核对核销码并拒绝已经轮换的旧码", async () => {
     orderRepository.findOne.mockResolvedValue({ id: "20", verifyCode: "11111111" });

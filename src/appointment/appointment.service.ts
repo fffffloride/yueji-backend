@@ -27,6 +27,8 @@ import { Member } from "@/member/entities/member.entity";
 import { BizOrderItem } from "@/order/entities/order-item.entity";
 import { BizOrder } from "@/order/entities/order.entity";
 import { OrderStatus } from "@/order/order-status";
+import { Refund } from "@/payment/entities/refund.entity";
+import { REFUND_FULFILLMENT_BLOCKING_STATUSES } from "@/payment/payment-status";
 
 dayjs.extend(customParseFormat);
 
@@ -52,7 +54,9 @@ export class AppointmentService {
     @InjectRepository(BizOrder)
     private readonly orderRepository: Repository<BizOrder>,
     @InjectRepository(BizOrderItem)
-    private readonly orderItemRepository: Repository<BizOrderItem>
+    private readonly orderItemRepository: Repository<BizOrderItem>,
+    @InjectRepository(Refund)
+    private readonly refundRepository: Repository<Refund>
   ) {}
 
   async create(memberId: string, dto: AppointmentCreateDto) {
@@ -79,9 +83,19 @@ export class AppointmentService {
         if (dto.orderId) {
           const order = await manager.getRepository(BizOrder).findOne({
             where: { id: dto.orderId, isDeleted: 0 },
-            lock: { mode: "pessimistic_read" },
+            lock: { mode: "pessimistic_write" },
           });
           this.assertOrderEligible(order, memberId);
+          const blockingRefund = order.paidPaymentId
+            ? await manager.getRepository(Refund).findOne({
+                where: {
+                  paymentId: order.paidPaymentId,
+                  status: In(REFUND_FULFILLMENT_BLOCKING_STATUSES),
+                  isDeleted: 0,
+                },
+              })
+            : null;
+          if (blockingRefund) throw this.userError("订单正在退款或退款异常，暂不可预约");
           const orderAppointment = await repository.findOne({
             where: {
               orderId: dto.orderId,
@@ -139,6 +153,19 @@ export class AppointmentService {
     const order = await this.orderRepository.findOne({ where: { id: orderId, isDeleted: 0 } });
     const reason = this.getOrderIneligibleReason(order, memberId);
     if (reason) return { eligible: false, reason };
+
+    const blockingRefund = order?.paidPaymentId
+      ? await this.refundRepository.findOne({
+          where: {
+            paymentId: order.paidPaymentId,
+            status: In(REFUND_FULFILLMENT_BLOCKING_STATUSES),
+            isDeleted: 0,
+          },
+        })
+      : null;
+    if (blockingRefund) {
+      return { eligible: false, reason: "订单正在退款或退款异常，暂不可预约" };
+    }
 
     const exists = await this.appointmentRepository.findOne({
       where: { orderId, status: In(ACTIVE_ORDER_APPOINTMENT_STATUSES), isDeleted: 0 },

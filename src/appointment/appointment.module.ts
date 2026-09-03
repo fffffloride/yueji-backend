@@ -10,6 +10,7 @@ import { AppointmentOperationLog } from "./entities/appointment-operation-log.en
 import { Member } from "@/member/entities/member.entity";
 import { BizOrder } from "@/order/entities/order.entity";
 import { BizOrderItem } from "@/order/entities/order-item.entity";
+import { Refund } from "@/payment/entities/refund.entity";
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { BizOrderItem } from "@/order/entities/order-item.entity";
       Member,
       BizOrder,
       BizOrderItem,
+      Refund,
     ]),
   ],
   controllers: [AppointmentAdminController, AppointmentAppController],

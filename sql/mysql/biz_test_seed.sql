@@ -1,6 +1,6 @@
 -- 悦己 DLumière 本地测试环境业务数据
 -- 警告：会清空阶段 1–8E 的业务表；保留全部 sys_* 系统表。
--- 依赖：MySQL 8，已执行包含预约生命周期最终结构的 biz_phase6.sql、order_gifting.sql，以及阶段 0–8E 其余建表 SQL。
+-- 依赖：MySQL 8，已执行包含预约生命周期最终结构的 biz_phase6.sql、order_gifting.sql、friend_payment.sql，以及阶段 0–8E 其余建表 SQL。
 -- 阶段8E直接复用下方跨90天订单、少量直属业绩和多等级代理，不增加统计汇总数据。
 
 USE youlai_admin;
@@ -54,6 +54,8 @@ DELETE FROM `coupon_scope`;
 DELETE FROM `coupon`;
 DELETE FROM `member_points_log`;
 DELETE FROM `biz_refund`;
+DELETE FROM `biz_proxy_pay_share`;
+UPDATE `biz_order` SET `paid_payment_id` = NULL WHERE `paid_payment_id` IS NOT NULL;
 DELETE FROM `biz_payment`;
 DELETE FROM `biz_order_gift`;
 DELETE FROM `biz_order_item`;
@@ -559,12 +561,13 @@ FROM `appointment`
 WHERE id = 1;
 
 INSERT INTO `biz_payment`
-  (`id`, `payment_no`, `order_id`, `member_id`, `amount`, `channel`, `status`, `third_party_no`,
-   `paid_time`, `create_time`, `update_time`, `is_deleted`)
+  (`id`, `payment_no`, `order_id`, `member_id`, `payer_member_id`, `amount`, `channel`, `status`,
+   `third_party_no`, `prepay_id`, `expire_time`, `paid_time`, `create_time`, `update_time`, `is_deleted`)
 SELECT
   o.id,
   CONCAT('PAY', LPAD(o.id, 12, '0')),
   o.id,
+  o.member_id,
   o.member_id,
   o.pay_amount,
   'mock',
@@ -575,12 +578,22 @@ SELECT
     ELSE 2
   END,
   CASE WHEN o.status IN (1, 2, 3, 5) THEN CONCAT('MOCK', LPAD(o.id, 12, '0')) ELSE NULL END,
+  CASE WHEN o.status = 0 AND MOD(FLOOR(o.id / 6), 2) = 0 THEN CONCAT('mock-PAY', LPAD(o.id, 12, '0')) ELSE NULL END,
+  CASE WHEN o.status = 0 AND MOD(FLOOR(o.id / 6), 2) = 0 THEN DATE_ADD(o.create_time, INTERVAL 5 MINUTE) ELSE NULL END,
   CASE WHEN o.status IN (1, 2, 3, 5) THEN o.pay_time ELSE NULL END,
   DATE_ADD(o.create_time, INTERVAL 5 MINUTE),
   o.update_time,
   0
 FROM `biz_order` o
 WHERE o.status <> 4;
+
+UPDATE `biz_order` o
+JOIN `biz_payment` p
+  ON p.`order_id` = o.`id`
+ AND p.`is_deleted` = 0
+ AND p.`status` IN (1, 3)
+SET o.`paid_payment_id` = p.`id`
+WHERE o.`status` IN (1, 2, 3, 5);
 
 INSERT INTO `biz_refund`
   (`id`, `refund_no`, `payment_id`, `order_id`, `member_id`, `amount`, `reason`, `status`,
@@ -829,6 +842,8 @@ SELECT
   (SELECT COUNT(*) FROM `biz_order` WHERE `beneficiary_member_id` IS NULL OR `beneficiary_member_id` <> `member_id`) +
   (SELECT COUNT(*) <> 160 FROM `biz_order_item`) +
   (SELECT COUNT(*) <> 100 FROM `biz_payment`) +
+  (SELECT COUNT(*) FROM `biz_payment` p LEFT JOIN `member` m ON m.id = p.payer_member_id WHERE p.payer_member_id IS NULL OR m.id IS NULL) +
+  (SELECT COUNT(*) FROM `biz_order` o LEFT JOIN `biz_payment` p ON p.id = o.paid_payment_id WHERE o.status IN (1,2,3,5) AND (p.id IS NULL OR p.order_id <> o.id OR p.status NOT IN (1,3))) +
   (SELECT COUNT(*) <> 26 FROM `biz_refund`) +
   (SELECT COUNT(*) <> 112 FROM `member_points_log`) +
   (SELECT COUNT(*) <> 12 FROM `coupon`) +

@@ -4,14 +4,15 @@ import { BaseEntity } from "@/common/entities/base.entity";
 
 @Entity("biz_refund")
 @Index("uk_refund_no", ["refundNo"], { unique: true })
-@Index("uk_refund_order_id", ["orderId"], { unique: true })
+@Index("uk_refund_payment_id", ["paymentId"], { unique: true })
+@Index("idx_refund_order_id", ["orderId"])
 @Index("uk_refund_third_party_no", ["thirdPartyNo"], { unique: true })
 @Index("idx_refund_member_id", ["memberId"])
 @Index("idx_refund_status", ["status"])
 @Index("idx_refund_reconcile", ["status", "isDeleted", "updateTime", "id"])
 @Check("chk_biz_refund_amount", "`amount` > 0")
 @Check("chk_biz_refund_reason", "CHAR_LENGTH(TRIM(`reason`)) > 0")
-@Check("chk_biz_refund_status", "`status` IN (0, 1, 2)")
+@Check("chk_biz_refund_status", "`status` IN (0, 1, 2, 3, 4)")
 @Check("chk_biz_refund_is_deleted", "`is_deleted` IN (0, 1)")
 export class Refund extends BaseEntity {
   @Column({ name: "refund_no", length: 32, comment: "退款流水号" })
@@ -32,11 +33,23 @@ export class Refund extends BaseEntity {
   @Column({ length: 255, comment: "退款原因" })
   reason: string;
 
-  @Column({ type: "tinyint", default: 0, comment: "退款状态(0-处理中 1-成功 2-失败)" })
+  @Column({
+    type: "tinyint",
+    default: 0,
+    comment: "退款状态(0-处理中 1-成功 2-失败 3-已关闭待换单 4-异常待人工)",
+  })
   status: number;
 
   @Column({ name: "third_party_no", length: 64, nullable: true, comment: "三方退款单号" })
   thirdPartyNo?: string | null;
+
+  @Column({
+    name: "closed_refund_nos",
+    length: 1024,
+    nullable: true,
+    comment: "已结束或已换号的历史商户退款单号(逗号分隔)",
+  })
+  closedRefundNos?: string | null;
 
   @Column({ name: "refund_time", type: "datetime", nullable: true, comment: "退款成功时间" })
   refundTime?: Date | null;

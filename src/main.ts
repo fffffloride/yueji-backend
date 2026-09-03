@@ -9,6 +9,7 @@ import type { ValidationError } from "class-validator";
 import { BusinessException } from "./common/exceptions/business.exception";
 import { ErrorCode } from "./common/enums/error-code.enum";
 import { Logger } from "@nestjs/common";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 
 async function bootstrap() {
   const logger = new Logger("Bootstrap");
@@ -18,8 +19,11 @@ async function bootstrap() {
     };
   }
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
   const configService = app.get(ConfigService);
+
+  // 生产环境仅信任本机 Nginx 转发的客户端 IP，避免公开代付轮询共享 127.0.0.1 限流桶。
+  app.set("trust proxy", "loopback");
 
   // 全局前缀
   app.setGlobalPrefix("/api/v1");

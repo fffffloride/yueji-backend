@@ -14,6 +14,42 @@ const requireKeys = (config: Record<string, unknown>, keys: string[]): void => {
   }
 };
 
+const validateWechatPayment = (config: Record<string, unknown>): void => {
+  const keys = [
+    "WX_MINIAPP_APP_ID",
+    "WX_MINIAPP_APP_SECRET",
+    "WX_PAY_MCH_ID",
+    "WX_PAY_API_V3_KEY",
+    "WX_PAY_MERCHANT_SERIAL_NO",
+    "WX_PAY_PLATFORM_KEYS_JSON",
+    "WX_PAY_NOTIFY_URL",
+    "WX_PAY_REFUND_NOTIFY_URL",
+  ];
+  const missing = keys.filter((key) => !valueOf(config, key));
+  if (
+    !valueOf(config, "WX_PAY_MERCHANT_PRIVATE_KEY") &&
+    !valueOf(config, "WX_PAY_MERCHANT_PRIVATE_KEY_PATH")
+  ) {
+    missing.push("WX_PAY_MERCHANT_PRIVATE_KEY/WX_PAY_MERCHANT_PRIVATE_KEY_PATH");
+  }
+  if (missing.length > 0) throw new Error(`微信支付缺少必需配置：${missing.join(", ")}`);
+  if (Buffer.byteLength(valueOf(config, "WX_PAY_API_V3_KEY"), "utf8") !== 32) {
+    throw new Error("WX_PAY_API_V3_KEY 必须为32字节");
+  }
+  for (const key of ["WX_PAY_NOTIFY_URL", "WX_PAY_REFUND_NOTIFY_URL"]) {
+    if (!valueOf(config, key).startsWith("https://"))
+      throw new Error(`${key} 必须是公网 HTTPS 地址`);
+  }
+  try {
+    const platformKeys = JSON.parse(valueOf(config, "WX_PAY_PLATFORM_KEYS_JSON"));
+    if (!platformKeys || Array.isArray(platformKeys) || typeof platformKeys !== "object")
+      throw new Error();
+    if (Object.keys(platformKeys).length === 0) throw new Error();
+  } catch {
+    throw new Error("WX_PAY_PLATFORM_KEYS_JSON 必须是非空 JSON 对象");
+  }
+};
+
 export function validateEnvironment(config: Record<string, unknown>): Record<string, unknown> {
   const normalized = { ...config };
   const nodeEnv = valueOf(config, "NODE_ENV").toLowerCase() || "dev";
@@ -43,6 +79,7 @@ export function validateEnvironment(config: Record<string, unknown>): Record<str
     "REDIS_PORT",
     "JWT_EXPIRES_IN",
     "ORDER_PAY_TIMEOUT_MINUTES",
+    "PAYMENT_ATTEMPT_LEASE_MINUTES",
   ]) {
     const value = valueOf(config, key);
     if (value && (!Number.isInteger(Number(value)) || Number(value) <= 0)) {
@@ -58,6 +95,8 @@ export function validateEnvironment(config: Record<string, unknown>): Record<str
     MOCK_LOGIN_ENABLED: mockLogin,
     SWAGGER_ENABLED: swaggerEnabled,
   });
+
+  if (paymentDriver === "wechat") validateWechatPayment(normalized);
 
   if (nodeEnv !== "prod") return normalized;
   if (paymentDriver === "mock") throw new Error("生产环境禁止使用 Mock 支付驱动");

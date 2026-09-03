@@ -37,7 +37,8 @@ describe("AppointmentService lifecycle", () => {
     { find: jest.fn() } as any,
     {} as any,
     {} as any,
-    {} as any
+    {} as any,
+    { findOne: jest.fn() } as any
   );
 
   beforeEach(() => {

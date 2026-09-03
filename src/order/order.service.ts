@@ -22,6 +22,8 @@ import { ErrorCode } from "@/common/enums/error-code.enum";
 import { OrderBenefitsService } from "@/marketing/order-benefits.service";
 import { PointsBizType } from "@/marketing/marketing.constants";
 import { AppointmentService } from "@/appointment/appointment.service";
+import { Refund } from "@/payment/entities/refund.entity";
+import { REFUND_FULFILLMENT_BLOCKING_STATUSES } from "@/payment/payment-status";
 
 const ORDER_TIMEOUT_BATCH_SIZE = 100;
 const ORDER_TIMEOUT_MAX_BATCHES = 5;
@@ -606,6 +608,21 @@ export class OrderService {
       const current = await this.lockOrder(manager, id);
       if (expectedVerifyCode && current.verifyCode !== expectedVerifyCode) {
         throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: "核销码无效" });
+      }
+      const blockingRefund = current.paidPaymentId
+        ? await manager.findOne(Refund, {
+            where: {
+              paymentId: current.paidPaymentId,
+              status: In(REFUND_FULFILLMENT_BLOCKING_STATUSES),
+              isDeleted: 0,
+            },
+          })
+        : null;
+      if (blockingRefund) {
+        throw new BusinessException({
+          ...ErrorCode.USER_ERROR,
+          msg: "订单正在退款或退款异常，暂不可核销",
+        });
       }
       this.safeTransition(current.status, OrderStatus.VERIFIED);
       current.status = OrderStatus.VERIFIED;

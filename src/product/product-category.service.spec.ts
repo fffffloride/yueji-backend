@@ -24,6 +24,7 @@ describe("ProductCategoryService", () => {
     const parent = { id: "1", treePath: "0", level: 1, isDeleted: 0 } as ProductCategory;
     const manager = {
       findOne: jest.fn().mockResolvedValue(parent),
+      getRepository: jest.fn().mockReturnValue({ maximum: jest.fn().mockResolvedValue(0) }),
       create: jest.fn((_entity, value) => ({ id: "2", ...value })),
       save: jest.fn(async (value) => value),
     };

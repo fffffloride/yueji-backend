@@ -188,7 +188,7 @@ export class DashboardService {
         (SELECT COUNT(*) FROM distribution_withdrawal WHERE status = 0 AND is_deleted = 0) AS withdrawalAudit,
         (SELECT COUNT(*) FROM distribution_withdrawal WHERE status = 1 AND is_deleted = 0) AS withdrawalPay,
         (SELECT COUNT(*) FROM biz_refund
-          WHERE is_deleted = 0 AND (status = 2 OR (status = 0 AND create_time <= ?))) AS refundError`,
+          WHERE is_deleted = 0 AND (status IN (2,3,4) OR (status = 0 AND create_time <= ?))) AS refundError`,
       [timeoutBefore]
     );
   }
@@ -207,7 +207,7 @@ export class DashboardService {
           (SELECT COUNT(*) FROM distribution_agent WHERE is_deleted = 0 AND apply_time >= ? AND apply_time < ?) +
           (SELECT COUNT(*) FROM distribution_withdrawal WHERE is_deleted = 0 AND create_time >= ? AND create_time < ?) +
           (SELECT COUNT(*) FROM distribution_withdrawal WHERE is_deleted = 0 AND status IN (1,3) AND review_time >= ? AND review_time < ?) +
-          (SELECT COUNT(*) FROM biz_refund WHERE is_deleted = 0 AND status = 2 AND update_time >= ? AND update_time < ?) +
+          (SELECT COUNT(*) FROM biz_refund WHERE is_deleted = 0 AND status IN (2,3,4) AND update_time >= ? AND update_time < ?) +
           (SELECT COUNT(*) FROM biz_refund WHERE is_deleted = 0 AND status = 0 AND create_time >= ? AND create_time <= ?)
         ) AS todayNew,
         (
@@ -258,10 +258,14 @@ export class DashboardService {
         FROM distribution_withdrawal WHERE status = 1 AND is_deleted = 0
         UNION ALL
         SELECT CONCAT('refund:', id), 'refund_error',
-               CONCAT('退款单 ', refund_no, IF(status = 2, ' 处理失败', ' 处理超时')),
-               IF(status = 2, '失败', '超时'), COALESCE(update_time, create_time), '/order/index'
+               CONCAT('退款单 ', refund_no,
+                 CASE status WHEN 2 THEN ' 处理失败' WHEN 3 THEN ' 已关闭待重试'
+                              WHEN 4 THEN ' 异常待人工' ELSE ' 处理超时' END),
+               CASE status WHEN 2 THEN '失败' WHEN 3 THEN '关闭待重试'
+                           WHEN 4 THEN '异常待人工' ELSE '处理超时' END,
+               COALESCE(update_time, create_time), '/order/index'
         FROM biz_refund
-        WHERE is_deleted = 0 AND (status = 2 OR (status = 0 AND create_time <= ?))
+        WHERE is_deleted = 0 AND (status IN (2,3,4) OR (status = 0 AND create_time <= ?))
       ) todos
       ORDER BY occurredAt DESC
       LIMIT 5`,
@@ -305,9 +309,14 @@ export class DashboardService {
                refund_time, '/order/index'
         FROM biz_refund WHERE is_deleted = 0 AND status = 1 AND refund_time IS NOT NULL
         UNION ALL
-        SELECT CONCAT('refund-failed:', id), 'refund_failed', CONCAT('退款单 ', refund_no, ' 处理失败'),
+        SELECT CONCAT('refund-attention:', id),
+               CASE status WHEN 2 THEN 'refund_failed' WHEN 3 THEN 'refund_closed'
+                           ELSE 'refund_abnormal' END,
+               CONCAT('退款单 ', refund_no,
+                 CASE status WHEN 2 THEN ' 处理失败' WHEN 3 THEN ' 已关闭待重试'
+                              ELSE ' 异常待人工' END),
                update_time, '/order/index'
-        FROM biz_refund WHERE is_deleted = 0 AND status = 2 AND update_time IS NOT NULL
+        FROM biz_refund WHERE is_deleted = 0 AND status IN (2,3,4) AND update_time IS NOT NULL
         UNION ALL
         SELECT CONCAT('appointment:', id), 'appointment_created', CONCAT('新增预约 ', appointment_date, ' ', appointment_time),
                create_time, '/appointment/index'

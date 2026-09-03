@@ -16,7 +16,7 @@ export class PaymentAppController {
   @ApiOperation({ summary: "创建或复用支付单" })
   @Post()
   async create(@CurrentMember() member: CurrentMemberInfo, @Body() dto: PaymentCreateDto) {
-    return this.paymentService.create(member.memberId, dto.orderId);
+    return this.paymentService.create(member.memberId, dto.orderId, member.openid ?? "");
   }
 
   @ApiOperation({ summary: "查询本人支付单" })

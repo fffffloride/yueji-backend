@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "crypto";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Optional } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { DataSource, EntityManager, In } from "typeorm";
 
 import { OrderGiftPageQueryDto } from "./dto/order-gift.dto";
@@ -22,16 +23,19 @@ import { BusinessException } from "@/common/exceptions/business.exception";
 import { GroupBuyMember } from "@/group-buy/entities/group-buy-member.entity";
 import { Member } from "@/member/entities/member.entity";
 import { Refund } from "@/payment/entities/refund.entity";
-import { RefundStatus } from "@/payment/payment-status";
+import {
+  MIN_PAYMENT_REMAINING_MS,
+  REFUND_FULFILLMENT_BLOCKING_STATUSES,
+} from "@/payment/payment-status";
 
 const GIFT_VALID_MS = 7 * 24 * 60 * 60 * 1000;
-
 export interface OrderViewerCapabilities {
   viewerRole: (typeof OrderViewerRole)[keyof typeof OrderViewerRole];
   giftId: string | null;
   canGift: boolean;
   canReturnGift: boolean;
   canBookAppointment: boolean;
+  canProxyPay: boolean;
 }
 
 export interface OrderGiftItemVo {
@@ -46,7 +50,10 @@ export interface OrderGiftItemVo {
 
 @Injectable()
 export class OrderGiftService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    @Optional() private readonly configService?: ConfigService
+  ) {}
 
   async create(memberId: string, orderId: string) {
     const result = await this.dataSource.transaction(async (manager) => {
@@ -193,7 +200,7 @@ export class OrderGiftService {
       if (await this.hasActiveAppointment(manager, order.id)) {
         throw this.userError("订单已有预约，请先取消预约");
       }
-      if (await this.hasProcessingRefund(manager, order.id)) {
+      if (await this.hasBlockingCanonicalRefund(manager, order)) {
         throw this.userError("订单正在退款，暂不可退回");
       }
 
@@ -245,7 +252,11 @@ export class OrderGiftService {
     const [groups, refunds, gifts] = await Promise.all([
       manager.find(GroupBuyMember, { where: { orderId: In(orderIds), isDeleted: 0 } }),
       manager.find(Refund, {
-        where: { orderId: In(orderIds), status: RefundStatus.PROCESSING, isDeleted: 0 },
+        where: {
+          orderId: In(orderIds),
+          status: In(REFUND_FULFILLMENT_BLOCKING_STATUSES),
+          isDeleted: 0,
+        },
       }),
       manager.find(BizOrderGift, {
         where: {
@@ -257,7 +268,14 @@ export class OrderGiftService {
       }),
     ]);
     const groupIds = new Set(groups.map((row) => String(row.orderId)));
-    const refundIds = new Set(refunds.map((row) => String(row.orderId)));
+    const refundIds = new Set(
+      refunds
+        .filter((row) => {
+          const order = orders.find((item) => String(item.id) === String(row.orderId));
+          return order?.paidPaymentId && String(order.paidPaymentId) === String(row.paymentId);
+        })
+        .map((row) => String(row.orderId))
+    );
     const giftMap = new Map<string, BizOrderGift>();
     const now = new Date();
     for (const gift of gifts) {
@@ -274,6 +292,7 @@ export class OrderGiftService {
         const beneficiary = String(beneficiaryId) === String(memberId);
         const activeGift = giftMap.get(id);
         const blocked = appointmentMap.has(id) || refundIds.has(id);
+        const paymentDeadline = new Date(order.createTime).getTime() + this.orderPayTimeoutMs();
         return [
           id,
           {
@@ -294,10 +313,21 @@ export class OrderGiftService {
               activeGift?.status === OrderGiftStatus.CLAIMED &&
               String(activeGift.recipientMemberId) === String(memberId),
             canBookAppointment: beneficiary && order.status === OrderStatus.PAID && !blocked,
+            canProxyPay:
+              purchaser &&
+              order.status === OrderStatus.UNPAID &&
+              order.payAmount > 0 &&
+              Number.isFinite(paymentDeadline) &&
+              paymentDeadline - now.getTime() >= MIN_PAYMENT_REMAINING_MS &&
+              !groupIds.has(id),
           },
         ];
       })
     );
+  }
+
+  private orderPayTimeoutMs(): number {
+    return Number(this.configService?.get<number>("ORDER_PAY_TIMEOUT_MINUTES", 30) ?? 30) * 60_000;
   }
 
   assertRefundAllowed(order: BizOrder): void {
@@ -348,13 +378,24 @@ export class OrderGiftService {
         },
       }),
       manager.find(Refund, {
-        where: { orderId: In(orderIds), status: RefundStatus.PROCESSING, isDeleted: 0 },
+        where: {
+          orderId: In(orderIds),
+          status: In(REFUND_FULFILLMENT_BLOCKING_STATUSES),
+          isDeleted: 0,
+        },
       }),
     ]);
     const orderMap = new Map(orders.map((order) => [String(order.id), order]));
     const memberMap = new Map(members.map((member) => [String(member.id), member]));
     const appointmentIds = new Set(appointments.map((row) => String(row.orderId)));
-    const refundIds = new Set(refunds.map((row) => String(row.orderId)));
+    const refundIds = new Set(
+      refunds
+        .filter((row) => {
+          const order = orders.find((item) => String(item.id) === String(row.orderId));
+          return order?.paidPaymentId && String(order.paidPaymentId) === String(row.paymentId);
+        })
+        .map((row) => String(row.orderId))
+    );
     const itemMap = new Map<string, OrderGiftItemVo[]>();
     for (const item of items) {
       const id = String(item.orderId);
@@ -444,7 +485,7 @@ export class OrderGiftService {
     if (await this.hasActiveAppointment(manager, order.id)) {
       throw this.userError("订单已有预约，不能赠送");
     }
-    if (await this.hasProcessingRefund(manager, order.id)) {
+    if (await this.hasBlockingCanonicalRefund(manager, order)) {
       throw this.userError("订单正在退款，不能赠送");
     }
     if (await manager.findOne(GroupBuyMember, { where: { orderId: order.id, isDeleted: 0 } })) {
@@ -465,7 +506,7 @@ export class OrderGiftService {
       return false;
     }
     if (await this.hasActiveAppointment(manager, order.id)) return false;
-    if (await this.hasProcessingRefund(manager, order.id)) return false;
+    if (await this.hasBlockingCanonicalRefund(manager, order)) return false;
     return !(await manager.findOne(GroupBuyMember, {
       where: { orderId: order.id, isDeleted: 0 },
     }));
@@ -481,9 +522,14 @@ export class OrderGiftService {
     });
   }
 
-  private hasProcessingRefund(manager: EntityManager, orderId: string) {
+  private hasBlockingCanonicalRefund(manager: EntityManager, order: BizOrder) {
+    if (!order.paidPaymentId) return null;
     return manager.findOne(Refund, {
-      where: { orderId, status: RefundStatus.PROCESSING, isDeleted: 0 },
+      where: {
+        paymentId: order.paidPaymentId,
+        status: In(REFUND_FULFILLMENT_BLOCKING_STATUSES),
+        isDeleted: 0,
+      },
     });
   }
 

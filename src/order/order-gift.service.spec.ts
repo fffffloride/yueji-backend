@@ -7,7 +7,7 @@ import { Appointment } from "@/appointment/entities/appointment.entity";
 import { GroupBuyMember } from "@/group-buy/entities/group-buy-member.entity";
 import { Member } from "@/member/entities/member.entity";
 import { Refund } from "@/payment/entities/refund.entity";
-import { RefundStatus } from "@/payment/payment-status";
+import { REFUND_FULFILLMENT_BLOCKING_STATUSES, RefundStatus } from "@/payment/payment-status";
 
 describe("OrderGiftService", () => {
   const pendingGift = (): Record<string, any> => ({
@@ -30,6 +30,7 @@ describe("OrderGiftService", () => {
     memberId: "10",
     beneficiaryMemberId: "10",
     status: 1,
+    paidPaymentId: "90",
     verifyCode: "11111111",
     isDeleted: 0,
   });
@@ -122,13 +123,40 @@ describe("OrderGiftService", () => {
     expect(ctx.order.verifyCode).not.toBe("11111111");
   });
 
+  it("普通未超时待付款订单向购买人返回好友代付入口", async () => {
+    const ctx = setup();
+    Object.assign(ctx.order, {
+      status: 0,
+      payAmount: 1000,
+      createTime: new Date(),
+    });
+    ctx.manager.find.mockImplementation((entity: unknown) => {
+      if (entity === GroupBuyMember || entity === Refund || entity === BizOrderGift) {
+        return Promise.resolve([]);
+      }
+      return Promise.resolve([]);
+    });
+
+    const capabilities = await ctx.service.getOrderCapabilities(
+      "10",
+      [ctx.order as never],
+      new Map()
+    );
+
+    expect(capabilities.get("20")).toMatchObject({ canProxyPay: true });
+  });
+
   it("退款处理中拒绝领取且不修改权益归属", async () => {
     const ctx = setup();
     ctx.manager.findOne.mockImplementation((entity: unknown) => {
       if (entity === BizOrder) return Promise.resolve(ctx.order);
       if (entity === BizOrderGift) return Promise.resolve(ctx.gift);
       if (entity === Refund) {
-        return Promise.resolve({ id: "70", status: RefundStatus.PROCESSING });
+        return Promise.resolve({
+          id: "70",
+          paymentId: "90",
+          status: RefundStatus.PROCESSING,
+        });
       }
       if (entity === Appointment || entity === GroupBuyMember) return Promise.resolve(null);
       return Promise.resolve(null);
@@ -139,6 +167,33 @@ describe("OrderGiftService", () => {
     });
     expect(ctx.order.beneficiaryMemberId).toBe("10");
     expect(ctx.gift.status).toBe(OrderGiftStatus.PENDING);
+  });
+
+  it.each([RefundStatus.PROCESSING, RefundStatus.CLOSED, RefundStatus.ABNORMAL])(
+    "主支付退款状态 %s 时关闭送礼和预约能力",
+    async (status) => {
+      const ctx = setup();
+      ctx.manager.find.mockImplementation((entity: unknown) => {
+        if (entity === Refund) {
+          return Promise.resolve([{ orderId: "20", paymentId: "90", status }]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const capabilities = await ctx.service.getOrderCapabilities(
+        "10",
+        [ctx.order as never],
+        new Map()
+      );
+      expect(capabilities.get("20")).toMatchObject({
+        canGift: false,
+        canBookAppointment: false,
+      });
+    }
+  );
+
+  it("FAILED 不属于履约阻断状态", () => {
+    expect(REFUND_FULFILLMENT_BLOCKING_STATUSES).not.toContain(RefundStatus.FAILED);
   });
 
   it("同一领取人重复提交幂等，其他会员不能读取领取人信息", async () => {

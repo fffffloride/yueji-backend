@@ -3,6 +3,7 @@ import { BaseEntity } from "@/common/entities/base.entity";
 
 @Index("uk_order_no", ["orderNo"], { unique: true })
 @Index("uk_order_verify_code", ["verifyCode"], { unique: true })
+@Index("uk_order_paid_payment_id", ["paidPaymentId"], { unique: true })
 @Index("idx_order_member_active_created", ["memberId", "isDeleted", "createTime", "id"])
 @Index("idx_order_beneficiary_active_created", [
   "beneficiaryMemberId",
@@ -66,6 +67,14 @@ export class BizOrder extends BaseEntity {
 
   @Column({ name: "pay_time", type: "datetime", nullable: true, comment: "支付时间" })
   payTime?: Date | null;
+
+  @Column({
+    name: "paid_payment_id",
+    type: "bigint",
+    nullable: true,
+    comment: "完成订单的支付流水ID",
+  })
+  paidPaymentId?: string | null;
 
   @Column({ name: "contact_name", length: 32, nullable: true, comment: "联系人姓名" })
   contactName?: string | null;

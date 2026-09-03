@@ -17,7 +17,8 @@ const REDACTED = "[REDACTED]";
 
 function isSensitiveKey(key: string): boolean {
   const normalized = key.replace(/[^a-z0-9]/gi, "").toLowerCase();
-  return /(?:authorization|cookie|password|token|secret|signature|ciphertext|privatekey|apiv3key|mobile|phonenumber|phone|openid|unionid)$/.test(
+  if (normalized.startsWith("wechatpay")) return true;
+  return /(?:authorization|cookie|password|token|secret|signature|paysign|prepayid|invokeparams|ciphertext|privatekey|apiv3key|mobile|phonenumber|phone|openid|unionid)$/.test(
     normalized
   );
 }

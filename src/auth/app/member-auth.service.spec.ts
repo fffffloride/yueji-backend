@@ -19,7 +19,7 @@ const createService = (configValues: Record<string, string> = {}) => {
     { expiresIn: 7200 } as never,
     jwtService as never,
     configService as never,
-    {} as never,
+    { getAccessToken: jest.fn().mockResolvedValue("access-token") } as never,
     memberService as never
   );
   return { service, configService, jwtService, memberService };
@@ -30,16 +30,36 @@ describe("MemberAuthService", () => {
 
   it("通过 POST JSON 换取微信手机号", async () => {
     const { service } = createService();
-    jest.spyOn(service as any, "getAccessToken").mockResolvedValue("access-token");
     const post = jest.spyOn(axios, "post").mockResolvedValue({
       data: { errcode: 0, phone_info: { phoneNumber: "13800000000" } },
     });
 
     await expect((service as any).getPhoneNumber("phone-code")).resolves.toBe("13800000000");
     expect(post).toHaveBeenCalledWith(
-      "https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=access-token",
-      { code: "phone-code" }
+      "https://api.weixin.qq.com/wxa/business/getuserphonenumber",
+      { code: "phone-code" },
+      { params: { access_token: "access-token" } }
     );
+  });
+
+  it("换取微信会话时不把 AppSecret 放进 URL", async () => {
+    const { service } = createService({
+      WX_MINIAPP_APP_ID: "app-id",
+      WX_MINIAPP_APP_SECRET: "app-secret",
+    });
+    const get = jest.spyOn(axios, "get").mockResolvedValue({ data: { openid: "openid-1" } });
+
+    await expect((service as any).getJsCodeSession("login-code")).resolves.toEqual({
+      openid: "openid-1",
+    });
+    expect(get).toHaveBeenCalledWith("https://api.weixin.qq.com/sns/jscode2session", {
+      params: {
+        appid: "app-id",
+        secret: "app-secret",
+        js_code: "login-code",
+        grant_type: "authorization_code",
+      },
+    });
   });
 
   it("手机号登录把微信身份和手机号交给同一次会员创建", async () => {

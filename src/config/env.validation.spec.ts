@@ -17,6 +17,15 @@ const productionConfig = (): Record<string, unknown> => ({
   JWT_ISSUER: "yueji",
   OSS_TYPE: "local",
   OSS_LOCAL_STORAGE_PATH: "/data/uploads",
+  WX_MINIAPP_APP_ID: "wx-app",
+  WX_MINIAPP_APP_SECRET: "app-secret",
+  WX_PAY_MCH_ID: "1900000109",
+  WX_PAY_API_V3_KEY: "a".repeat(32),
+  WX_PAY_MERCHANT_SERIAL_NO: "SERIAL",
+  WX_PAY_MERCHANT_PRIVATE_KEY_PATH: "/run/secrets/apiclient_key.pem",
+  WX_PAY_PLATFORM_KEYS_JSON: JSON.stringify({ PUB_KEY_ID_1: "public-key" }),
+  WX_PAY_NOTIFY_URL: "https://api.example.com/api/v1/app/payment/wechat/notify",
+  WX_PAY_REFUND_NOTIFY_URL: "https://api.example.com/api/v1/app/payment/wechat/refund-notify",
 });
 
 describe("validateEnvironment", () => {
@@ -51,5 +60,23 @@ describe("validateEnvironment", () => {
       MOCK_LOGIN_ENABLED: "false",
       SWAGGER_ENABLED: "false",
     });
+  });
+
+  it("mock 开发环境不要求微信支付密钥", () => {
+    expect(validateEnvironment({ NODE_ENV: "dev", PAYMENT_DRIVER: "mock" })).toMatchObject({
+      PAYMENT_DRIVER: "mock",
+    });
+  });
+
+  it("选择微信驱动时立即校验支付配置", () => {
+    expect(() => validateEnvironment({ NODE_ENV: "dev", PAYMENT_DRIVER: "wechat" })).toThrow(
+      "WX_PAY_MCH_ID"
+    );
+  });
+
+  it("拒绝非 HTTPS 微信回调地址", () => {
+    expect(() =>
+      validateEnvironment({ ...productionConfig(), WX_PAY_NOTIFY_URL: "http://localhost/notify" })
+    ).toThrow("WX_PAY_NOTIFY_URL 必须是公网 HTTPS 地址");
   });
 });

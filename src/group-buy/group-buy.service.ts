@@ -413,7 +413,6 @@ export class GroupBuyService implements OnModuleInit {
     for (const member of members) {
       try {
         await this.paymentService.refundByOrder(member.orderId, "拼团超时未成团");
-        await this.syncOrder(member.orderId, OrderStatus.REFUNDED);
       } catch (error) {
         this.logger.warn(`拼团退款失败 orderId=${member.orderId}: ${String(error)}`);
       }

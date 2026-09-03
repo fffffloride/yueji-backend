@@ -17,6 +17,7 @@ import { ToolsService } from "../common/utils/captcha.util";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { SysUser } from "../system/user/entities/sys-user.entity";
 import { SysUserSocial } from "../system/user/entities/sys-user-social.entity";
+import { WechatModule } from "../common/wechat/wechat.module";
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { SysUserSocial } from "../system/user/entities/sys-user-social.entity";
     LogModule,
     MemberModule,
     RedisSharedModule,
+    WechatModule,
     TypeOrmModule.forFeature([SysUser, SysUserSocial]),
     PassportModule.register({ defaultStrategy: "jwt" }),
     // global: true 使 JwtService 全局可用（MemberJwtGuard 等依赖）
