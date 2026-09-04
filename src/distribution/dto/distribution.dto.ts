@@ -159,35 +159,6 @@ export class AgentFormDto {
   parentAgentId?: string;
 }
 
-export class AgentApplicationDto {
-  @ApiProperty()
-  @IsString()
-  @MaxLength(64)
-  realName: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  mobile?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  @MaxLength(64)
-  wechat?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  contactRemark?: string;
-
-  @ApiProperty()
-  @IsString()
-  typeId: string;
-}
-
 export class AgentAuditDto {
   @ApiProperty({ enum: [1, 2] })
   @Type(() => Number)

@@ -215,7 +215,7 @@ export class DistributionSettlementService {
 
   async accountForMember(memberId: string) {
     const agent = await this.agentRepository.findOne({ where: { memberId, isDeleted: 0 } });
-    if (!agent) throw this.userError("当前会员不是代理商");
+    if (!agent || !this.canWithdraw(agent)) throw this.userError("当前会员未开通分销身份");
     const [config, account] = await Promise.all([
       this.ensureConfig(),
       this.accountForAgent(agent.id),

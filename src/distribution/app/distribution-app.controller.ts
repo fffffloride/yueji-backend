@@ -6,7 +6,6 @@ import { DistributionService } from "../distribution.service";
 import { DistributionSettlementService } from "../distribution-settlement.service";
 import { DistributionTaskService } from "../distribution-task.service";
 import {
-  AgentApplicationDto,
   CommissionQueryDto,
   DistributionAnalyticsQueryDto,
   DistributionAppTaskQueryDto,
@@ -28,11 +27,6 @@ export class DistributionAppController {
     private readonly settlementService: DistributionSettlementService,
     private readonly taskService: DistributionTaskService
   ) {}
-
-  @Post("applications")
-  apply(@CurrentMember() member: CurrentMemberInfo, @Body() dto: AgentApplicationDto) {
-    return this.service.apply(member.memberId, dto);
-  }
 
   @Get("profile")
   profile(@CurrentMember() member: CurrentMemberInfo) {

@@ -5,7 +5,6 @@ import { DataSource, EntityManager, In, Not, Repository } from "typeorm";
 
 import {
   AgentAccountStatusDto,
-  AgentApplicationDto,
   AgentAuditDto,
   AgentFormDto,
   AgentLevelAdjustDto,
@@ -322,50 +321,6 @@ export class DistributionService implements OnModuleInit {
     });
   }
 
-  async apply(memberId: string, dto: AgentApplicationDto) {
-    return this.dataSource.transaction(async (manager) => {
-      await this.findMember(memberId, manager);
-      await this.findType(dto.typeId, true, manager);
-      const existing = await manager.findOne(DistributionAgent, {
-        where: { memberId, isDeleted: 0 },
-      });
-      if (existing && existing.status !== AgentStatus.REJECTED)
-        throw this.userError("已有有效代理申请");
-      const now = new Date();
-      const agent =
-        existing ??
-        manager.create(DistributionAgent, {
-          memberId,
-          inviteCode: await this.nextInviteCode(manager),
-          directVerifiedSales: 0,
-          isDeleted: 0,
-        });
-      Object.assign(agent, dto, {
-        mobile: dto.mobile || null,
-        wechat: dto.wechat || null,
-        contactRemark: dto.contactRemark || null,
-        typeId: dto.typeId,
-        levelId: null,
-        status: AgentStatus.PENDING,
-        applyTime: now,
-        auditTime: null,
-        auditBy: null,
-        auditRemark: null,
-      });
-      await manager.save(agent);
-      await this.writeLog(
-        manager,
-        agent.id,
-        existing ? "REAPPLY" : "APPLY",
-        null,
-        this.agentSnapshot(agent),
-        "会员提交申请",
-        null
-      );
-      return agent;
-    });
-  }
-
   async auditAgent(id: string, dto: AgentAuditDto, operatorId: string) {
     return this.dataSource.transaction(async (manager) => {
       const agent = await this.lockAgent(manager, id);
@@ -505,7 +460,9 @@ export class DistributionService implements OnModuleInit {
   }
 
   async appProfile(memberId: string) {
-    const agent = await this.agentRepository.findOne({ where: { memberId, isDeleted: 0 } });
+    const agent = await this.agentRepository.findOne({
+      where: { memberId, status: In([AgentStatus.APPROVED, AgentStatus.DISABLED]), isDeleted: 0 },
+    });
     if (!agent)
       return {
         agent: null,
@@ -537,7 +494,9 @@ export class DistributionService implements OnModuleInit {
   }
 
   async appCommissionPage(memberId: string, query: CommissionQueryDto) {
-    const agent = await this.agentRepository.findOne({ where: { memberId, isDeleted: 0 } });
+    const agent = await this.agentRepository.findOne({
+      where: { memberId, status: In([AgentStatus.APPROVED, AgentStatus.DISABLED]), isDeleted: 0 },
+    });
     if (!agent) throw this.userError("当前会员不是代理商");
     return this.commissionPage({ ...query, agentId: agent.id });
   }
