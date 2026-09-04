@@ -10,6 +10,8 @@ import { DecorationNotice } from "./entities/decoration-notice.entity";
 
 import { DecorationHomeCards } from "./entities/home-cards.entity";
 
+import { DecorationPromoCards } from "./entities/promo-cards.entity";
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -17,6 +19,7 @@ import { DecorationHomeCards } from "./entities/home-cards.entity";
       DecorationNotice,
       DecorationBrand,
       DecorationHomeCards,
+      DecorationPromoCards,
     ]),
   ],
   controllers: [DecorationAdminController, DecorationAppController],

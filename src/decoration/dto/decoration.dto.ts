@@ -1,4 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, OmitType } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import {
   ArrayMaxSize,
@@ -12,6 +12,8 @@ import {
   MaxLength,
   Min,
   ValidateNested,
+  ValidateBy,
+  isURL,
 } from "class-validator";
 
 import { BaseQueryDto } from "@/common/dto/base-query.dto";
@@ -122,4 +124,38 @@ export class HomeCardsFormDto {
   @ValidateNested({ each: true })
   @Type(() => HomeCardDto)
   cards: HomeCardDto[];
+}
+
+export class PromoCardDto extends OmitType(HomeCardDto, ["content"] as const) {
+  @ApiProperty({ description: "站内页面路径或完整 HTTP/HTTPS 地址" })
+  @IsString()
+  @MaxLength(500)
+  @ValidateBy({
+    name: "cardLink",
+    validator: {
+      validate(value: unknown) {
+        if (typeof value !== "string" || /[\s\\]/.test(value)) return false;
+        try {
+          decodeURIComponent(value);
+        } catch {
+          return false;
+        }
+        return (
+          /^\/(?:pages|pages-sub)\/[\w/-]+(?:\?[^#]*)?$/.test(value) ||
+          isURL(value, { protocols: ["http", "https"], require_protocol: true, require_tld: false })
+        );
+      },
+      defaultMessage: () => "请输入站内页面路径或完整 HTTP/HTTPS 地址",
+    },
+  })
+  linkUrl: string;
+}
+
+export class PromoCardsFormDto {
+  @ApiProperty({ type: [PromoCardDto], maxItems: 4 })
+  @IsArray()
+  @ArrayMaxSize(4, { message: "首页活动卡片最多配置4张" })
+  @ValidateNested({ each: true })
+  @Type(() => PromoCardDto)
+  cards: PromoCardDto[];
 }

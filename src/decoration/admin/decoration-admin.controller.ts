@@ -6,6 +6,7 @@ import {
   BannerFormDto,
   BrandFormDto,
   HomeCardsFormDto,
+  PromoCardsFormDto,
   DecorationQueryDto,
   DecorationStatusDto,
   NoticeFormDto,
@@ -87,6 +88,18 @@ export class DecorationAdminController {
   @Permissions("biz:decoration:notice:delete")
   removeNotice(@Param("id") id: string) {
     return this.service.removeNotice(id);
+  }
+
+  @Get("promo-cards")
+  @Permissions("biz:decoration:promo-cards:list")
+  promoCards() {
+    return this.service.getPromoCards();
+  }
+
+  @Put("promo-cards")
+  @Permissions("biz:decoration:promo-cards:update")
+  savePromoCards(@Body() dto: PromoCardsFormDto) {
+    return this.service.savePromoCards(dto);
   }
 
   @ApiOperation({ summary: "首页卡片配置" })

@@ -34,7 +34,8 @@ it("validates the card limit and fields, preserves order and supports clearing",
     empty as never,
     empty as never,
     brand as never,
-    cardsRepository as never
+    cardsRepository as never,
+    { findOne: async () => null } as never
   );
   expect(await service.getCards()).toEqual({ cards: [] });
   const cards = [card, { ...card, title: "第二张" }];

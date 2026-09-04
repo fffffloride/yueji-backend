@@ -6,6 +6,7 @@ import {
   BannerFormDto,
   DecorationQueryDto,
   HomeCardsFormDto,
+  PromoCardsFormDto,
   NoticeFormDto,
 } from "./dto/decoration.dto";
 import { DecorationBanner } from "./entities/banner.entity";
@@ -15,6 +16,8 @@ import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
 
 import { DecorationHomeCards } from "./entities/home-cards.entity";
+
+import { DecorationPromoCards } from "./entities/promo-cards.entity";
 
 @Injectable()
 export class DecorationService {
@@ -26,7 +29,9 @@ export class DecorationService {
     @InjectRepository(DecorationBrand)
     private readonly brandRepository: Repository<DecorationBrand>,
     @InjectRepository(DecorationHomeCards)
-    private readonly cardsRepository: Repository<DecorationHomeCards>
+    private readonly cardsRepository: Repository<DecorationHomeCards>,
+    @InjectRepository(DecorationPromoCards)
+    private readonly promoCardsRepository: Repository<DecorationPromoCards>
   ) {}
 
   bannerPage(query: DecorationQueryDto) {
@@ -123,8 +128,18 @@ export class DecorationService {
     return dto;
   }
 
+  async getPromoCards() {
+    const row = await this.promoCardsRepository.findOne({ where: { id: "1", isDeleted: 0 } });
+    return { cards: row?.cards ?? [] };
+  }
+
+  async savePromoCards(dto: PromoCardsFormDto) {
+    await this.promoCardsRepository.upsert({ id: "1", cards: dto.cards, isDeleted: 0 }, ["id"]);
+    return dto;
+  }
+
   async appHome() {
-    const [banners, notices, brand, { cards }] = await Promise.all([
+    const [banners, notices, brand, { cards }, { cards: promoCards }] = await Promise.all([
       this.bannerRepository.find({
         where: { status: 1, isDeleted: 0 },
         order: { sort: "ASC", id: "DESC" },
@@ -135,8 +150,9 @@ export class DecorationService {
       }),
       this.getBrand(),
       this.getCards(),
+      this.getPromoCards(),
     ]);
-    return { banners, notices, brandContent: brand.content, cards };
+    return { banners, notices, brandContent: brand.content, cards, promoCards };
   }
 
   private async page<T extends DecorationBanner | DecorationNotice>(
