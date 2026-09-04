@@ -1,6 +1,18 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsIn, IsInt, IsOptional, IsString, MaxLength, Min } from "class-validator";
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Matches,
+  MaxLength,
+  Min,
+  ValidateNested,
+} from "class-validator";
 
 import { BaseQueryDto } from "@/common/dto/base-query.dto";
 
@@ -82,4 +94,32 @@ export class DecorationStatusDto {
   @IsInt()
   @IsIn([0, 1])
   status: number;
+}
+
+export class HomeCardDto {
+  @ApiProperty()
+  @IsString()
+  @Matches(/\S/, { message: "卡片标题不能为空" })
+  @MaxLength(100)
+  title: string;
+
+  @ApiProperty()
+  @IsUrl({ protocols: ["http", "https"], require_protocol: true, require_tld: false })
+  @MaxLength(500)
+  imageUrl: string;
+
+  @ApiProperty()
+  @IsString()
+  @Matches(/\S/, { message: "卡片富文本不能为空" })
+  @MaxLength(200000)
+  content: string;
+}
+
+export class HomeCardsFormDto {
+  @ApiProperty({ type: [HomeCardDto], maxItems: 10 })
+  @IsArray()
+  @ArrayMaxSize(10, { message: "首页卡片最多配置10张" })
+  @ValidateNested({ each: true })
+  @Type(() => HomeCardDto)
+  cards: HomeCardDto[];
 }

@@ -8,8 +8,17 @@ import { DecorationBanner } from "./entities/banner.entity";
 import { DecorationBrand } from "./entities/brand.entity";
 import { DecorationNotice } from "./entities/decoration-notice.entity";
 
+import { DecorationHomeCards } from "./entities/home-cards.entity";
+
 @Module({
-  imports: [TypeOrmModule.forFeature([DecorationBanner, DecorationNotice, DecorationBrand])],
+  imports: [
+    TypeOrmModule.forFeature([
+      DecorationBanner,
+      DecorationNotice,
+      DecorationBrand,
+      DecorationHomeCards,
+    ]),
+  ],
   controllers: [DecorationAdminController, DecorationAppController],
   providers: [DecorationService],
 })

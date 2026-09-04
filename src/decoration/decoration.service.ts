@@ -2,12 +2,19 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 
-import { BannerFormDto, DecorationQueryDto, NoticeFormDto } from "./dto/decoration.dto";
+import {
+  BannerFormDto,
+  DecorationQueryDto,
+  HomeCardsFormDto,
+  NoticeFormDto,
+} from "./dto/decoration.dto";
 import { DecorationBanner } from "./entities/banner.entity";
 import { DecorationBrand } from "./entities/brand.entity";
 import { DecorationNotice } from "./entities/decoration-notice.entity";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
+
+import { DecorationHomeCards } from "./entities/home-cards.entity";
 
 @Injectable()
 export class DecorationService {
@@ -17,7 +24,9 @@ export class DecorationService {
     @InjectRepository(DecorationNotice)
     private readonly noticeRepository: Repository<DecorationNotice>,
     @InjectRepository(DecorationBrand)
-    private readonly brandRepository: Repository<DecorationBrand>
+    private readonly brandRepository: Repository<DecorationBrand>,
+    @InjectRepository(DecorationHomeCards)
+    private readonly cardsRepository: Repository<DecorationHomeCards>
   ) {}
 
   bannerPage(query: DecorationQueryDto) {
@@ -104,8 +113,18 @@ export class DecorationService {
     );
   }
 
+  async getCards() {
+    const row = await this.cardsRepository.findOne({ where: { id: "1", isDeleted: 0 } });
+    return { cards: row?.cards ?? [] };
+  }
+
+  async saveCards(dto: HomeCardsFormDto) {
+    await this.cardsRepository.upsert({ id: "1", cards: dto.cards, isDeleted: 0 }, ["id"]);
+    return dto;
+  }
+
   async appHome() {
-    const [banners, notices, brand] = await Promise.all([
+    const [banners, notices, brand, { cards }] = await Promise.all([
       this.bannerRepository.find({
         where: { status: 1, isDeleted: 0 },
         order: { sort: "ASC", id: "DESC" },
@@ -115,8 +134,9 @@ export class DecorationService {
         order: { sort: "ASC", id: "DESC" },
       }),
       this.getBrand(),
+      this.getCards(),
     ]);
-    return { banners, notices, brandContent: brand.content };
+    return { banners, notices, brandContent: brand.content, cards };
   }
 
   private async page<T extends DecorationBanner | DecorationNotice>(

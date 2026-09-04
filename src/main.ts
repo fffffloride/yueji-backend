@@ -5,6 +5,7 @@ import { ValidationPipe, HttpStatus } from "@nestjs/common";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
 import { ConfigService } from "@nestjs/config";
 import * as session from "express-session";
+import { json } from "express";
 import type { ValidationError } from "class-validator";
 import { BusinessException } from "./common/exceptions/business.exception";
 import { ErrorCode } from "./common/enums/error-code.enum";
@@ -24,6 +25,9 @@ async function bootstrap() {
 
   // 生产环境仅信任本机 Nginx 转发的客户端 IP，避免公开代付轮询共享 127.0.0.1 限流桶。
   app.set("trust proxy", "loopback");
+
+  // 卡片最多包含 10 段富文本，单独放宽此保存接口的 JSON 大小。
+  app.use("/api/v1/decoration/cards", json({ limit: "8mb" }));
 
   // 全局前缀
   app.setGlobalPrefix("/api/v1");

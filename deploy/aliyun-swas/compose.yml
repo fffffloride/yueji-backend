@@ -29,6 +29,7 @@ services:
       - ./yueji-backend/sql/mysql/menu_appointment.sql:/docker-entrypoint-initdb.d/51-menu_appointment.sql:ro
       - ./yueji-backend/sql/mysql/biz_phase7.sql:/docker-entrypoint-initdb.d/60-biz_phase7.sql:ro
       - ./yueji-backend/sql/mysql/menu_phase7.sql:/docker-entrypoint-initdb.d/61-menu_phase7.sql:ro
+      - ./yueji-backend/sql/mysql/home_cards.sql:/docker-entrypoint-initdb.d/99-home_cards.sql:ro
       - ./yueji-backend/sql/mysql/biz_phase8_distribution.sql:/docker-entrypoint-initdb.d/70-biz_phase8_distribution.sql:ro
       - ./yueji-backend/sql/mysql/menu_phase8_distribution.sql:/docker-entrypoint-initdb.d/71-menu_phase8_distribution.sql:ro
       - ./yueji-backend/sql/mysql/biz_phase8c_settlement.sql:/docker-entrypoint-initdb.d/72-biz_phase8c_settlement.sql:ro
