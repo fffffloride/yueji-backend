@@ -17,7 +17,10 @@ shared=$base/shared
 current=$(readlink -e "$base/current")
 [[ "$current" == "$base/releases/"* && -f "$current/compose.yml" ]]
 [[ -f "$shared/runtime.env" && -f "$shared/backend.env" ]]
-for command in docker systemctl curl python3 flock sha256sum tar runuser; do command -v "$command" >/dev/null; done
+for command in docker systemctl curl python3 flock sha256sum tar runuser getent; do command -v "$command" >/dev/null; done
+release_uid=$(id -u yueji-release)
+[[ $release_uid -ne 0 && $release_uid -ne $(id -u yueji) ]]
+[[ $(getent passwd yueji-release | cut -d: -f7) == /usr/sbin/nologin ]]
 # Both repositories share this server lock, including rollback.
 exec 9>/run/lock/yueji-release.lock
 flock -w 600 9
@@ -149,15 +152,18 @@ PY
   )
   (( available > required )) || { echo 'Insufficient disk space; retain current/previous versions when cleaning old releases' >&2; exit 1; }
   install -d -m 755 "$(dirname "$destination")"
-  install -d -o yueji -g yueji -m 755 "$destination"
-  runuser -u yueji -- tar --extract --gzip --file - --directory "$destination" --no-same-owner --no-same-permissions < "$archive"
+  install -d -o yueji-release -g yueji-release -m 755 "$destination"
+  runuser -u yueji-release -- tar --extract --gzip --file - --directory "$destination" --no-same-owner --no-same-permissions < "$archive"
   if [[ "$component" == admin ]]; then
     target=$destination/dist
     [[ -s "$target/index.html" ]]
   else
     target=$destination
     [[ -s "$target/dist/main.js" && -d "$target/node_modules" ]]
-    runuser -u yueji -- mkdir -m 750 "$target/logs"
+  fi
+  chown -hR root:root "$destination"
+  if [[ "$component" == backend ]]; then
+    install -d -o yueji -g yueji -m 750 "$target/logs"
   fi
   write_config "$target" > "$transaction/next"
 fi

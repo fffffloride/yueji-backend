@@ -48,7 +48,8 @@ NestJS 使用 `yueji-backend.service`。不会重新运行 bootstrap、更新数
 
 在 **两个仓库**的 Settings → Environments 创建 `production`，部署分支仅允许 `master`。
 此版本沿用首次部署的 root 管理权限，部署密钥可以管理整台服务器；仅允许可信维护者修改生产分支，
-并在 `production` 设置 required reviewers。使用专用 SSH 密钥，不要复用个人主密钥。
+如团队需要人工批准每次发布，可在 `production` 设置 required reviewers；本方案默认自动发布。
+使用专用 SSH 密钥，不要复用个人主密钥。
 公钥需先安装到服务器 root 的 `authorized_keys`；私钥只填写到 GitHub Environment secrets，不发到聊天或提交代码。
 
 | Environment secret | 内容 |
@@ -62,6 +63,14 @@ NestJS 使用 `yueji-backend.service`。不会重新运行 bootstrap、更新数
 可在阿里云可信远程终端读取 `/etc/ssh/ssh_host_ed25519_key.pub` 的公钥，并在前面补上上述主机字段；不要读取主机私钥。
 GitHub 托管运行器需要能连接服务器 SSH 端口。仓库变量 `AUTO_DEPLOY` 初始保持未设置。
 
+服务器首次接入时，以 root 创建仅用于解包的系统账号；该账号不运行应用，也不允许登录：
+
+```bash
+useradd --system --user-group --home-dir /nonexistent --no-create-home --shell /usr/sbin/nologin yueji-release
+```
+
+已有同名账号时先核对其用途、UID 和 shell，不要重复创建或复用业务账号。`check` 会验证该账号存在且与应用账号隔离。
+
 ### 首次运行与日常使用
 
 1. 后端改动合并到 `master`，再合并前端改动；前端流水线固定引用后端的已核验提交。
@@ -71,7 +80,7 @@ GitHub 托管运行器需要能连接服务器 SSH 端口。仓库变量 `AUTO_D
    此后推送 `master` 自动发布该仓库；生产环境 reviewer 规则仍然生效。
 5. 发布失败会尝试恢复原版本，并保持 Actions 失败状态；手动选择 `rollback` 可切回上一成功版本，不需要重新构建。
 
-当前只创建发布流程，没有触发项目构建或实际发布。语法检查通过不代表首次生产验证通过。
+首次生产验证前保持 `AUTO_DEPLOY` 未设置。语法检查通过不代表首次生产验证通过。
 现有 lint、单测或依赖审计若失败，需修复问题后再发布，不自动忽略失败。
 前端尚无仓库自带的自动测试套件；服务器健康检查不能替代业务验收。
 
@@ -84,6 +93,7 @@ GitHub 托管运行器需要能连接服务器 SSH 端口。仓库变量 `AUTO_D
 
 - 原始部署目录和 `/opt/yueji/current` 保留。
 - 新应用版本放在 `/opt/yueji/ci-releases/admin/` 与 `backend/`。
+- 发布代码与静态文件归 root 所有，后端仅 `logs/` 目录允许 yueji 写入。
 - 管理端只更新 `/opt/yueji/shared/ci-admin.override.yml` 的静态文件挂载。
 - 后端只更新 `/etc/systemd/system/yueji-backend.service.d/90-ci-release.conf` 的工作目录。
 - 上一版本配置保存在 `/opt/yueji/shared/ci-admin/`、`ci-backend/`，`rollback` 会交换当前和上一版。
