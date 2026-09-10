@@ -1,32 +1,32 @@
-# 阿里云轻量应用服务器部署
+# ����������Ӧ�÷���������
 
-本目录用于在一台 Ubuntu 轻量应用服务器上部署管理端、NestJS、MySQL、Redis 与 MinIO。
-Node.js 使用官方 Node 22 LTS 发行包，NestJS 由 systemd 守护；MySQL、Redis、MinIO
-和 Nginx 由 Docker Compose 管理。
+��Ŀ¼������һ̨ Ubuntu ����Ӧ�÷������ϲ�������ˡ�NestJS��MySQL��Redis �� MinIO��
+Node.js ʹ�ùٷ� Node 22 LTS ���а���NestJS �� systemd �ػ���MySQL��Redis��MinIO
+�� Nginx �� Docker Compose ������
 
-## 入口
+## ���
 
-- 管理端：`http://服务器IP/`
-- 后端：由管理端通过同源前缀 `/prod-api/` 反向代理
-- MinIO 公共文件：`/files/public/**`
-- 容器健康检查：`http://服务器IP/healthz`
+- �����ˣ�`http://������IP/`
+- ��ˣ��ɹ�����ͨ��ͬԴǰ׺ `/prod-api/` �������
+- MinIO �����ļ���`/files/public/**`
+- ����������飺`http://������IP/healthz`
 
-数据库、Redis、MinIO 和 NestJS 均只监听本机端口。生产变量放在服务器
-`/opt/yueji/shared/runtime.env` 与 `backend.env`，权限为 `600`，不得提交到 Git。
+���ݿ⡢Redis��MinIO �� NestJS ��ֻ���������˿ڡ������������ڷ�����
+`/opt/yueji/shared/runtime.env` �� `backend.env`��Ȩ��Ϊ `600`�������ύ�� Git��
 
-## 启动
+## ����
 
-服务器首次部署时上传 `compose.yml`、`nginx.conf` 和 `bootstrap.sh`，再以 root 运行：
+�������״β���ʱ�ϴ� `compose.yml`��`nginx.conf` �� `bootstrap.sh`������ root ���У�
 
 ```bash
 bash /root/yueji-bootstrap.sh
 ```
 
-脚本会校验两个仓库的锁定提交、安装并校验 Node 22、构建前后端、启动基础容器、
-创建 MinIO 公共桶并安装 `yueji-backend.service`。首次启动时 MySQL 会按阶段 0–8E
-顺序初始化；具名卷保存业务数据，后续发布不会重复执行初始化 SQL。
+�ű���У�������ֿ�������ύ����װ��У�� Node 22������ǰ��ˡ���������������
+���� MinIO ����Ͱ����װ `yueji-backend.service`���״�����ʱ MySQL �ᰴ�׶� 0�C8E
+˳���ʼ��������������ҵ�����ݣ��������������ظ�ִ�г�ʼ�� SQL��
 
-常用检查：
+���ü�飺
 
 ```bash
 systemctl status yueji-backend.service
@@ -34,5 +34,69 @@ docker compose --env-file /opt/yueji/shared/runtime.env -f /opt/yueji/current/co
 curl --fail http://127.0.0.1/healthz
 ```
 
-当前后端的微信支付驱动仍是占位实现。`PAYMENT_DRIVER=wechat` 可保证生产环境不会使用 Mock
-支付，但真实支付必须在补齐微信支付实现和商户配置后才能开放。
+��ǰ��˵�΢��֧����������ռλʵ�֡�`PAYMENT_DRIVER=wechat` �ɱ�֤������������ʹ�� Mock
+֧��������ʵ֧�������ڲ���΢��֧��ʵ�ֺ��̻����ú���ܿ��š�
+
+## GitHub Actions �Զ�����
+
+���䱾Ŀ¼ bootstrap ���������в��֣�Nginx / MySQL / Redis / MinIO ʹ�� Compose��
+NestJS ʹ�� `yueji-backend.service`�������������� bootstrap���������ݿ�������ִ�� SQL �򸲸���������������
+������л��������� Ubuntu 22.04 ����µ� x86_64��ʹ�� `/opt/node-v22.23.2/bin/node`��
+��ʵ�ʷ�������˲��ֲ�һ�£�`check` ��ʧ�ܣ�Ӧ�Ⱥ˶Է�����������������顣
+
+### һ��������
+
+�� **�����ֿ�**�� Settings �� Environments ���� `production`�������֧������ `master`��
+�˰汾�����״β���� root ����Ȩ�ޣ�������Կ���Թ�����̨������������������ά�����޸�������֧��
+���� `production` ���� required reviewers��ʹ��ר�� SSH ��Կ����Ҫ���ø�������Կ��
+��Կ���Ȱ�װ�������� root �� `authorized_keys`��˽Կֻ��д�� GitHub Environment secrets��������������ύ���롣
+
+| Environment secret | ���� |
+| --- | --- |
+| `DEPLOY_HOST` | ������ IP ������ |
+| `DEPLOY_USER` | ��ǰ�汾Ҫ�� `root` |
+| `DEPLOY_SSH_KEY` | ר�ò��� SSH ˽Կȫ�� |
+| `DEPLOY_KNOWN_HOSTS` | ������� SSH ������Կ��¼����ʽ�� OpenSSH known_hosts һ�� |
+
+�ֿ���� `DEPLOY_PORT` Ĭ�� `22`����Ҫ�ر�������Կ��飻��Ĭ�϶˿ڵļ�¼���� `[����]:�˿� ssh-ed25519 ��Կ`��
+���ڰ����ƿ���Զ���ն˶�ȡ `/etc/ssh/ssh_host_ed25519_key.pub` �Ĺ�Կ������ǰ�油�����������ֶΣ���Ҫ��ȡ����˽Կ��
+GitHub �й���������Ҫ�����ӷ����� SSH �˿ڡ��ֿ���� `AUTO_DEPLOY` ��ʼ����δ���á�
+
+### �״��������ճ�ʹ��
+
+1. ��˸Ķ��ϲ��� `master`���ٺϲ�ǰ�˸Ķ���ǰ����ˮ�߹̶����ú�˵��Ѻ����ύ��
+2. ���ֿ� Actions �� **Aliyun release** �� **Run workflow**��ѡ�� `master` �� `check`��
+3. ���ͨ����ѡ�� `deploy`����������ִ�� lint��������е��⡢����������ƺ͹�����ǰ�˹����Դ����ͼ�顣
+4. �����ɹ���˶Ե�¼�͹ؼ�ҳ�棬�ٰѶ�Ӧ�ֿ�� **repository variable** `AUTO_DEPLOY` ����Ϊ `true`��
+   �˺����� `master` �Զ������òֿ⣻�������� reviewer ������Ȼ��Ч��
+5. ����ʧ�᳢ܻ�Իָ�ԭ�汾�������� Actions ʧ��״̬���ֶ�ѡ�� `rollback` ���л���һ�ɹ��汾������Ҫ���¹�����
+
+��ǰֻ�����������̣�û�д�����Ŀ������ʵ�ʷ������﷨���ͨ���������״�������֤ͨ����
+���� lint����������������ʧ�ܣ����޸�������ٷ��������Զ�����ʧ�ܡ�
+ǰ�����޲ֿ��Դ����Զ������׼���������������鲻�����ҵ�����ա�
+
+������ SSH ����������� job������ƾ�ݽ��ڲ�����ע�롣��Ʒ���� SSH ����У���� SHA-256 ������У�顣
+��˴�� `dist`������������ `package.json`��ǰ��ֻ��� `dist`������������װ����������
+�����ֿ�ʹ��ͬһ�����������и��£����������в�Ҫ�ֶ�ȡ������������˻��ؽ� Nginx ʱ���ж����жϣ�
+�÷������ṩ��ͣ�����Զ��ع������ָ�����ʧ�ܻ���ȷ��� `RESTORE FAILED`��
+
+### ������״̬��ָ�
+
+- ԭʼ����Ŀ¼�� `/opt/yueji/current` ������
+- ��Ӧ�ð汾���� `/opt/yueji/ci-releases/admin/` �� `backend/`��
+- ������ֻ���� `/opt/yueji/shared/ci-admin.override.yml` �ľ�̬�ļ����ء�
+- ���ֻ���� `/etc/systemd/system/yueji-backend.service.d/90-ci-release.conf` �Ĺ���Ŀ¼��
+- ��һ�汾���ñ����� `/opt/yueji/shared/ci-admin/`��`ci-backend/`��`rollback` �ύ����ǰ����һ�档
+- �ع����������ݿ��������������̴Ӳ��Զ�ִ�����ݿ�Ǩ�ơ�
+- �汾Ŀ¼�������ڻع������̲�������л�ǰ��ֹ������ʱ������ǰ����һ�汾��ԭʼ bootstrap Ŀ¼��
+
+�������ֹ�ִ�� Compose ʱ������������ɵĸ����ļ��������ص�ԭʼǰ�˹��أ�
+
+```bash
+docker compose --env-file /opt/yueji/shared/runtime.env \
+  -f /opt/yueji/current/compose.yml \
+  -f /opt/yueji/shared/ci-admin.override.yml ps
+```
+
+�ο���[GitHub Actions](https://docs.github.com/en/actions/get-started/understand-github-actions)��
+[��������](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)��

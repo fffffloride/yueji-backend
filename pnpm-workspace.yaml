@@ -1,3 +1,6 @@
+packages:
+  - "."
+
 allowBuilds:
   '@alicloud/openapi-core': true
   '@nestjs/core': true
