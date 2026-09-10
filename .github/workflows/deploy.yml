@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: "check: ������� / deploy: ���� / rollback: �ָ���һ��"
+        description: "check: 检查连接 / deploy: 发布 / rollback: 恢复上一版"
         type: choice
         options: [check, deploy, rollback]
         default: check
