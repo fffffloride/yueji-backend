@@ -16,7 +16,11 @@ interface DictChangeEvent {
 @Injectable()
 export class SseService {
   private readonly logger = new Logger(SseService.name);
-  private readonly eventSubject = new Subject<{ eventName: string; data: any; username?: string }>();
+  private readonly eventSubject = new Subject<{
+    eventName: string;
+    data: any;
+    username?: string;
+  }>();
 
   constructor(private readonly sessionRegistry: SseSessionRegistry) {}
 

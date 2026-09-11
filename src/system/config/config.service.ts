@@ -120,7 +120,7 @@ export class ConfigService {
     }
 
     const dto: Record<string, any> = { ...formData };
-    for (const field of ['remark']) {
+    for (const field of ["remark"]) {
       if (dto[field] === undefined) dto[field] = null;
     }
     Object.assign(config, {

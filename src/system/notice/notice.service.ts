@@ -163,7 +163,7 @@ export class NoticeService {
     const normalizedTargetUserIds = this.normalizeTargetUserIds(form.targetUserIds);
 
     const dto: Record<string, any> = { ...form };
-    for (const field of ['targetUserIds']) {
+    for (const field of ["targetUserIds"]) {
       if (dto[field] === undefined) dto[field] = null;
     }
     Object.assign(notice, dto, {

@@ -54,7 +54,9 @@ export class SseController {
         complete: () => {
           try {
             res.end();
-          } catch (_e) {}
+          } catch (_e) {
+            // 客户端可能已断开，无需再次结束响应。
+          }
         },
       };
 
