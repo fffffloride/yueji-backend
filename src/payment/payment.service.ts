@@ -8,6 +8,7 @@ import { Payment } from "./entities/payment.entity";
 import { Refund } from "./entities/refund.entity";
 import {
   PAYMENT_DRIVER,
+  rejectDisabledPayment,
   PaymentRefundNotFoundError,
   type PaymentDriver,
   type PaymentQueryResult,
@@ -77,6 +78,7 @@ export class PaymentService implements OnModuleInit {
   }
 
   async queryOwned(payerMemberId: string, paymentNo: string) {
+    this.assertPaymentEnabled();
     const owned = await this.paymentRepository.findOne({
       where: { paymentNo, payerMemberId, isDeleted: 0 },
     });
@@ -122,6 +124,7 @@ export class PaymentService implements OnModuleInit {
   }
 
   async confirmMock(payerMemberId: string, paymentNo: string) {
+    this.assertPaymentEnabled();
     if (this.isProduction()) throw this.userError("生产环境禁止模拟支付确认");
 
     const owned = await this.paymentRepository.findOne({
@@ -144,6 +147,7 @@ export class PaymentService implements OnModuleInit {
 
   /** 管理端整单退款，只允许订单真正采用的那笔支付。 */
   async refund(paymentNo: string, reason: string) {
+    this.assertPaymentEnabled();
     const normalizedReason = this.normalizeReason(reason);
     const candidate = await this.paymentRepository.findOne({
       where: { paymentNo, isDeleted: 0 },
@@ -224,6 +228,7 @@ export class PaymentService implements OnModuleInit {
   }
 
   async refundByOrder(orderId: string, reason: string) {
+    this.assertPaymentEnabled();
     const order = await this.dataSource.manager.findOne(BizOrder, {
       where: { id: orderId, isDeleted: 0 },
     });
@@ -237,6 +242,7 @@ export class PaymentService implements OnModuleInit {
 
   /** 已验签、解密的微信支付通知与主动查单共用同一状态应用函数。 */
   async applyWechatPaymentNotification(result: PaymentQueryResult): Promise<void> {
+    this.assertPaymentEnabled();
     await this.applyPaymentResult(result.paymentNo, result);
   }
 
@@ -245,6 +251,7 @@ export class PaymentService implements OnModuleInit {
     paymentNo: string,
     result: PaymentRefundResult
   ): Promise<void> {
+    this.assertPaymentEnabled();
     await this.applyRefundResult(paymentNo, result.refundNo, result);
   }
 
@@ -253,6 +260,7 @@ export class PaymentService implements OnModuleInit {
    * 每项均先释放数据库事务，再调用微信。
    */
   async reconcilePending(limit = RECONCILE_BATCH_SIZE) {
+    if (this.driverName() === "disabled") return { paymentChecked: 0, refundChecked: 0 };
     const batchSize = Math.max(1, Math.min(limit, RECONCILE_BATCH_SIZE));
     let paymentChecked = 0;
     let refundChecked = 0;
@@ -367,6 +375,7 @@ export class PaymentService implements OnModuleInit {
     payerOpenid: string,
     orderId: string
   ) {
+    this.assertPaymentEnabled();
     for (let pass = 0; pass < 3; pass++) {
       const prepared = await this.prepareAttempt(ownerMemberId, payerMemberId, orderId);
       if (prepared.action === "REUSE") {
@@ -811,6 +820,7 @@ export class PaymentService implements OnModuleInit {
   }
 
   private async closeCancelledOrderPayment(orderId: string): Promise<void> {
+    if (this.driverName() === "disabled") return;
     const payment = await this.paymentRepository.findOne({
       where: { orderId, status: PaymentStatus.PENDING, isDeleted: 0 },
     });
@@ -1149,6 +1159,10 @@ export class PaymentService implements OnModuleInit {
 
   private driverName(): string {
     return this.configService.get<string>("PAYMENT_DRIVER", "mock").toLowerCase();
+  }
+
+  private assertPaymentEnabled(): void {
+    if (this.driverName() === "disabled") rejectDisabledPayment();
   }
 
   private isProduction(): boolean {

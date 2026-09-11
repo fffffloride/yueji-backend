@@ -1,4 +1,16 @@
+import { HttpStatus } from "@nestjs/common";
+import { BusinessException } from "@/common/exceptions/business.exception";
+import { ErrorCode } from "@/common/enums/error-code.enum";
+
 export const PAYMENT_DRIVER = Symbol("PAYMENT_DRIVER");
+
+export function rejectDisabledPayment(): never {
+  throw new BusinessException({
+    ...ErrorCode.THIRD_PARTY_SERVICE_ERROR,
+    msg: "支付功能尚未启用",
+    httpStatus: HttpStatus.SERVICE_UNAVAILABLE,
+  });
+}
 
 /** 渠道明确确认退款号不存在；只有该结果允许用原 refundNo 重提退款。 */
 export class PaymentRefundNotFoundError extends Error {}
