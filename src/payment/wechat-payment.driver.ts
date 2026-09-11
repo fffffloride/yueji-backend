@@ -13,6 +13,7 @@ import {
   PaymentRefundRequest,
   PaymentRefundResult,
   PaymentRefundNotFoundError,
+  rejectDisabledPayment,
 } from "./payment-driver";
 import {
   buildWechatAuthorization,
@@ -519,6 +520,9 @@ export class WechatPaymentDriver implements PaymentDriver, OnModuleInit {
   }
 
   private getConfig(): WechatPaymentConfig {
+    if (this.configService.get<string>("PAYMENT_DRIVER", "mock").toLowerCase() === "disabled") {
+      rejectDisabledPayment();
+    }
     if (this.config) return this.config;
     const required = (key: string) => {
       const value = this.configService.get<string>(key)?.trim();

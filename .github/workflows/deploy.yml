@@ -49,6 +49,9 @@ jobs:
       - name: Package release
         run: |
           pnpm prune --prod
+          test ! -e dist/application.js
+          mv dist/main.js dist/application.js
+          cp deploy/aliyun-swas/start.cjs dist/main.js
           tar --hard-dereference -czf release.tgz dist node_modules package.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

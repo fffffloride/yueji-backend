@@ -1,6 +1,6 @@
 const NODE_ENVS = new Set(["dev", "test", "prod"]);
 const SESSION_TYPES = new Set(["jwt", "redis-token"]);
-const PAYMENT_DRIVERS = new Set(["mock", "wechat"]);
+const PAYMENT_DRIVERS = new Set(["disabled", "mock", "wechat"]);
 const OSS_TYPES = new Set(["minio", "aliyun", "local"]);
 const BOOLEAN_VALUES = new Set(["true", "false"]);
 

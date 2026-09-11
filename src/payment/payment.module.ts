@@ -5,7 +5,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { Payment } from "./entities/payment.entity";
 import { Refund } from "./entities/refund.entity";
 import { ProxyPayShare } from "./entities/proxy-pay-share.entity";
-import { PAYMENT_DRIVER, type PaymentDriver } from "./payment-driver";
+import { PAYMENT_DRIVER, rejectDisabledPayment, type PaymentDriver } from "./payment-driver";
 import { MockPaymentDriver } from "./mock-payment.driver";
 import { WechatPaymentDriver } from "./wechat-payment.driver";
 import { PaymentService } from "./payment.service";
@@ -44,6 +44,17 @@ import { WechatModule } from "@/common/wechat/wechat.module";
         wechat: WechatPaymentDriver
       ): PaymentDriver => {
         const name = config.get<string>("PAYMENT_DRIVER", "mock").toLowerCase();
+        if (name === "disabled") {
+          return {
+            create: rejectDisabledPayment,
+            buildInvokeParams: rejectDisabledPayment,
+            query: rejectDisabledPayment,
+            close: rejectDisabledPayment,
+            confirmCallback: rejectDisabledPayment,
+            refund: rejectDisabledPayment,
+            queryRefund: rejectDisabledPayment,
+          };
+        }
         if (name === "mock") return mock;
         if (name === "wechat") return wechat;
         throw new Error(`不支持的支付驱动：${name}`);

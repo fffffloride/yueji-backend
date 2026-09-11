@@ -189,6 +189,7 @@ describe("PaymentService", () => {
     );
     return {
       service,
+      config,
       state,
       paymentRepository,
       refundRepository,
@@ -231,6 +232,39 @@ describe("PaymentService", () => {
   }
 
   afterEach(() => jest.restoreAllMocks());
+
+  it("关闭支付后拒绝资金操作，补偿和取消事件不访问数据库或渠道", async () => {
+    const ctx = setup();
+    ctx.config.get.mockImplementation((key, fallback) =>
+      key === "PAYMENT_DRIVER" ? "disabled" : key === "NODE_ENV" ? "prod" : fallback
+    );
+    for (const action of [
+      () => ctx.service.create("2", "1"),
+      () => ctx.service.createForPayer("3", "openid", "1", "2"),
+      () => ctx.service.queryOwned("2", "P1"),
+      () => ctx.service.confirmMock("2", "P1"),
+      () => ctx.service.refund("P1", "reason"),
+      () => ctx.service.refundByOrder("1", "reason"),
+      () => ctx.service.applyWechatPaymentNotification({} as never),
+      () => ctx.service.applyWechatRefundNotification("P1", refundResult()),
+    ]) {
+      await expect(action()).rejects.toMatchObject({ status: 503 });
+    }
+    await expect(ctx.service.reconcilePending()).resolves.toEqual({
+      paymentChecked: 0,
+      refundChecked: 0,
+    });
+    await ctx.service["closeCancelledOrderPayment"]("1");
+    for (const dependency of [
+      ctx.paymentRepository,
+      ctx.refundRepository,
+      ctx.dataSource.manager,
+      ctx.driver,
+    ]) {
+      for (const method of Object.values(dependency)) expect(method).not.toHaveBeenCalled();
+    }
+    expect(ctx.dataSource.transaction).not.toHaveBeenCalled();
+  });
 
   it("新支付尝试分离购买人与付款人，且微信下单发生在事务外", async () => {
     const ctx = setup({

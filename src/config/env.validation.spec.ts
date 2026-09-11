@@ -29,6 +29,15 @@ const productionConfig = (): Record<string, unknown> => ({
 });
 
 describe("validateEnvironment", () => {
+  it("允许生产环境明确关闭支付，但仍拒绝不完整的微信配置", () => {
+    const config = productionConfig();
+    for (const key of Object.keys(config)) if (key.startsWith("WX_")) delete config[key];
+    expect(validateEnvironment({ ...config, PAYMENT_DRIVER: "disabled" }).PAYMENT_DRIVER).toBe(
+      "disabled"
+    );
+    expect(() => validateEnvironment(config)).toThrow("WX_PAY_MCH_ID");
+  });
+
   it("拒绝生产环境使用 Mock 支付", () => {
     expect(() => validateEnvironment({ ...productionConfig(), PAYMENT_DRIVER: "mock" })).toThrow(
       "生产环境禁止使用 Mock 支付驱动"
