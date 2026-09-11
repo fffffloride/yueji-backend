@@ -16,7 +16,12 @@ import { Transform, Type } from "class-transformer";
 
 function isBlankHtml(value: unknown): boolean {
   if (typeof value !== "string") return true;
-  return value.replace(/<[^>]*>/g, "").replace(/&nbsp;/gi, " ").trim().length === 0;
+  return (
+    value
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/gi, " ")
+      .trim().length === 0
+  );
 }
 
 /**

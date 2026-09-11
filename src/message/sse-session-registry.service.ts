@@ -96,7 +96,9 @@ export class SseSessionRegistry implements OnModuleDestroy {
         if (emitter.complete) {
           emitter.complete();
         }
-      } catch (_e) {}
+      } catch (_e) {
+        // 已断开的连接不应阻止其余连接完成清理。
+      }
     });
     this.userEmittersMap.clear();
     this.emitterUserMap.clear();

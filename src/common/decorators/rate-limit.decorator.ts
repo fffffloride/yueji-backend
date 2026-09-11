@@ -10,5 +10,4 @@ export interface RateLimitOptions {
 }
 
 /** 接口限流装饰器 */
-export const RateLimit = (options: RateLimitOptions) =>
-  SetMetadata(RATE_LIMIT_KEY, options);
+export const RateLimit = (options: RateLimitOptions) => SetMetadata(RATE_LIMIT_KEY, options);

@@ -85,12 +85,14 @@ describe("PaymentService", () => {
     };
     let inTransaction = false;
     const driver = {
-      create: jest.fn(async (request: any): Promise<any> => ({
-        paymentNo: request.paymentNo,
-        status: "PENDING",
-        prepayId: `mock-${request.paymentNo}`,
-        invokeParams: { mock: true, prepayId: `mock-${request.paymentNo}` },
-      })),
+      create: jest.fn(
+        async (request: any): Promise<any> => ({
+          paymentNo: request.paymentNo,
+          status: "PENDING",
+          prepayId: `mock-${request.paymentNo}`,
+          invokeParams: { mock: true, prepayId: `mock-${request.paymentNo}` },
+        })
+      ),
       buildInvokeParams: jest.fn((prepayId: string) => ({ mock: true, prepayId })),
       query: jest.fn(),
       close: jest.fn(),

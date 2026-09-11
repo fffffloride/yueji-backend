@@ -12,14 +12,11 @@ export class RateLimitGuard implements CanActivate {
 
   constructor(
     private readonly reflector: Reflector,
-    private readonly redisService: RedisService,
+    private readonly redisService: RedisService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const options = this.reflector.get<RateLimitOptions>(
-      RATE_LIMIT_KEY,
-      context.getHandler(),
-    );
+    const options = this.reflector.get<RateLimitOptions>(RATE_LIMIT_KEY, context.getHandler());
     // 未标注 @RateLimit 的接口直接放行
     if (!options) {
       return true;
