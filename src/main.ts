@@ -28,6 +28,8 @@ async function bootstrap() {
 
   // 卡片最多包含 10 段富文本，单独放宽此保存接口的 JSON 大小。
   app.use("/api/v1/decoration/cards", json({ limit: "8mb" }));
+  // 局部 jsonParser 会让 Nest 跳过默认 JSON 解析，需显式注册其他接口的解析器。
+  app.useBodyParser("json");
 
   // 全局前缀
   app.setGlobalPrefix("/api/v1");
