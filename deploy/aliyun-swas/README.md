@@ -11,6 +11,57 @@ Node.js 使用官方 Node 22 LTS 发行包，NestJS 由 systemd 守护；MySQL�
 - MinIO 公共文件：`/files/public/**`
 - 容器健康检查：`http://服务器IP/healthz`
 
+## HTTPS（lumiere.love）
+
+线上已启用 `https://lumiere.love` 和 `https://www.lumiere.love`。
+普通 HTTP 请求以 308 跳转到主域名 HTTPS，健康检查与 ACME 验证路径保留 HTTP。
+证书由 Let's Encrypt 签发，Certbot 定时续期；不需要购买阿里云付费证书。
+
+服务器持久配置：
+
+- Nginx：`/opt/yueji/shared/nginx.https.conf`
+- 证书：`/etc/letsencrypt/live/lumiere.love/`（私钥不得下载到仓库）
+- 域名验证目录：`/opt/yueji/shared/acme-webroot`
+- 自动续期：`certbot.timer`
+- 续期后重载：`/etc/letsencrypt/renewal-hooks/deploy/yueji-nginx`
+- 环境变量：`PUBLIC_BASE_URL=https://lumiere.love`、
+  `YUEJI_NGINX_CONFIG=/opt/yueji/shared/nginx.https.conf`；
+  后端 `OSS_MINIO_CUSTOM_DOMAIN=https://lumiere.love/files`
+
+`compose.yml` 会挂载持久配置、完整证书目录（包含 live 符号链接目标 archive）
+以及 ACME 目录。发布时继续使用服务器的 `runtime.env`，并保留线上
+`ci-admin.override.yml` 等已有覆盖文件，避免把管理端退回旧版本。
+日常代码发布无需重新签发证书，也无需重跑 `bootstrap.sh`。
+
+首次给同样的部署开启 HTTPS：确认两个域名的 A 记录指向本机、80/443 端口已开放，
+通过 Certbot webroot 模式先签发证书，再将 `enable-https.sh` 和
+`nginx.https.conf` 一起上传服务器，以 root 运行脚本。脚本会保留所有当前 Compose
+覆盖文件，备份配置，只重建管理端容器并重启后端，不操作数据库。
+
+维护检查：
+
+```bash
+systemctl list-timers certbot.timer
+certbot certificates
+certbot renew --dry-run
+docker exec yueji-admin-1 nginx -t
+curl --fail https://lumiere.love/healthz
+```
+
+若签发机构的测试服务临时繁忙，HTTPS 健康检查已经成功时不撤销有效证书；
+可单独重试持久化验证目录配置：
+
+```bash
+certbot reconfigure --cert-name lumiere.love \
+  --webroot-path /opt/yueji/shared/acme-webroot --non-interactive
+systemctl enable --now certbot.timer
+/etc/letsencrypt/renewal-hooks/deploy/yueji-nginx
+```
+
+2026-09-15 已验证：两个域名 TLS 证书校验、首页、验证码接口、308 跳转、
+ACME HTTP 验证和自动续期演练。变更前服务器备份：
+`/opt/yueji/shared/backups/https-20260915T145455Z`。
+
 数据库、Redis、MinIO 和 NestJS 均只监听本机端口。生产变量放在服务器
 `/opt/yueji/shared/runtime.env` 与 `backend.env`，权限为 `600`，不得提交到 Git。
 

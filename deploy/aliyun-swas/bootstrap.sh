@@ -150,7 +150,7 @@ umask 077
   printf 'OSS_MINIO_ACCESS_KEY=%s\n' "${MINIO_ACCESS_KEY}"
   printf 'OSS_MINIO_SECRET_KEY=%s\n' "${MINIO_SECRET_KEY}"
   printf 'OSS_MINIO_BUCKET=public\n'
-  printf 'OSS_MINIO_CUSTOM_DOMAIN=http://47.100.53.222/files\n'
+  printf 'OSS_MINIO_CUSTOM_DOMAIN=%s/files\n' "${PUBLIC_BASE_URL%/}"
   printf 'OSS_UPLOAD_MAX_SIZE=52428800\n'
   printf 'OSS_UPLOAD_ALLOWED_EXTENSIONS=jpg,jpeg,png,gif,webp\n'
   printf 'WX_MINIAPP_APP_ID=%s\n' "${WX_MINIAPP_APP_ID:-}"

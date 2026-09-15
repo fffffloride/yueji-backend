@@ -90,8 +90,10 @@ services:
     restart: unless-stopped
     network_mode: host
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${YUEJI_NGINX_CONFIG:-./nginx.conf}:/etc/nginx/conf.d/default.conf:ro
       - ./yueji-oss/dist:/usr/share/nginx/html:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /opt/yueji/shared/acme-webroot:/var/www/acme:ro
 
 volumes:
   mysql-data:
