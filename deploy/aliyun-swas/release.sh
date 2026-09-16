@@ -54,7 +54,7 @@ backend_health() {
     return
   fi
   curl --fail --silent --show-error --max-time 10 \
-    http://127.0.0.1/prod-api/api/v1/auth/captcha |
+    http://127.0.0.1:8000/api/v1/auth/captcha |
     python3 -I -c 'import json,sys; assert json.load(sys.stdin).get("code") == "00000"'
 }
 if [[ "$operation" != rollback ]]; then
