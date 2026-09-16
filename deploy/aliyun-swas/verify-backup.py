@@ -77,9 +77,9 @@ def main():
             migration_spec = importlib.util.spec_from_file_location('database_release', Path(__file__).with_name('database-release.py'))
             migrations = importlib.util.module_from_spec(migration_spec)
             migration_spec.loader.exec_module(migrations)
-            migration_root, manifest, entries = migrations.load_release(sys.argv[2])
-            migrations.migrate(mysql, migration_root, manifest, entries)
-            migrations.migrate(mysql, migration_root, manifest, entries)
+            migration_root, migration_manifest, entries = migrations.load_release(sys.argv[2])
+            migrations.migrate(mysql, migration_root, migration_manifest, entries)
+            migrations.migrate(mysql, migration_root, migration_manifest, entries)
             after = {table: count for table, count, _ in backup.db_inventory(mysql)}
             allowed_increases = {table for entry in entries for table in entry.get('allowRowIncrease', [])}
             for table, count, _ in inventory['database']:
