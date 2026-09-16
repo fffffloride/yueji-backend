@@ -46,3 +46,4 @@ docker/*/data
 docker/*/config
 
 .superpowers/
+__pycache__/

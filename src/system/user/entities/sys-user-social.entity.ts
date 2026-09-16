@@ -33,7 +33,7 @@ export class SysUserSocial extends BaseEntity {
   @Column({ length: 255, nullable: true, comment: "第三方头像URL" })
   avatar?: string;
 
-  @Column({ length: 128, nullable: true, comment: "微信session_key" })
+  @Column({ name: "session_key", length: 128, nullable: true, comment: "微信session_key" })
   sessionKey?: string;
 
   @Column({ type: "tinyint", default: 1, comment: "是否已验证(1-已验证 0-未验证)" })

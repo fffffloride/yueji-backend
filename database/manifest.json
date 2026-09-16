@@ -1,0 +1,40 @@
+{
+  "format": 1,
+  "baseline": {
+    "id": "202609160001_baseline",
+    "backwardCompatible": true,
+    "files": [
+      {
+        "path": "baseline/schema.sql",
+        "mode": "bootstrap",
+        "sha256": "3117daa3d8c9635822ea8278df228b10763e920181bfa096ce17210736939d3b"
+      },
+      {
+        "path": "baseline/adopt.sql",
+        "mode": "adopt",
+        "sha256": "1638d338d70d536960abfd3ba1f53e921daebc44a7e8f91faf7ac3a48af42e2e"
+      },
+      {
+        "path": "baseline/adopt-business.sql",
+        "mode": "adopt",
+        "sha256": "f12d4f6d3a6973d89aec05d9a3338c061c99ed64345930d46e60dc59df792aa8"
+      },
+      {
+        "path": "baseline/contract.json",
+        "mode": "bootstrap",
+        "sha256": "e14ff1a754edddbcebf3dd969066f5bfee50befcc0568f1d11df6c9ec25899d0"
+      },
+      {
+        "path": "baseline/assertions.json",
+        "mode": "bootstrap",
+        "sha256": "907d4c7629a0af18a89633bddb7be4fbda960f03621ed661fad46f14f73981d3"
+      }
+    ],
+    "allowRowIncrease": [
+      "sys_menu",
+      "sys_role_menu",
+      "agreement"
+    ]
+  },
+  "migrations": []
+}

@@ -36,6 +36,7 @@ import { DistributionModule } from "./distribution/distribution.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { AgreementModule } from "./agreement/agreement.module";
 import { AdminSortModule } from "./admin-sort/admin-sort.module";
+import { ReadinessModule } from "./readiness/readiness.module";
 
 import { LoggerMiddleware } from "./common/middleware/logger.middleware";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
@@ -136,6 +137,7 @@ const envPath = `.env.${nodeEnv}`;
     DashboardModule,
     AgreementModule,
     AdminSortModule,
+    ReadinessModule,
   ],
   controllers: [],
   providers: [

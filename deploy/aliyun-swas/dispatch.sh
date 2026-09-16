@@ -13,13 +13,13 @@ fi
 [[ $EUID == 0 && $# == 5 ]] || exit 2
 [[ "$1" == admin || "$1" == backend ]] || exit 2
 case "$2" in
-  check|rollback) [[ -z "$3$4$5" ]] || exit 2 ;;
+  check|rollback|protocol) [[ -z "$3$4$5" ]] || exit 2 ;;
   deploy)
     [[ "$3" =~ ^[0-9]+-[0-9]+-[0-9a-f]{40}$ && "$4" =~ ^[0-9a-f]{64}$ ]] || exit 2
     [[ "$5" =~ ^/home/yueji-deploy/staging/release\.[A-Za-z0-9]+$ ]] || exit 2 ;;
   *) exit 2 ;;
 esac
-if [[ "$2" == check ]]; then
+if [[ "$2" == check || "$2" == protocol ]]; then
   exec /bin/bash /usr/local/lib/yueji-release/release.sh "$@"
 fi
 # The server owns the job lifetime even if the SSH connection disappears.

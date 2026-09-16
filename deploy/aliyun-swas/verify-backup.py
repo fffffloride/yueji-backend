@@ -20,7 +20,7 @@ spec.loader.exec_module(backup)
 
 
 def main():
-    assert os.geteuid() == 0 and len(sys.argv) == 2, 'Root and backup directory required'
+    assert os.geteuid() == 0 and len(sys.argv) in (2, 3), 'Root, backup directory and optional database release required'
     os.umask(0o077)
     def interrupted(signum, frame):
         raise RuntimeError('Restore verification interrupted')
@@ -73,6 +73,20 @@ def main():
                         'export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"; exec mysql -u root'],
                        input=dump.read(), timeout=180)
         assert backup.db_inventory(mysql) == inventory['database'], 'Restored database differs'
+        if len(sys.argv) == 3:
+            migration_spec = importlib.util.spec_from_file_location('database_release', Path(__file__).with_name('database-release.py'))
+            migrations = importlib.util.module_from_spec(migration_spec)
+            migration_spec.loader.exec_module(migrations)
+            migration_root, manifest, entries = migrations.load_release(sys.argv[2])
+            migrations.migrate(mysql, migration_root, manifest, entries)
+            migrations.migrate(mysql, migration_root, manifest, entries)
+            after = {table: count for table, count, _ in backup.db_inventory(mysql)}
+            allowed_increases = {table for entry in entries for table in entry.get('allowRowIncrease', [])}
+            for table, count, _ in inventory['database']:
+                if table != migrations.HISTORY:
+                    actual = after.get(table, -1)
+                    assert actual >= count if table in allowed_increases else actual == count, 'Migration changed existing table row counts: '+table
+            print('DATABASE_MIGRATION_REHEARSAL_OK', flush=True)
         backup.run(['docker','rm','-f','-v',mysql])
         containers.remove(mysql)
         with tarfile.open(target/'uploads.tar.gz') as archive:

@@ -11,6 +11,8 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
+    "db:prepare": "node scripts/database/build-release.cjs",
+    "db:test": "python3 scripts/database/integration.py",
     "start:dev": "cross-env NODE_ENV=dev nest start --watch",
     "start:prod": "node dist/main",
     "start:debug": "nest start --debug",

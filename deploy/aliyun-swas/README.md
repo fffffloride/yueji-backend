@@ -105,11 +105,12 @@ curl --fail http://127.0.0.1/healthz
 - `rollback`：切回上一应用版本，不构建，也不覆盖数据库或上传文件。
 
 仅手动触发，推送代码不会上线。后端仍用现有 systemd 服务，前端仍用现有 Nginx 容器。
-流水线不会运行 bootstrap、执行数据库迁移或更新 MySQL、Redis、MinIO 容器。
+流水线不会运行 bootstrap 或更新 MySQL、Redis、MinIO 容器。
+新版数据库发布检查安装后，后端发布会执行经过隔离演练的版本化迁移；详见 `../../database/README.md`。
 
 发布顺序：构建通过 → 上传制品并校验 SHA-256 → 短暂停止后端和文件服务并生成一致备份
 → 恢复原服务 → 在隔离容器中验证数据库和文件恢复 → 上传 OSS 并下载校验
-→ 切换应用 → 健康检查。构建失败不改变服务器；备份、恢复验证或上传失败时不切换版本。
+→ 数据库迁移与结构校验 → 切换应用 → 业务就绪检查。构建失败不改变服务器；备份、恢复验证或上传失败时不切换版本。
 
 每次发布的新备份保存在 `/opt/yueji/shared/backups/full-<UTC时间>/`，站外副本位于私有桶
 `oss://yueji-backup-sh-e99bdc29/yueji/full-<UTC时间>/`，使用 AES256 托管加密。
@@ -145,3 +146,49 @@ SSH 公钥、主机指纹、OSS 最小权限账号需预先配置；OSS 密钥�
 前端挂载覆盖在 `/opt/yueji/shared/ci-admin.override.yml`，手工操作 Compose 时也应带上此文件；
 后端工作目录覆盖在 `/etc/systemd/system/yueji-backend.service.d/90-ci-release.conf`。
 原始 `/opt/yueji/current` 保留。备份和旧版本不自动删除，容量增长时再安排保留策略。
+
+## 订单数据库增量（2026-09-16）
+
+代码发布不等于数据库升级。新订单实体需要 `beneficiary_member_id`、
+`paid_payment_id` 等字段，订单详情还会查询预约场景与生命周期字段。
+未执行增量时，列表或详情会返回 `Unknown column`；重新发布前端或配置 HTTPS
+不会解决此类结构不一致。
+
+这次线上补齐了以下迁移，并在无网络的临时 MySQL 容器中恢复备份、重复演练两次：
+
+1. `sql/mysql/order_gifting.sql`
+2. `sql/mysql/friend_payment.sql`
+3. `sql/mysql/appointment_lifecycle_preserve.sql`
+
+第三个脚本是保留数据的生产版本。**不要在线上运行**
+`appointment_lifecycle.sql`，该旧脚本会删除预约记录并插入开发测试数据。
+保留版本不删除记录、不制造历史日志；旧预约新增场景为 `CONSULTATION`，
+状态为 `0`（待到店），不推断已经完成或取消。
+
+操作脚本：`migrate-orders.sh`。将其与上述三个 SQL 文件放在服务器同一私有目录，
+以 root 运行 `bash migrate-orders.sh`。脚本与发布任务共用锁，先备份和隔离演练，
+然后短暂停止后端、生成新的迁移前备份、执行增量并检查所有原有表的记录数。
+临时验证容器会清理，备份保留。MySQL DDL 不支持整组事务回滚，失败时不会自动
+覆盖线上数据库；必须先检查完成到哪一步，再决定补跑或恢复。
+
+本次备份目录（仅服务器保存，权限 700；包含 SQL 压缩备份、SHA-256 和记录数清单）：
+
+- 订单/支付增量前：`/opt/yueji/shared/backups/order-schema-20260916T134329Z`
+- 预约增量前：`/opt/yueji/shared/backups/order-schema-20260916T135457Z`
+
+验收：原有 120 条订单、100 条支付记录、26 条退款记录、90 条预约全部保留；
+订单权益人和实际付款人缺失数均为 0，80 条历史已支付订单已关联支付流水。
+已在登录状态下验证订单列表（共 120 条）和订单详情正常显示。
+
+## 预约容量配置补齐（2026-09-16）
+
+预约页面出现 `Table 'youlai_admin.appointment_config' doesn't exist` 时，
+需要补跑 `sql/mysql/appointment_capacity.sql`。已有数据库不会重新执行容器初始化 SQL。
+独立操作脚本为 `migrate-appointment-capacity.sh`，与该 SQL 放在同一目录后以 root 执行。
+脚本先备份、校验压缩文件，再补表和配置权限，并核对预约记录数。
+
+线上已通过阿里云命令助手完成此增量（执行 ID：`t-sh06x8xvjv6axvk`，退出码 0）。
+配置记录 `id=1`、`slot_capacity=1`，菜单权限 `biz:appointment:config` 已授予既有
+ROOT/ADMIN 角色。增量重复执行成功，原有 90 条预约保留。
+迁移前数据库备份及校验清单保存在服务器：
+`/opt/yueji/shared/backups/appointment-capacity-20260916T142705Z`。

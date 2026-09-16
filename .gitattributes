@@ -1,0 +1,4 @@
+database/** text eol=lf
+scripts/database/** text eol=lf
+deploy/aliyun-swas/*.py text eol=lf
+deploy/aliyun-swas/*.sh text eol=lf

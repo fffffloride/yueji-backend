@@ -1,0 +1,6687 @@
+{
+  "format": 1,
+  "tables": [
+    {
+      "name": "agreement",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "type",
+          "type": "varchar",
+          "length": 32,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "draft_title",
+          "type": "varchar",
+          "length": 100,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "draft_content",
+          "type": "text",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "published_title",
+          "type": "varchar",
+          "length": 100,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "published_content",
+          "type": "text",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "publish_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uk_agreement_type",
+          "columns": [
+            "type"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "app_visit_daily",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "visit_date",
+          "type": "date",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "visitor_id",
+          "type": "varchar",
+          "length": 36,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "pv_count",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "first_visit_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "last_visit_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uk_app_visit_daily_date_visitor",
+          "columns": [
+            "visit_date",
+            "visitor_id"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "appointment",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "appointment_date",
+          "type": "date",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "appointment_time",
+          "type": "time",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "scene_type",
+          "type": "varchar",
+          "length": 20,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "complete_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "cancel_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "cancel_reason",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_appointment_order_status",
+          "columns": [
+            "order_id",
+            "status"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_appointment_status_time",
+          "columns": [
+            "status",
+            "appointment_date",
+            "appointment_time"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_appointment_member_status_time",
+          "columns": [
+            "member_id",
+            "status",
+            "appointment_date",
+            "appointment_time"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "appointment_config",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "slot_capacity",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "appointment_operation_log",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "appointment_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "action",
+          "type": "varchar",
+          "length": 20,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "operator_type",
+          "type": "varchar",
+          "length": 20,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "operator_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "before_date",
+          "type": "date",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "before_time",
+          "type": "time",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "after_date",
+          "type": "date",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "after_time",
+          "type": "time",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "reason",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_appointment_operation_log_appointment",
+          "columns": [
+            "appointment_id",
+            "create_time",
+            "id"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "biz_order",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "order_no",
+          "type": "varchar",
+          "length": 32,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "beneficiary_member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "total_amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "discount_amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "member_level_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "member_discount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "member_coupon_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "coupon_amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "points_used",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "points_deduct",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "pay_amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "pay_type",
+          "type": "tinyint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "pay_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "paid_payment_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "contact_name",
+          "type": "varchar",
+          "length": 32,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "contact_mobile",
+          "type": "varchar",
+          "length": 20,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "remark",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "verify_code",
+          "type": "varchar",
+          "length": 8,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "verify_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "verify_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "cancel_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "cancel_reason",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_order_timeout_scan",
+          "columns": [
+            "status",
+            "is_deleted",
+            "create_time",
+            "id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_order_beneficiary_active_created",
+          "columns": [
+            "beneficiary_member_id",
+            "is_deleted",
+            "create_time",
+            "id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_order_member_active_created",
+          "columns": [
+            "member_id",
+            "is_deleted",
+            "create_time",
+            "id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "uk_order_paid_payment_id",
+          "columns": [
+            "paid_payment_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uk_order_verify_code",
+          "columns": [
+            "verify_code"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uk_order_no",
+          "columns": [
+            "order_no"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "biz_order_gift",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sender_member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "recipient_member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "token_hash",
+          "type": "char",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "expires_at",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "claimed_at",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "revoked_at",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "returned_at",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_order_gift_recipient_status_created",
+          "columns": [
+            "recipient_member_id",
+            "status",
+            "create_time",
+            "id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_order_gift_sender_status_created",
+          "columns": [
+            "sender_member_id",
+            "status",
+            "create_time",
+            "id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "uk_order_gift_token_hash",
+          "columns": [
+            "token_hash"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "biz_order_item",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "product_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sku_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "product_name",
+          "type": "varchar",
+          "length": 100,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "product_image",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sku_name",
+          "type": "varchar",
+          "length": 100,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "price",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "quantity",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "subtotal",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_order_item_product_sku",
+          "columns": [
+            "product_id",
+            "sku_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_order_item_order",
+          "columns": [
+            "order_id"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "biz_payment",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "payment_no",
+          "type": "varchar",
+          "length": 32,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "payer_member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "channel",
+          "type": "varchar",
+          "length": 16,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "third_party_no",
+          "type": "varchar",
+          "length": 64,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "prepay_id",
+          "type": "varchar",
+          "length": 64,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "expire_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "active_order_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": true
+        },
+        {
+          "name": "paid_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_payment_reconcile",
+          "columns": [
+            "status",
+            "is_deleted",
+            "update_time",
+            "id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_payment_status",
+          "columns": [
+            "status"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_payment_payer_member_id",
+          "columns": [
+            "payer_member_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_payment_member_id",
+          "columns": [
+            "member_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "uk_payment_third_party_no",
+          "columns": [
+            "third_party_no"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uk_payment_active_order_id",
+          "columns": [
+            "active_order_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "idx_payment_order_id",
+          "columns": [
+            "order_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "uk_payment_no",
+          "columns": [
+            "payment_no"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "biz_proxy_pay_share",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "owner_member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "token_hash",
+          "type": "char",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "expires_at",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_proxy_pay_share_order_id",
+          "columns": [
+            "order_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "uk_proxy_pay_share_token_hash",
+          "columns": [
+            "token_hash"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "biz_refund",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "refund_no",
+          "type": "varchar",
+          "length": 32,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "payment_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "reason",
+          "type": "varchar",
+          "length": 255,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "third_party_no",
+          "type": "varchar",
+          "length": 64,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "closed_refund_nos",
+          "type": "varchar",
+          "length": 1024,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "refund_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_refund_reconcile",
+          "columns": [
+            "status",
+            "is_deleted",
+            "update_time",
+            "id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_refund_status",
+          "columns": [
+            "status"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_refund_member_id",
+          "columns": [
+            "member_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "uk_refund_third_party_no",
+          "columns": [
+            "third_party_no"
+          ],
+          "unique": true
+        },
+        {
+          "name": "idx_refund_order_id",
+          "columns": [
+            "order_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "uk_refund_payment_id",
+          "columns": [
+            "payment_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uk_refund_no",
+          "columns": [
+            "refund_no"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "cart",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "product_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sku_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "quantity",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "checked",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "coupon",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "length": 100,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "type",
+          "type": "varchar",
+          "length": 24,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "scope_type",
+          "type": "varchar",
+          "length": 16,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "threshold_amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "discount_amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "discount_rate",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "max_discount_amount",
+          "type": "int",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "exchange_sku_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "claim_start",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "claim_end",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "valid_start",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "valid_end",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "total_quantity",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "issued_quantity",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "per_member_limit",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_coupon_status_time",
+          "columns": [
+            "status",
+            "claim_start",
+            "claim_end"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "coupon_scope",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "coupon_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "target_type",
+          "type": "varchar",
+          "length": 16,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "target_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_coupon_scope_coupon_active",
+          "columns": [
+            "coupon_id",
+            "is_deleted"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "decoration_banner",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "image_url",
+          "type": "varchar",
+          "length": 500,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "link_url",
+          "type": "varchar",
+          "length": 500,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sort",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "decoration_brand",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "content",
+          "type": "longtext",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "decoration_home_cards",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "cards",
+          "type": "json",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "decoration_notice",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "title",
+          "type": "varchar",
+          "length": 100,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sort",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "decoration_promo_cards",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "cards",
+          "type": "json",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "distribution_agent",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "real_name",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "mobile",
+          "type": "varchar",
+          "length": 20,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "wechat",
+          "type": "varchar",
+          "length": 64,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "contact_remark",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "type_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "level_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "parent_agent_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "invite_code",
+          "type": "varchar",
+          "length": 16,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "custom_level1_rate_bps",
+          "type": "int",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "custom_level2_rate_bps",
+          "type": "int",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "direct_verified_sales",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "apply_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "audit_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "audit_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "audit_remark",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uk_distribution_agent_invite",
+          "columns": [
+            "invite_code"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uk_distribution_agent_member",
+          "columns": [
+            "member_id"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "distribution_agent_log",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "agent_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "action",
+          "type": "varchar",
+          "length": 32,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "before_value",
+          "type": "json",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "after_value",
+          "type": "json",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "reason",
+          "type": "varchar",
+          "length": 255,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "operator_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "distribution_agent_type",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sort",
+          "type": "smallint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "distribution_commission",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "order_no",
+          "type": "varchar",
+          "length": 32,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "buyer_member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "beneficiary_agent_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "source_agent_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "depth",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "base_amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "rate_bps",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "commission_amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "agent_level_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "agent_level_name",
+          "type": "varchar",
+          "length": 64,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "paid_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "pending_settlement_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "settlement_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "settled_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "reversed_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uk_distribution_commission_order_agent_depth",
+          "columns": [
+            "order_id",
+            "beneficiary_agent_id",
+            "depth"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "distribution_direct_sales",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "buyer_member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "agent_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "referral_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "paid_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "applied_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "reversed_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uk_distribution_direct_sales_order",
+          "columns": [
+            "order_id"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "distribution_level",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "rank",
+          "type": "smallint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "upgrade_sales_amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "distribution_depth",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "level1_rate_bps",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "level2_rate_bps",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sort",
+          "type": "smallint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uk_distribution_level_rank",
+          "columns": [
+            "rank"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "distribution_referral",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "referrer_agent_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "bound_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "frozen_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uk_distribution_referral_member",
+          "columns": [
+            "member_id"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "distribution_settlement",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "settlement_no",
+          "type": "varchar",
+          "length": 32,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "agent_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "profit_point",
+          "type": "varchar",
+          "length": 32,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "period_start",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "period_end",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "commission_count",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "settled_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uk_distribution_settlement_no",
+          "columns": [
+            "settlement_no"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uk_distribution_settlement_agent_period",
+          "columns": [
+            "agent_id",
+            "profit_point",
+            "period_start",
+            "period_end"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "distribution_settlement_config",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "cycle_type",
+          "type": "varchar",
+          "length": 16,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "settlement_day",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "withdrawal_mode",
+          "type": "varchar",
+          "length": 16,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "single_limit_amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "distribution_task",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "length": 100,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "metric_type",
+          "type": "varchar",
+          "length": 24,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "target_value",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "start_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "end_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "assignment_scope",
+          "type": "varchar",
+          "length": 16,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "target_level_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "target_agent_ids",
+          "type": "json",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "published_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "cancelled_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_distribution_task_status_time",
+          "columns": [
+            "status",
+            "start_time",
+            "end_time"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "distribution_task_assignee",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "task_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "agent_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uk_distribution_task_assignee",
+          "columns": [
+            "task_id",
+            "agent_id"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "distribution_withdrawal",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "withdrawal_no",
+          "type": "varchar",
+          "length": 32,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "agent_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "source_mode",
+          "type": "varchar",
+          "length": 16,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "openid_snapshot",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "review_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "review_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "review_reason",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "transfer_no",
+          "type": "varchar",
+          "length": 64,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "paid_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "paid_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "paid_remark",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "auto_period_end",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uk_distribution_withdrawal_no",
+          "columns": [
+            "withdrawal_no"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uk_distribution_withdrawal_auto_period",
+          "columns": [
+            "agent_id",
+            "source_mode",
+            "auto_period_end"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "group_buy_activity",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sku_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "length": 100,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "group_price",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "required_people",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "start_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "end_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "group_duration_minutes",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_group_activity_sku",
+          "columns": [
+            "sku_id"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "group_buy_group",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "activity_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "leader_member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "required_people",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "group_price",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "expire_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "success_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "fail_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_group_status_expire",
+          "columns": [
+            "status",
+            "expire_time"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "group_buy_member",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "group_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "paid_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "refund_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uk_group_order",
+          "columns": [
+            "order_id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uk_group_member",
+          "columns": [
+            "group_id",
+            "member_id"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "marketing_points_rule",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "earn_per_yuan",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "redeem_points_per_yuan",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "max_deduct_rate",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "member",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "openid",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "unionid",
+          "type": "varchar",
+          "length": 64,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "mobile",
+          "type": "varchar",
+          "length": 20,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "nickname",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "avatar",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "gender",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "points",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "level_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "total_spent",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "last_login_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "tags",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "remark",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_member_level_id",
+          "columns": [
+            "level_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_member_active_status_created",
+          "columns": [
+            "is_deleted",
+            "status",
+            "create_time",
+            "id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_member_active_created",
+          "columns": [
+            "is_deleted",
+            "create_time",
+            "id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_member_nickname",
+          "columns": [
+            "nickname"
+          ],
+          "unique": false
+        },
+        {
+          "name": "uk_member_mobile",
+          "columns": [
+            "mobile"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uk_member_unionid",
+          "columns": [
+            "unionid"
+          ],
+          "unique": true
+        },
+        {
+          "name": "uk_openid",
+          "columns": [
+            "openid"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "member_coupon",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "coupon_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "claimed_at",
+          "type": "datetime",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "used_at",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_member_coupon_order",
+          "columns": [
+            "order_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_member_coupon_template",
+          "columns": [
+            "coupon_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_member_coupon_member_template",
+          "columns": [
+            "member_id",
+            "coupon_id",
+            "is_deleted"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_member_coupon_status",
+          "columns": [
+            "member_id",
+            "status"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "member_level",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "threshold_amount",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "discount_rate",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sort",
+          "type": "smallint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_member_level_threshold",
+          "columns": [
+            "threshold_amount"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "member_points_log",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "change_points",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "balance_after",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "biz_type",
+          "type": "varchar",
+          "length": 32,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "biz_id",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "remark",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_points_order",
+          "columns": [
+            "order_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_points_member_time",
+          "columns": [
+            "member_id",
+            "create_time"
+          ],
+          "unique": false
+        },
+        {
+          "name": "uk_points_biz",
+          "columns": [
+            "member_id",
+            "biz_type",
+            "biz_id"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "product",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "length": 100,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "category_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sub_title",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "main_image",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "album",
+          "type": "text",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "video_url",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "tags",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "pain_friendly",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "original_price",
+          "type": "int",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "price",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sales",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "stock",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "detail",
+          "type": "mediumtext",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "usage_note",
+          "type": "text",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sort",
+          "type": "smallint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "product_category",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "parent_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "tree_path",
+          "type": "varchar",
+          "length": 255,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "level",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "icon",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sort",
+          "type": "smallint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "product_sku",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "product_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "length": 100,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "specs",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sku_code",
+          "type": "varchar",
+          "length": 64,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "price",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "original_price",
+          "type": "int",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "stock",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sys_config",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "config_name",
+          "type": "varchar",
+          "length": 50,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "config_key",
+          "type": "varchar",
+          "length": 50,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "config_value",
+          "type": "varchar",
+          "length": 500,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "remark",
+          "type": "varchar",
+          "length": 500,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sys_dept",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "length": 100,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "code",
+          "type": "varchar",
+          "length": 100,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "parent_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "tree_path",
+          "type": "varchar",
+          "length": 255,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sort",
+          "type": "smallint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sys_dict",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "dict_code",
+          "type": "varchar",
+          "length": 50,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "length": 50,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "remark",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sys_dict_item",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "dict_code",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "label",
+          "type": "varchar",
+          "length": 50,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "value",
+          "type": "varchar",
+          "length": 50,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sort",
+          "type": "smallint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "tag_type",
+          "type": "varchar",
+          "length": 50,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "remark",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sys_log",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "module",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "action_type",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "title",
+          "type": "varchar",
+          "length": 100,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "operator_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "operator_name",
+          "type": "varchar",
+          "length": 50,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "request_uri",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "request_method",
+          "type": "varchar",
+          "length": 10,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "ip",
+          "type": "varchar",
+          "length": 45,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "province",
+          "type": "varchar",
+          "length": 100,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "city",
+          "type": "varchar",
+          "length": 100,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "device",
+          "type": "varchar",
+          "length": 100,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "os",
+          "type": "varchar",
+          "length": 100,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "browser",
+          "type": "varchar",
+          "length": 100,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "error_msg",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "execution_time",
+          "type": "int",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sys_menu",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "parent_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "tree_path",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "type",
+          "type": "char",
+          "length": 1,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "route_name",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "route_path",
+          "type": "varchar",
+          "length": 128,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "external_url",
+          "type": "varchar",
+          "length": 512,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "component",
+          "type": "varchar",
+          "length": 128,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "perm",
+          "type": "varchar",
+          "length": 128,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "always_show",
+          "type": "tinyint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "keep_alive",
+          "type": "tinyint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "visible",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sort",
+          "type": "int",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "icon",
+          "type": "varchar",
+          "length": 64,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "redirect",
+          "type": "varchar",
+          "length": 128,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "params",
+          "type": "json",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sys_notice",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "title",
+          "type": "varchar",
+          "length": 50,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "type",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "level",
+          "type": "varchar",
+          "length": 5,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "target_type",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "target_user_ids",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "publisher_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "publish_status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "publish_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "revoke_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sys_role",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "name",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "code",
+          "type": "varchar",
+          "length": 32,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "sort",
+          "type": "int",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "data_scope",
+          "type": "int",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sys_role_dept",
+      "columns": [
+        {
+          "name": "role_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "dept_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sys_role_menu",
+      "columns": [
+        {
+          "name": "role_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "menu_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sys_user",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "username",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "nickname",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "gender",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "password",
+          "type": "varchar",
+          "length": 100,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "dept_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "avatar",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "mobile",
+          "type": "varchar",
+          "length": 20,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "status",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "email",
+          "type": "varchar",
+          "length": 128,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sys_user_notice",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "notice_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_read",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "read_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sys_user_role",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "role_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sys_user_social",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": true,
+          "generated": false
+        },
+        {
+          "name": "create_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_by",
+          "type": "bigint",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "length": null,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "is_deleted",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "platform",
+          "type": "enum",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "openid",
+          "type": "varchar",
+          "length": 64,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "unionid",
+          "type": "varchar",
+          "length": 64,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "nickname",
+          "type": "varchar",
+          "length": 64,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "avatar",
+          "type": "varchar",
+          "length": 255,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "session_key",
+          "type": "varchar",
+          "length": 128,
+          "nullable": true,
+          "primary": false,
+          "generated": false
+        },
+        {
+          "name": "verified",
+          "type": "tinyint",
+          "length": null,
+          "nullable": false,
+          "primary": false,
+          "generated": false
+        }
+      ],
+      "indexes": []
+    }
+  ]
+}

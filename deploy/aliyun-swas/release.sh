@@ -1,5 +1,5 @@
 #!/bin/bash
-# Extend the existing SWAS bootstrap deployment; never run bootstrap or SQL here.
+# Extend the existing SWAS deployment with rehearsed, versioned database upgrades.
 set -Eeuo pipefail
 umask 022
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin
@@ -12,13 +12,18 @@ checksum=${4:-}
 upload=${5:-}
 [[ $# == 5 ]] || exit 2
 case "$component" in admin|backend) ;; *) echo 'Expected admin or backend' >&2; exit 2;; esac
-case "$operation" in check|deploy|rollback) ;; *) echo 'Expected check, deploy or rollback' >&2; exit 2;; esac
+case "$operation" in check|deploy|rollback|protocol) ;; *) echo 'Expected check, deploy or rollback' >&2; exit 2;; esac
 [[ $EUID == 0 && ${SUDO_USER:-root} == @(root|yueji-deploy) ]] || exit 1
 if [[ "$operation" != deploy ]]; then
   [[ -z "$release$checksum$upload" ]] || exit 2
 fi
 ops=/usr/local/lib/yueji-release
 [[ -f "$ops/backup.py" && -f "$ops/verify-backup.py" && -f "$ops/upload.cjs" ]]
+if [[ "$operation" == protocol ]]; then
+  [[ -s "$ops/database-release.py" && -s "$ops/readiness.py" ]]
+  echo DATABASE_RELEASE_PROTOCOL=1
+  exit 0
+fi
 
 base=/opt/yueji
 shared=$base/shared
@@ -35,8 +40,19 @@ flock -w 600 9
 compose=(docker compose --env-file "$shared/runtime.env" -f "$current/compose.yml")
 "${compose[@]}" config --quiet
 [[ $(systemctl show yueji-backend.service -p User --value) == yueji ]]
+running_backend=$(systemctl show yueji-backend.service -p WorkingDirectory --value)
+schema_release=$running_backend
+if [[ -s "$shared/database-release.path" ]]; then
+  schema_release=$(cat "$shared/database-release.path")
+  [[ "$schema_release" =~ ^/opt/yueji/(releases|ci-releases)/[A-Za-z0-9_./-]+$ && -d "$schema_release" ]]
+fi
 
 backend_health() {
+  local release_path=${1:-$running_backend}
+  if [[ -f "$release_path/dist/database-release/contract.json" ]]; then
+    python3 -I "$ops/readiness.py" "$shared/backend.env"
+    return
+  fi
   curl --fail --silent --show-error --max-time 10 \
     http://127.0.0.1/prod-api/api/v1/auth/captcha |
     python3 -I -c 'import json,sys; assert json.load(sys.stdin).get("code") == "00000"'
@@ -65,9 +81,15 @@ else
 fi
 [[ "$active" =~ ^/opt/yueji/(releases|ci-releases)/[A-Za-z0-9_./-]+$ && -d "$active" ]]
 if [[ "$operation" == check ]]; then
+  [[ -s "$ops/database-release.py" && -s "$ops/readiness.py" ]]
+  if [[ -s "$running_backend/dist/database-release/manifest.json" ]]; then
+    python3 -I "$ops/database-release.py" check "$schema_release/dist/database-release"
+    python3 -I "$ops/database-release.py" audit "$running_backend/dist/database-release"
+  fi
   python3 -I "$ops/backup.py" --preflight
   [[ -s /root/yueji-backup-ops-20260910/oss.json ]]
   printf 'READY component=%s active=%s\n' "$component" "$active"
+  echo DATABASE_RELEASE_PROTOCOL=1
   exit 0
 fi
 
@@ -103,7 +125,7 @@ verify() {
     if [[ "$component" == admin ]]; then
       if curl --fail --silent --show-error --max-time 5 http://127.0.0.1/index.html -o "$transaction/index.html" &&
         cmp --silent "$transaction/index.html" "$1/index.html" && backend_health; then return 0; fi
-    elif systemctl is-active --quiet yueji-backend.service && backend_health; then
+    elif systemctl is-active --quiet yueji-backend.service && backend_health "$1"; then
       return 0
     fi
     sleep 2
@@ -127,6 +149,11 @@ if [[ "$operation" == rollback ]]; then
   [[ -s "$state/previous.path" ]] || { echo 'No previous release recorded' >&2; exit 1; }
   target=$(cat "$state/previous.path")
   [[ "$target" =~ ^/opt/yueji/(releases|ci-releases)/[A-Za-z0-9_./-]+$ && -d "$target" ]]
+  if [[ "$component" == backend ]]; then
+    [[ -s "$target/dist/database-release/contract.json" ]] || { echo 'Legacy rollback target has no database contract; manual compatibility review required' >&2; exit 1; }
+    python3 -I "$ops/database-release.py" check "$schema_release/dist/database-release"
+    python3 -I "$ops/database-release.py" audit "$target/dist/database-release"
+  fi
   write_config "$target" > "$transaction/next"
 else
   [[ "$release" =~ ^[0-9]+-[0-9]+-[0-9a-f]{40}$ && "$checksum" =~ ^[0-9a-f]{64}$ ]]
@@ -195,6 +222,8 @@ PY
   else
     target=$destination
     [[ -s "$target/dist/main.js" && -d "$target/node_modules" ]]
+    [[ -s "$target/dist/database-release/manifest.json" && -s "$ops/database-release.py" && -s "$ops/readiness.py" ]] || { echo 'Database release gate not installed or artifact missing migrations' >&2; exit 1; }
+    python3 -I "$ops/database-release.py" verify-files "$target/dist/database-release"
   fi
   chown -hR root:root "$destination"
   if [[ "$component" == backend ]]; then
@@ -205,9 +234,28 @@ PY
   python3 -I "$ops/backup.py" --run > "$transaction/backup.log"
   backup=$(tail -n 1 "$transaction/backup.log" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["local_backup"])')
   printf 'BACKUP_LOCAL=%s\n' "$backup"
-  python3 -I "$ops/verify-backup.py" "$backup"
+  if [[ "$component" == backend ]]; then
+    python3 -I "$ops/verify-backup.py" "$backup" "$target/dist/database-release"
+  else
+    python3 -I "$ops/verify-backup.py" "$backup"
+  fi
   /opt/node-v22.23.2/bin/node "$ops/upload.cjs" "$backup"
   printf '%s\n' "$backup" > "$state/last-backup.path"
+  if [[ "$component" == backend ]]; then
+    # Rehearsal and off-server backup must succeed before changing the live DB.
+    # Pause writes for the short migration window. Failed DDL is not rolled back.
+    systemctl stop yueji-backend.service
+    if ! python3 -I "$ops/database-release.py" migrate "$target/dist/database-release"; then
+      systemctl start yueji-backend.service
+      echo 'Database migration failed; application version not switched. Inspect migration history before retrying.' >&2
+      exit 1
+    fi
+    python3 -I "$ops/database-release.py" check "$target/dist/database-release"
+    # Database history can be newer than the running app after an app rollback.
+    # Retain this release directory even when older app versions are pruned.
+    printf '%s\n' "$target" > "$shared/database-release.path.next"
+    mv -fT "$shared/database-release.path.next" "$shared/database-release.path"
+  fi
 fi
 
 trap restore ERR HUP INT TERM

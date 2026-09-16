@@ -46,6 +46,13 @@ jobs:
         run: pnpm audit --prod --audit-level=high --registry=https://registry.npmjs.org
       - name: Build release
         run: pnpm build
+      - name: Build database contract and verify migrations
+        run: |
+          node scripts/database/build-release.cjs
+          python3 deploy/aliyun-swas/database-release.py verify-files dist/database-release
+          python3 -m unittest discover -s scripts/database -p 'test_*.py' -v
+      - name: Test empty database and legacy upgrade
+        run: python3 scripts/database/integration.py
       - name: Package release
         run: |
           pnpm prune --prod
@@ -108,6 +115,14 @@ jobs:
             rm -rf -- "$connection"
           }
           trap cleanup EXIT
+          # An old host script must not silently bypass the new database gate.
+          capability=$(ssh "${ssh_options[@]}" -p "$DEPLOY_PORT" "$remote" \
+            "sudo -n /usr/local/sbin/yueji-release 'backend' 'protocol' '' '' ''")
+          printf '%s\n' "$capability"
+          grep -Fx 'DATABASE_RELEASE_PROTOCOL=1' <<< "$capability" >/dev/null || {
+            echo 'Install database release gate v1 on the server before deploying.' >&2
+            exit 1
+          }
           release=''
           checksum=''
           if [[ "$OPERATION" == deploy ]]; then
