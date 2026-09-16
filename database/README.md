@@ -61,4 +61,21 @@ GitHub CLI/Actions 的 `check / build / deploy / rollback`。工作流检查服�
 阿里云执行 ID `t-sh06x90ghgteyo0`，扫描已部署版本的 56 个实体表。
 确认缺少 `decoration_home_cards`、`decoration_promo_cards`、`agreement`；
 另有系统表字段缺失/长度差异及 `session_key` 映射差异。90 条预约、120 条订单仍在。
-这些结果已用于编写接入脚本；本记录不代表新流程已经安装或这些迁移已经在线上执行。
+这些结果用于编写接入脚本；后续上线记录如下。
+
+## 2026-09-16 上线验收
+
+- 已通过现有 `gh workflow run deploy.yml --ref master -f operation=deploy` 发布版本 `971b0f3`。
+  [部署任务 35116577364](https://github.com/fffffloride/yueji-backend/actions/runs/35116577364) 成功。
+- 51 个 Jest 测试套件、229 项测试、5 项 Python 回归测试及真实 MySQL/HTTP 集成测试通过。
+- 生产备份 `full-20260916T154007Z` 完成隔离恢复、两次迁移演练、OSS AES256 上传和下载哈希校验。
+  服务器目录 `/opt/yueji/shared/backups/full-20260916T154007Z`；上传收据见该目录 `upload-receipt.json`。
+- 基线 `202609160001_baseline` 于北京时间 23:41:37 标记为 `applied`。
+  最终只读验收 `t-sh06x94mql2bpxc` 返回 `DATABASE_CHECK_OK`、`BUSINESS_READINESS_OK`；
+  90 条预约、120 条订单、每时段容量 1 保留，HTTPS 健康检查正常。
+- 服务器工具安装备份：`/opt/yueji/shared/backups/release-gate-20260916T151800Z-1979232`。
+- 上线中修复了旧 HTTP 探针受 HTTPS 跳转影响的问题，以及新增演练代码变量重名覆盖备份清单的问题；
+  两次失败均发生在正式迁移前，未切换应用。后者已有完整验证流程的回归测试；
+  失败备份 `full-20260916T152636Z` 的清单无效，不作为已验证恢复点使用，成功发布使用上述新备份。
+
+基线现已在线上应用，后续不得改写 `baseline/` 或已有 manifest 条目的校验值；新增 SQL 必须作为新迁移追加。
