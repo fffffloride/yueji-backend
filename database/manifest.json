@@ -30,11 +30,29 @@
         "sha256": "907d4c7629a0af18a89633bddb7be4fbda960f03621ed661fad46f14f73981d3"
       }
     ],
-    "allowRowIncrease": [
-      "sys_menu",
-      "sys_role_menu",
-      "agreement"
-    ]
+    "allowRowIncrease": ["sys_menu", "sys_role_menu", "agreement"]
   },
-  "migrations": []
+  "migrations": [
+    {
+      "id": "202609180001_configurable_agreement_types",
+      "backwardCompatible": true,
+      "files": [
+        {
+          "path": "migrations/202609180001_configurable_agreement_types.sql",
+          "sha256": "c252059277feefa6273ab9fd75e794620edf060d209e97de7cdbbcdcdaf7c97e"
+        }
+      ],
+      "allowRowIncrease": ["agreement", "sys_menu", "sys_role_menu"]
+    },
+    {
+      "id": "202609190001_new_user_coupon_type",
+      "backwardCompatible": true,
+      "files": [
+        {
+          "path": "migrations/202609190001_new_user_coupon_type.sql",
+          "sha256": "4b5a7e3657a0b69ab5c0a80275b6e6b44752ad54151f9957ea3d945823f07088"
+        }
+      ]
+    }
+  ]
 }

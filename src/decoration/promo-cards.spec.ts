@@ -47,7 +47,8 @@ it("validates four activity links and keeps activity cards separate from content
     empty as never,
     { findOne: async () => ({ content: "品牌背书" }) } as never,
     { findOne: async () => ({ cards: [{ title: "原首页卡片" }] }) } as never,
-    promoRepo as never
+    promoRepo as never,
+    { homeNewUserCoupon: async () => null } as never
   );
   expect(await service.getPromoCards()).toEqual({ cards: [] });
   await service.savePromoCards({ cards: [card] });
@@ -55,6 +56,7 @@ it("validates four activity links and keeps activity cards separate from content
     cards: [{ title: "原首页卡片" }],
     promoCards: [card],
     brandContent: "品牌背书",
+    newUserCoupon: null,
   });
   await service.savePromoCards({ cards: [] });
   expect((await service.appHome()).promoCards).toEqual([]);

@@ -112,6 +112,14 @@ if [[ ! -f "${RUNTIME_ENV}" ]]; then
     printf 'JWT_SECRET_KEY=%s\n' "${jwt_secret_key}"
     printf 'WX_MINIAPP_APP_ID=\n'
     printf 'WX_MINIAPP_APP_SECRET=\n'
+    printf 'PAYMENT_DRIVER=disabled\n'
+    printf 'WX_PAY_MCH_ID=\n'
+    printf 'WX_PAY_API_V3_KEY=\n'
+    printf 'WX_PAY_MERCHANT_SERIAL_NO=\n'
+    printf 'WX_PAY_MERCHANT_PRIVATE_KEY_PATH=/opt/yueji/shared/secrets/wechat/apiclient_key.pem\n'
+    printf "WX_PAY_PLATFORM_KEYS_JSON='{}'\n"
+    printf 'WX_PAY_NOTIFY_URL=https://lumiere.love/prod-api/api/v1/app/payment/wechat/notify\n'
+    printf 'WX_PAY_REFUND_NOTIFY_URL=https://lumiere.love/prod-api/api/v1/app/payment/wechat/refund-notify\n'
   } > "${RUNTIME_ENV}"
   chmod 600 "${RUNTIME_ENV}"
 fi
@@ -129,7 +137,7 @@ umask 077
   printf 'SESSION_TYPE=jwt\n'
   printf 'MOCK_LOGIN_ENABLED=false\n'
   printf 'SWAGGER_ENABLED=false\n'
-  printf 'PAYMENT_DRIVER=wechat\n'
+  printf 'PAYMENT_DRIVER=%s\n' "${PAYMENT_DRIVER:-disabled}"
   printf 'MYSQL_HOST=127.0.0.1\n'
   printf 'MYSQL_PORT=3306\n'
   printf 'MYSQL_USER=yueji\n'
@@ -155,6 +163,13 @@ umask 077
   printf 'OSS_UPLOAD_ALLOWED_EXTENSIONS=jpg,jpeg,png,gif,webp\n'
   printf 'WX_MINIAPP_APP_ID=%s\n' "${WX_MINIAPP_APP_ID:-}"
   printf 'WX_MINIAPP_APP_SECRET=%s\n' "${WX_MINIAPP_APP_SECRET:-}"
+  printf 'WX_PAY_MCH_ID=%s\n' "${WX_PAY_MCH_ID:-}"
+  printf 'WX_PAY_API_V3_KEY=%s\n' "${WX_PAY_API_V3_KEY:-}"
+  printf 'WX_PAY_MERCHANT_SERIAL_NO=%s\n' "${WX_PAY_MERCHANT_SERIAL_NO:-}"
+  printf 'WX_PAY_MERCHANT_PRIVATE_KEY_PATH=%s\n' "${WX_PAY_MERCHANT_PRIVATE_KEY_PATH:-}"
+  printf "WX_PAY_PLATFORM_KEYS_JSON='%s'\n" "${WX_PAY_PLATFORM_KEYS_JSON:-{}}"
+  printf 'WX_PAY_NOTIFY_URL=%s\n' "${WX_PAY_NOTIFY_URL:-}"
+  printf 'WX_PAY_REFUND_NOTIFY_URL=%s\n' "${WX_PAY_REFUND_NOTIFY_URL:-}"
 } > "${BACKEND_ENV}"
 chmod 600 "${BACKEND_ENV}"
 umask 022

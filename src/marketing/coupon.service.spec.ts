@@ -175,4 +175,113 @@ describe("CouponService", () => {
     expect(couponQb.skip).toHaveBeenCalledWith(10);
     expect(couponQb.take).toHaveBeenCalledWith(10);
   });
+
+  it("新人券保存时强制每人限领 1 张", () => {
+    const service = new CouponService({} as never, {} as never, {} as never, {} as never);
+    const entity = (service as any).toEntity({
+      name: "新人券",
+      type: CouponType.NEW_USER,
+      scopeType: CouponScopeType.ALL,
+      thresholdAmount: 100000,
+      discountAmount: 35000,
+      discountRate: 10000,
+      claimStart: "2026-01-01T00:00:00",
+      claimEnd: "2026-12-31T00:00:00",
+      validStart: "2026-01-01T00:00:00",
+      validEnd: "2026-12-31T00:00:00",
+      totalQuantity: 100,
+      perMemberLimit: 5,
+      status: CouponTemplateStatus.ACTIVE,
+    });
+    expect(entity.perMemberLimit).toBe(1);
+    expect(entity.claimStart).toEqual(new Date("2020-01-01T00:00:00.000Z"));
+    expect(entity.validEnd).toEqual(new Date("2099-12-31T23:59:59.000Z"));
+  });
+
+  it("启用新人券时停用其它启用中的新人券", async () => {
+    const manager = {
+      update: jest.fn().mockResolvedValue(undefined),
+    } as unknown as EntityManager;
+    const service = new CouponService({} as never, {} as never, {} as never, {} as never);
+    await (service as any).deactivateOtherNewUserCoupons(
+      manager,
+      { type: CouponType.NEW_USER, status: CouponTemplateStatus.ACTIVE },
+      "9"
+    );
+    expect(manager.update).toHaveBeenCalledWith(
+      Coupon,
+      expect.objectContaining({
+        type: CouponType.NEW_USER,
+        status: CouponTemplateStatus.ACTIVE,
+        isDeleted: 0,
+      }),
+      { status: CouponTemplateStatus.DISABLED }
+    );
+  });
+
+  it("首页下发当前启用的新人券", async () => {
+    const coupon = {
+      id: "9",
+      type: CouponType.NEW_USER,
+      scopeType: CouponScopeType.ALL,
+      thresholdAmount: 100000,
+      discountAmount: 35000,
+      validEnd: new Date("2099-01-01T00:00:00Z"),
+      claimStart: new Date("2026-01-01T00:00:00Z"),
+      claimEnd: new Date("2099-01-01T00:00:00Z"),
+      issuedQuantity: 3,
+      totalQuantity: 100,
+    };
+    const couponRepository = { findOne: jest.fn().mockResolvedValue(coupon) };
+    const service = new CouponService(
+      couponRepository as never,
+      {} as never,
+      {} as never,
+      {} as never
+    );
+    await expect(service.homeNewUserCoupon()).resolves.toEqual({
+      couponId: "9",
+      scopeType: CouponScopeType.ALL,
+      thresholdAmount: 100000,
+      discountAmount: 35000,
+      validEnd: coupon.validEnd,
+      claimStart: coupon.claimStart,
+      claimEnd: coupon.claimEnd,
+      issuedQuantity: 3,
+      totalQuantity: 100,
+    });
+  });
+
+  it("启用中的新人券即使超过有效期仍下发到首页", async () => {
+    const coupon = {
+      id: "9",
+      type: CouponType.NEW_USER,
+      scopeType: CouponScopeType.ALL,
+      thresholdAmount: 100000,
+      discountAmount: 35000,
+      validEnd: new Date("2000-01-01T00:00:00Z"),
+      claimStart: new Date("2000-01-01T00:00:00Z"),
+      claimEnd: new Date("2000-01-02T00:00:00Z"),
+      issuedQuantity: 3,
+      totalQuantity: 100,
+    };
+    const couponRepository = { findOne: jest.fn().mockResolvedValue(coupon) };
+    const service = new CouponService(
+      couponRepository as never,
+      {} as never,
+      {} as never,
+      {} as never
+    );
+    await expect(service.homeNewUserCoupon()).resolves.toEqual({
+      couponId: "9",
+      scopeType: CouponScopeType.ALL,
+      thresholdAmount: 100000,
+      discountAmount: 35000,
+      validEnd: coupon.validEnd,
+      claimStart: coupon.claimStart,
+      claimEnd: coupon.claimEnd,
+      issuedQuantity: 3,
+      totalQuantity: 100,
+    });
+  });
 });

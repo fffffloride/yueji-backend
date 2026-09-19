@@ -14,3 +14,11 @@ export class AgreementDraftDto {
   @MaxLength(200000)
   content: string;
 }
+
+export class AgreementCreateDto extends AgreementDraftDto {
+  @ApiProperty({ maxLength: 50 })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(50)
+  typeLabel: string;
+}

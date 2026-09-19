@@ -16,6 +16,7 @@ export default registerAs("typeorm", () => {
     username: required("MYSQL_USER", "数据库账号"),
     password: required("MYSQL_PASSWORD", "数据库密码"),
     database: required("MYSQL_DB", "数据库名称"),
+    charset: "utf8mb4",
     autoLoadEntities: true,
     supportBigNumbers: true,
     bigNumberStrings: true,

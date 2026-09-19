@@ -6,6 +6,7 @@ describe("AgreementService", () => {
   const repository = {
     findOne: jest.fn(),
     find: jest.fn(),
+    create: jest.fn((value) => value),
     save: jest.fn(),
   };
   const manager = {
@@ -21,6 +22,63 @@ describe("AgreementService", () => {
     jest.clearAllMocks();
     repository.save.mockImplementation(async (value) => value);
     manager.save.mockImplementation(async (value) => value);
+  });
+
+  it("公开列表只返回类型和名称", async () => {
+    repository.find.mockResolvedValue([
+      {
+        type: AgreementType.USER_AGREEMENT,
+        typeLabel: "用户协议",
+        draftContent: "草稿正文",
+        publishedContent: "<p>已发布</p>",
+      },
+      {
+        type: AgreementType.ABOUT_US,
+        typeLabel: "关于我们",
+        draftContent: "未发布草稿",
+        publishedContent: null,
+      },
+    ]);
+
+    await expect(service.listPublic()).resolves.toEqual([
+      { type: AgreementType.USER_AGREEMENT, typeLabel: "用户协议" },
+      { type: AgreementType.ABOUT_US, typeLabel: "关于我们" },
+    ]);
+  });
+
+  it("新增自定义协议类型时直接发布", async () => {
+    repository.findOne.mockResolvedValue(null);
+
+    const result = await service.create(
+      { typeLabel: "术后注意事项", title: "术后注意事项", content: "<p>正文</p>" },
+      "1"
+    );
+
+    expect(result.type).toMatch(/^CUSTOM_[0-9a-f]{24}$/);
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        typeLabel: "术后注意事项",
+        draftTitle: "术后注意事项",
+        publishedTitle: "术后注意事项",
+        publishedContent: "<p>正文</p>",
+        createBy: "1",
+      })
+    );
+    expect(repository.save).toHaveBeenCalled();
+  });
+
+  it("拒绝重复的协议类型名称", async () => {
+    repository.findOne.mockResolvedValue({ id: "1" });
+
+    const error = await service
+      .create({ typeLabel: "用户协议", title: "标题", content: "正文" })
+      .catch((reason) => reason as BusinessException);
+
+    expect(error).toBeInstanceOf(BusinessException);
+    expect((error as BusinessException).getResponse()).toMatchObject({
+      msg: "协议类型名称已存在",
+    });
+    expect(repository.save).not.toHaveBeenCalled();
   });
 
   it("保存草稿不改变已发布内容", async () => {

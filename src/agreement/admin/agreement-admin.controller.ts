@@ -1,8 +1,7 @@
-import { Body, Controller, Get, Param, ParseEnumPipe, Put } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Put } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 
-import { AgreementType } from "../agreement.constants";
-import { AgreementDraftDto } from "../dto/agreement.dto";
+import { AgreementCreateDto, AgreementDraftDto } from "../dto/agreement.dto";
 import { AgreementService } from "../agreement.service";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
 import { Permissions } from "@/common/decorators/auth.decorator";
@@ -19,10 +18,17 @@ export class AgreementAdminController {
     return this.service.list();
   }
 
+  @ApiOperation({ summary: "新增并发布协议类型" })
+  @Post()
+  @Permissions("content:agreement:create")
+  create(@Body() dto: AgreementCreateDto, @CurrentUser("userId") userId: string) {
+    return this.service.create(dto, userId);
+  }
+
   @ApiOperation({ summary: "协议草稿" })
   @Get(":type/form")
   @Permissions("content:agreement:list")
-  form(@Param("type", new ParseEnumPipe(AgreementType)) type: AgreementType) {
+  form(@Param("type") type: string) {
     return this.service.form(type);
   }
 
@@ -30,7 +36,7 @@ export class AgreementAdminController {
   @Put(":type")
   @Permissions("content:agreement:update")
   saveDraft(
-    @Param("type", new ParseEnumPipe(AgreementType)) type: AgreementType,
+    @Param("type") type: string,
     @Body() dto: AgreementDraftDto,
     @CurrentUser("userId") userId: string
   ) {
@@ -40,10 +46,7 @@ export class AgreementAdminController {
   @ApiOperation({ summary: "发布协议" })
   @Put(":type/publish")
   @Permissions("content:agreement:publish")
-  publish(
-    @Param("type", new ParseEnumPipe(AgreementType)) type: AgreementType,
-    @CurrentUser("userId") userId: string
-  ) {
+  publish(@Param("type") type: string, @CurrentUser("userId") userId: string) {
     return this.service.publish(type, userId);
   }
 }

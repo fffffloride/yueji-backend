@@ -13,7 +13,9 @@ export function calculateCouponAmount(
   maxDiscountAmount?: number | null
 ): number {
   if (eligibleAmount < thresholdAmount) return 0;
-  if (type === CouponType.FULL_REDUCTION) return Math.min(discountAmount, eligibleAmount);
+  if (type === CouponType.FULL_REDUCTION || type === CouponType.NEW_USER) {
+    return Math.min(discountAmount, eligibleAmount);
+  }
   if (type === CouponType.DISCOUNT) {
     const raw = eligibleAmount - Math.floor((eligibleAmount * discountRate) / 10000);
     return maxDiscountAmount ? Math.min(raw, maxDiscountAmount) : raw;

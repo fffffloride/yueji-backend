@@ -1,5 +1,5 @@
 "use strict";
 
-// This deployment has no merchant setup yet; keep payment disabled with the release.
-process.env.PAYMENT_DRIVER = "disabled";
+// Keep the packaged entrypoint stable while allowing the server EnvironmentFile
+// to select disabled/wechat. Production validation still rejects mock payments.
 require("./application.js");

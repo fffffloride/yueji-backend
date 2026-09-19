@@ -1,11 +1,50 @@
 [
-  {"name":"agreement drafts","sql":"SELECT COUNT(DISTINCT type)=3 FROM agreement WHERE type IN ('USER_AGREEMENT','PRIVACY_POLICY','MEDICAL_INFORMED_CONSENT') AND is_deleted=0"},
-  {"name":"decoration permissions","sql":"SELECT COUNT(DISTINCT perm)=7 FROM sys_menu WHERE perm IN ('biz:decoration:cards:list','biz:decoration:cards:update','biz:decoration:promo-cards:list','biz:decoration:promo-cards:update','content:agreement:list','content:agreement:update','content:agreement:publish')"},
-  {"name":"appointment capacity","sql":"SELECT COUNT(*)=1 FROM appointment_config WHERE id=1 AND slot_capacity>=1 AND is_deleted=0"},
-  {"name":"points rule","sql":"SELECT COUNT(*)=1 FROM marketing_points_rule WHERE id=1 AND is_deleted=0"},
-  {"name":"settlement configuration","sql":"SELECT COUNT(*)=1 FROM distribution_settlement_config WHERE id=1 AND is_deleted=0"},
-  {"name":"appointment query and configuration permissions","sql":"SELECT COUNT(DISTINCT perm)=2 FROM sys_menu WHERE perm IN ('biz:appointment:query','biz:appointment:config')"},
-  {"name":"appointment permission grants","sql":"SELECT COUNT(*)=0 FROM sys_role r CROSS JOIN sys_menu m LEFT JOIN sys_role_menu rm ON rm.role_id=r.id AND rm.menu_id=m.id WHERE r.id IN (1,2) AND m.perm IN ('biz:appointment:query','biz:appointment:config') AND rm.menu_id IS NULL"},
-  {"name":"active appointment order uniqueness","sql":"SELECT COUNT(*)=1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='appointment' AND INDEX_NAME='uk_appointment_active_order' AND COLUMN_NAME='active_order_id' AND NON_UNIQUE=0"},
-  {"name":"active appointment slot uniqueness","sql":"SELECT COUNT(*)=1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='appointment' AND INDEX_NAME='uk_appointment_booked_member_slot' AND COLUMN_NAME='booked_member_slot_key' AND NON_UNIQUE=0"}
+  {
+    "name": "agreement defaults",
+    "sql": "SELECT COUNT(DISTINCT type)=5 FROM agreement WHERE type IN ('USER_AGREEMENT','PRIVACY_POLICY','MEDICAL_INFORMED_CONSENT','ACCOUNT_CANCELLATION_NOTICE','ABOUT_US') AND is_deleted=0"
+  },
+  {
+    "name": "agreement type labels",
+    "sql": "SELECT COUNT(*)=5 FROM agreement WHERE is_deleted=0 AND ((type='USER_AGREEMENT' AND type_label='用户协议') OR (type='PRIVACY_POLICY' AND type_label='隐私政策') OR (type='MEDICAL_INFORMED_CONSENT' AND type_label='用户就诊告知及知情同意书') OR (type='ACCOUNT_CANCELLATION_NOTICE' AND type_label='注销须知') OR (type='ABOUT_US' AND type_label='关于我们'))"
+  },
+  {
+    "name": "agreement create menu name",
+    "sql": "SELECT COUNT(*)=1 FROM sys_menu WHERE id=3534 AND name='协议新增' AND perm='content:agreement:create'"
+  },
+  {
+    "name": "decoration permissions",
+    "sql": "SELECT COUNT(DISTINCT perm)=8 FROM sys_menu WHERE perm IN ('biz:decoration:cards:list','biz:decoration:cards:update','biz:decoration:promo-cards:list','biz:decoration:promo-cards:update','content:agreement:list','content:agreement:create','content:agreement:update','content:agreement:publish')"
+  },
+  {
+    "name": "agreement create permission grants",
+    "sql": "SELECT COUNT(*)=0 FROM sys_role r CROSS JOIN sys_menu m LEFT JOIN sys_role_menu rm ON rm.role_id=r.id AND rm.menu_id=m.id WHERE r.id IN (1,2) AND m.perm='content:agreement:create' AND rm.menu_id IS NULL"
+  },
+  {
+    "name": "appointment capacity",
+    "sql": "SELECT COUNT(*)=1 FROM appointment_config WHERE id=1 AND slot_capacity>=1 AND is_deleted=0"
+  },
+  {
+    "name": "points rule",
+    "sql": "SELECT COUNT(*)=1 FROM marketing_points_rule WHERE id=1 AND is_deleted=0"
+  },
+  {
+    "name": "settlement configuration",
+    "sql": "SELECT COUNT(*)=1 FROM distribution_settlement_config WHERE id=1 AND is_deleted=0"
+  },
+  {
+    "name": "appointment query and configuration permissions",
+    "sql": "SELECT COUNT(DISTINCT perm)=2 FROM sys_menu WHERE perm IN ('biz:appointment:query','biz:appointment:config')"
+  },
+  {
+    "name": "appointment permission grants",
+    "sql": "SELECT COUNT(*)=0 FROM sys_role r CROSS JOIN sys_menu m LEFT JOIN sys_role_menu rm ON rm.role_id=r.id AND rm.menu_id=m.id WHERE r.id IN (1,2) AND m.perm IN ('biz:appointment:query','biz:appointment:config') AND rm.menu_id IS NULL"
+  },
+  {
+    "name": "active appointment order uniqueness",
+    "sql": "SELECT COUNT(*)=1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='appointment' AND INDEX_NAME='uk_appointment_active_order' AND COLUMN_NAME='active_order_id' AND NON_UNIQUE=0"
+  },
+  {
+    "name": "new user coupon type constraint",
+    "sql": "SELECT COUNT(*)=1 FROM information_schema.CHECK_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND CONSTRAINT_NAME='chk_coupon_type' AND CHECK_CLAUSE LIKE '%NEW_USER%'"
+  }
 ]

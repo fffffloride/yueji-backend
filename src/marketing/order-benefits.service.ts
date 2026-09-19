@@ -7,6 +7,7 @@ import {
   CouponType,
   MemberCouponStatus,
   PointsBizType,
+  isOpenEndedCoupon,
 } from "./marketing.constants";
 import { Coupon } from "./entities/coupon.entity";
 import { CouponScope } from "./entities/coupon-scope.entity";
@@ -154,7 +155,8 @@ export class OrderBenefitsService {
     });
     const now = new Date();
     const validCoupons = coupons.filter(
-      (coupon) => coupon.validStart <= now && coupon.validEnd >= now
+      (coupon) =>
+        isOpenEndedCoupon(coupon.type) || (coupon.validStart <= now && coupon.validEnd >= now)
     );
     const couponMap = new Map(validCoupons.map((coupon) => [String(coupon.id), coupon]));
 
@@ -307,7 +309,7 @@ export class OrderBenefitsService {
       where: { id: memberCoupon.couponId, isDeleted: 0 },
     });
     memberCoupon.status =
-      coupon && coupon.validEnd >= new Date()
+      coupon && (isOpenEndedCoupon(coupon.type) || coupon.validEnd >= new Date())
         ? MemberCouponStatus.UNUSED
         : MemberCouponStatus.EXPIRED;
     memberCoupon.orderId = null;
@@ -393,7 +395,10 @@ export class OrderBenefitsService {
       ...(lock ? { lock: { mode: "pessimistic_read" as const } } : {}),
     });
     const now = new Date();
-    if (!coupon || coupon.validStart > now || coupon.validEnd < now) {
+    if (
+      !coupon ||
+      (!isOpenEndedCoupon(coupon.type) && (coupon.validStart > now || coupon.validEnd < now))
+    ) {
       throw this.userError("优惠券不在有效期内");
     }
     return { memberCoupon, coupon };
@@ -414,7 +419,7 @@ export class OrderBenefitsService {
       0
     );
     if (eligibleAmount < coupon.thresholdAmount) return 0;
-    if (coupon.type === CouponType.FULL_REDUCTION) {
+    if (coupon.type === CouponType.FULL_REDUCTION || coupon.type === CouponType.NEW_USER) {
       return calculateCouponAmount(
         coupon.type,
         eligibleAmount,

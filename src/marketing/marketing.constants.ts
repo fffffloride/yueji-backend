@@ -2,7 +2,20 @@ export enum CouponType {
   FULL_REDUCTION = "FULL_REDUCTION",
   DISCOUNT = "DISCOUNT",
   EXCHANGE = "EXCHANGE",
+  NEW_USER = "NEW_USER",
 }
+
+export function isFullReductionLike(type: CouponType) {
+  return type === CouponType.FULL_REDUCTION || type === CouponType.NEW_USER;
+}
+
+/** 新人券不按领取窗/有效期控制，库内仍写固定时间以满足非空约束。 */
+export function isOpenEndedCoupon(type: CouponType) {
+  return type === CouponType.NEW_USER;
+}
+
+export const OPEN_ENDED_COUPON_START = "2020-01-01T00:00:00.000Z";
+export const OPEN_ENDED_COUPON_END = "2099-12-31T23:59:59.000Z";
 
 export enum CouponScopeType {
   ALL = "ALL",

@@ -1,9 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
+import { randomUUID } from "node:crypto";
 import { DataSource, Repository } from "typeorm";
 
-import { AgreementType, AGREEMENT_TYPE_LABEL } from "./agreement.constants";
-import { AgreementDraftDto } from "./dto/agreement.dto";
+import { AgreementCreateDto, AgreementDraftDto } from "./dto/agreement.dto";
 import { Agreement } from "./entities/agreement.entity";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
@@ -23,7 +23,7 @@ export class AgreementService {
     });
     return rows.map((row) => ({
       type: row.type,
-      typeLabel: AGREEMENT_TYPE_LABEL[row.type],
+      typeLabel: row.typeLabel,
       draftTitle: row.draftTitle,
       published: Boolean(row.publishedContent),
       publishTime: row.publishTime,
@@ -31,12 +31,53 @@ export class AgreementService {
     }));
   }
 
-  async form(type: AgreementType) {
+  async listPublic() {
+    const rows = await this.agreementRepository.find({
+      where: { isDeleted: 0 },
+      order: { id: "ASC" },
+    });
+    return rows.map((row) => ({
+      type: row.type,
+      typeLabel: row.typeLabel,
+    }));
+  }
+
+  async create(dto: AgreementCreateDto, createBy?: string) {
+    const typeLabel = dto.typeLabel.trim();
+    const title = dto.title.trim();
+    const content = dto.content.trim();
+    if (!typeLabel || !title || !content) {
+      throw this.userError("协议类型名称、标题和正文不能为空");
+    }
+
+    const duplicate = await this.agreementRepository.findOne({
+      where: { typeLabel, isDeleted: 0 },
+    });
+    if (duplicate) throw this.userError("协议类型名称已存在");
+
+    const now = new Date();
+    const row = this.agreementRepository.create({
+      type: `CUSTOM_${randomUUID().replaceAll("-", "").slice(0, 24)}`,
+      typeLabel,
+      draftTitle: title,
+      draftContent: content,
+      publishedTitle: title,
+      publishedContent: content,
+      publishTime: now,
+      createBy,
+      updateBy: createBy,
+      isDeleted: 0,
+    });
+    await this.agreementRepository.save(row);
+    return { type: row.type };
+  }
+
+  async form(type: string) {
     const row = await this.get(type);
     return { type: row.type, title: row.draftTitle, content: row.draftContent };
   }
 
-  async saveDraft(type: AgreementType, dto: AgreementDraftDto, updateBy?: string) {
+  async saveDraft(type: string, dto: AgreementDraftDto, updateBy?: string) {
     const row = await this.get(type);
     const title = dto.title.trim();
     const content = dto.content.trim();
@@ -48,7 +89,7 @@ export class AgreementService {
     return true;
   }
 
-  async publish(type: AgreementType, updateBy?: string) {
+  async publish(type: string, updateBy?: string) {
     return this.dataSource.transaction(async (manager) => {
       const row = await manager.findOne(Agreement, {
         where: { type, isDeleted: 0 },
@@ -67,7 +108,7 @@ export class AgreementService {
     });
   }
 
-  async published(type: AgreementType) {
+  async published(type: string) {
     const row = await this.get(type);
     if (!row.publishedTitle || !row.publishedContent || !row.publishTime) {
       throw this.userError("协议暂未发布");
@@ -80,7 +121,7 @@ export class AgreementService {
     };
   }
 
-  private async get(type: AgreementType) {
+  private async get(type: string) {
     const row = await this.agreementRepository.findOne({ where: { type, isDeleted: 0 } });
     if (!row) throw this.userError("协议不存在");
     return row;

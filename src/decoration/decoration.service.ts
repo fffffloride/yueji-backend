@@ -18,6 +18,7 @@ import { ErrorCode } from "@/common/enums/error-code.enum";
 import { DecorationHomeCards } from "./entities/home-cards.entity";
 
 import { DecorationPromoCards } from "./entities/promo-cards.entity";
+import { CouponService } from "@/marketing/coupon.service";
 
 @Injectable()
 export class DecorationService {
@@ -31,7 +32,8 @@ export class DecorationService {
     @InjectRepository(DecorationHomeCards)
     private readonly cardsRepository: Repository<DecorationHomeCards>,
     @InjectRepository(DecorationPromoCards)
-    private readonly promoCardsRepository: Repository<DecorationPromoCards>
+    private readonly promoCardsRepository: Repository<DecorationPromoCards>,
+    private readonly couponService: CouponService
   ) {}
 
   bannerPage(query: DecorationQueryDto) {
@@ -139,20 +141,22 @@ export class DecorationService {
   }
 
   async appHome() {
-    const [banners, notices, brand, { cards }, { cards: promoCards }] = await Promise.all([
-      this.bannerRepository.find({
-        where: { status: 1, isDeleted: 0 },
-        order: { sort: "ASC", id: "DESC" },
-      }),
-      this.noticeRepository.find({
-        where: { status: 1, isDeleted: 0 },
-        order: { sort: "ASC", id: "DESC" },
-      }),
-      this.getBrand(),
-      this.getCards(),
-      this.getPromoCards(),
-    ]);
-    return { banners, notices, brandContent: brand.content, cards, promoCards };
+    const [banners, notices, brand, { cards }, { cards: promoCards }, newUserCoupon] =
+      await Promise.all([
+        this.bannerRepository.find({
+          where: { status: 1, isDeleted: 0 },
+          order: { sort: "ASC", id: "DESC" },
+        }),
+        this.noticeRepository.find({
+          where: { status: 1, isDeleted: 0 },
+          order: { sort: "ASC", id: "DESC" },
+        }),
+        this.getBrand(),
+        this.getCards(),
+        this.getPromoCards(),
+        this.couponService.homeNewUserCoupon(),
+      ]);
+    return { banners, notices, brandContent: brand.content, cards, promoCards, newUserCoupon };
   }
 
   private async page<T extends DecorationBanner | DecorationNotice>(

@@ -1,7 +1,6 @@
-import { Controller, Get, Param, ParseEnumPipe } from "@nestjs/common";
+import { Controller, Get, Param } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 
-import { AgreementType } from "../agreement.constants";
 import { AgreementService } from "../agreement.service";
 import { Public } from "@/common/decorators/auth.decorator";
 
@@ -11,9 +10,15 @@ import { Public } from "@/common/decorators/auth.decorator";
 export class AgreementAppController {
   constructor(private readonly service: AgreementService) {}
 
+  @ApiOperation({ summary: "协议列表" })
+  @Get()
+  list() {
+    return this.service.listPublic();
+  }
+
   @ApiOperation({ summary: "已发布协议" })
   @Get(":type")
-  get(@Param("type", new ParseEnumPipe(AgreementType)) type: AgreementType) {
+  get(@Param("type") type: string) {
     return this.service.published(type);
   }
 }

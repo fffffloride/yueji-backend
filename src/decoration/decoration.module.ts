@@ -9,8 +9,8 @@ import { DecorationBrand } from "./entities/brand.entity";
 import { DecorationNotice } from "./entities/decoration-notice.entity";
 
 import { DecorationHomeCards } from "./entities/home-cards.entity";
-
 import { DecorationPromoCards } from "./entities/promo-cards.entity";
+import { MarketingModule } from "@/marketing/marketing.module";
 
 @Module({
   imports: [
@@ -21,6 +21,7 @@ import { DecorationPromoCards } from "./entities/promo-cards.entity";
       DecorationHomeCards,
       DecorationPromoCards,
     ]),
+    MarketingModule,
   ],
   controllers: [DecorationAdminController, DecorationAppController],
   providers: [DecorationService],

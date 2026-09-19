@@ -1,12 +1,16 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, EntityManager, In, Repository } from "typeorm";
+import { Brackets, DataSource, EntityManager, In, Not, Repository } from "typeorm";
 
 import {
   CouponScopeType,
   CouponTemplateStatus,
   CouponType,
   MemberCouponStatus,
+  OPEN_ENDED_COUPON_END,
+  OPEN_ENDED_COUPON_START,
+  isFullReductionLike,
+  isOpenEndedCoupon,
 } from "./marketing.constants";
 import {
   ClaimableCouponQueryDto,
@@ -23,6 +27,18 @@ import { Product } from "@/product/entities/product.entity";
 import { ProductCategory } from "@/product/entities/product-category.entity";
 import { BusinessException } from "@/common/exceptions/business.exception";
 import { ErrorCode } from "@/common/enums/error-code.enum";
+
+export interface HomeNewUserCoupon {
+  couponId: string;
+  scopeType: CouponScopeType;
+  thresholdAmount: number;
+  discountAmount: number;
+  validEnd: Date;
+  claimStart: Date;
+  claimEnd: Date;
+  issuedQuantity: number;
+  totalQuantity: number;
+}
 
 @Injectable()
 export class CouponService {
@@ -72,6 +88,7 @@ export class CouponService {
         })
       );
       await this.replaceScopes(manager, coupon.id, dto);
+      await this.deactivateOtherNewUserCoupons(manager, dto, coupon.id);
       return coupon;
     });
   }
@@ -99,6 +116,7 @@ export class CouponService {
       Object.assign(coupon, this.toEntity(dto));
       await manager.save(coupon);
       if (coupon.issuedQuantity === 0) await this.replaceScopes(manager, coupon.id, dto);
+      await this.deactivateOtherNewUserCoupons(manager, dto, coupon.id);
       return coupon;
     });
   }
@@ -115,6 +133,29 @@ export class CouponService {
       await manager.save(coupon);
       return true;
     });
+  }
+
+  async homeNewUserCoupon(): Promise<HomeNewUserCoupon | null> {
+    const coupon = await this.couponRepository.findOne({
+      where: {
+        type: CouponType.NEW_USER,
+        status: CouponTemplateStatus.ACTIVE,
+        isDeleted: 0,
+      },
+      order: { updateTime: "DESC", id: "DESC" },
+    });
+    if (!coupon) return null;
+    return {
+      couponId: coupon.id,
+      scopeType: coupon.scopeType,
+      thresholdAmount: coupon.thresholdAmount,
+      discountAmount: coupon.discountAmount,
+      validEnd: coupon.validEnd,
+      claimStart: coupon.claimStart,
+      claimEnd: coupon.claimEnd,
+      issuedQuantity: coupon.issuedQuantity,
+      totalQuantity: coupon.totalQuantity,
+    };
   }
 
   async claim(memberId: string, couponId: string) {
@@ -170,8 +211,14 @@ export class CouponService {
       .createQueryBuilder("coupon")
       .where("coupon.isDeleted = 0")
       .andWhere("coupon.status = :status", { status: CouponTemplateStatus.ACTIVE })
-      .andWhere("coupon.claimStart <= :now AND coupon.claimEnd >= :now", { now })
-      .andWhere("coupon.validEnd >= :now")
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where("coupon.type = :newUser", { newUser: CouponType.NEW_USER }).orWhere(
+            "coupon.claimStart <= :now AND coupon.claimEnd >= :now AND coupon.validEnd >= :now",
+            { now }
+          );
+        })
+      )
       .andWhere("coupon.issuedQuantity < coupon.totalQuantity")
       .andWhere(
         `(SELECT COUNT(*) FROM member_coupon mc
@@ -240,7 +287,10 @@ export class CouponService {
       data: rows.map((item) => {
         const coupon = couponMap.get(String(item.couponId));
         const effectiveStatus =
-          item.status === MemberCouponStatus.UNUSED && coupon && coupon.validEnd < now
+          item.status === MemberCouponStatus.UNUSED &&
+          coupon &&
+          !isOpenEndedCoupon(coupon.type) &&
+          coupon.validEnd < now
             ? MemberCouponStatus.EXPIRED
             : item.status;
         return {
@@ -294,10 +344,12 @@ export class CouponService {
     if (!coupon || coupon.status !== CouponTemplateStatus.ACTIVE) {
       throw this.userError("优惠券不可领取");
     }
-    const now = new Date();
-    if (coupon.validEnd < now) throw this.userError("优惠券已过期");
-    if (enforceClaimWindow && (coupon.claimStart > now || coupon.claimEnd < now)) {
-      throw this.userError("不在优惠券领取时间内");
+    if (!isOpenEndedCoupon(coupon.type)) {
+      const now = new Date();
+      if (coupon.validEnd < now) throw this.userError("优惠券已过期");
+      if (enforceClaimWindow && (coupon.claimStart > now || coupon.claimEnd < now)) {
+        throw this.userError("不在优惠券领取时间内");
+      }
     }
     return coupon;
   }
@@ -317,14 +369,16 @@ export class CouponService {
   }
 
   private validate(dto: CouponSaveDto) {
-    const claimStart = new Date(dto.claimStart);
-    const claimEnd = new Date(dto.claimEnd);
-    const validStart = new Date(dto.validStart);
-    const validEnd = new Date(dto.validEnd);
-    if (claimStart > claimEnd || validStart > validEnd || claimEnd > validEnd) {
-      throw this.userError("领取时间和有效期设置不正确");
+    if (!isOpenEndedCoupon(dto.type)) {
+      const claimStart = new Date(dto.claimStart);
+      const claimEnd = new Date(dto.claimEnd);
+      const validStart = new Date(dto.validStart);
+      const validEnd = new Date(dto.validEnd);
+      if (claimStart > claimEnd || validStart > validEnd || claimEnd > validEnd) {
+        throw this.userError("领取时间和有效期设置不正确");
+      }
     }
-    if (dto.type === CouponType.FULL_REDUCTION && dto.discountAmount <= 0) {
+    if (isFullReductionLike(dto.type) && dto.discountAmount <= 0) {
       throw this.userError("满减券优惠金额必须大于0");
     }
     if (dto.type === CouponType.DISCOUNT && dto.discountRate >= 10000) {
@@ -355,12 +409,12 @@ export class CouponService {
       discountRate: dto.discountRate,
       maxDiscountAmount: dto.maxDiscountAmount ?? null,
       exchangeSkuId: dto.type === CouponType.EXCHANGE ? dto.exchangeSkuId : null,
-      claimStart: new Date(dto.claimStart),
-      claimEnd: new Date(dto.claimEnd),
-      validStart: new Date(dto.validStart),
-      validEnd: new Date(dto.validEnd),
+      claimStart: new Date(isOpenEndedCoupon(dto.type) ? OPEN_ENDED_COUPON_START : dto.claimStart),
+      claimEnd: new Date(isOpenEndedCoupon(dto.type) ? OPEN_ENDED_COUPON_END : dto.claimEnd),
+      validStart: new Date(isOpenEndedCoupon(dto.type) ? OPEN_ENDED_COUPON_START : dto.validStart),
+      validEnd: new Date(isOpenEndedCoupon(dto.type) ? OPEN_ENDED_COUPON_END : dto.validEnd),
       totalQuantity: dto.totalQuantity,
-      perMemberLimit: dto.perMemberLimit,
+      perMemberLimit: dto.type === CouponType.NEW_USER ? 1 : dto.perMemberLimit,
       status: dto.status,
     };
   }
@@ -383,7 +437,7 @@ export class CouponService {
 
   private assertIssuedFieldsFrozen(coupon: Coupon, dto: CouponSaveDto) {
     const next = this.toEntity(dto);
-    if (next.validEnd.getTime() < coupon.validEnd.getTime()) {
+    if (!isOpenEndedCoupon(coupon.type) && next.validEnd.getTime() < coupon.validEnd.getTime()) {
       throw this.userError("已有领取记录，有效结束时间只能延长");
     }
     const frozen = [
@@ -394,9 +448,7 @@ export class CouponService {
       "discountRate",
       "maxDiscountAmount",
       "exchangeSkuId",
-      "claimStart",
-      "claimEnd",
-      "validStart",
+      ...(isOpenEndedCoupon(coupon.type) ? [] : ["claimStart", "claimEnd", "validStart"]),
       "totalQuantity",
       "perMemberLimit",
     ] as const;
@@ -412,6 +464,24 @@ export class CouponService {
     ) {
       throw this.userError("已有领取记录，仅可修改名称、结束时间和状态");
     }
+  }
+
+  private async deactivateOtherNewUserCoupons(
+    manager: EntityManager,
+    dto: CouponSaveDto,
+    keepId: string
+  ) {
+    if (dto.type !== CouponType.NEW_USER || dto.status !== CouponTemplateStatus.ACTIVE) return;
+    await manager.update(
+      Coupon,
+      {
+        type: CouponType.NEW_USER,
+        status: CouponTemplateStatus.ACTIVE,
+        isDeleted: 0,
+        id: Not(keepId),
+      },
+      { status: CouponTemplateStatus.DISABLED }
+    );
   }
 
   private async replaceScopes(manager: EntityManager, couponId: string, dto: CouponSaveDto) {
@@ -463,7 +533,7 @@ export class CouponService {
       `UPDATE member_coupon mc
        INNER JOIN coupon c ON c.id = mc.coupon_id
        SET mc.status = ?
-       WHERE mc.status = ? AND mc.is_deleted = 0 AND c.valid_end < NOW()${memberFilter}`,
+       WHERE mc.status = ? AND mc.is_deleted = 0 AND c.type <> 'NEW_USER' AND c.valid_end < NOW()${memberFilter}`,
       params
     );
   }

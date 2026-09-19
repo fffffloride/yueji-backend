@@ -85,17 +85,16 @@ docker compose --env-file /opt/yueji/shared/runtime.env -f /opt/yueji/current/co
 curl --fail http://127.0.0.1/healthz
 ```
 
-当前后端的微信支付驱动仍是占位实现。`PAYMENT_DRIVER=wechat` 可保证生产环境不会使用 Mock
-支付，但真实支付必须在补齐微信支付实现和商户配置后才能开放。
+后端已实现微信支付 APIv3 的 JSAPI 下单、查询、关单、支付/退款通知验签解密、退款和补偿。
+首次开放前须把商户 API 证书私钥挂载到共享 secrets 目录，并在 `runtime.env` 配齐
+`WX_PAY_*` 后将 `PAYMENT_DRIVER` 从 `disabled` 改为 `wechat`。生产环境始终禁止 Mock 支付。
 
 ## 手动发布
 
-当前项目尚未接入微信商户，因此本部署配置明确关闭支付。打包时 `start.cjs` 成为
-`dist/main.js`，先设置 `PAYMENT_DRIVER=disabled`，再加载原应用入口 `dist/application.js`。
-这个非秘密设置随发布包保留，避免更改共享环境导致旧版本无法回退。付款、退款和支付回调
-均被拒绝，补偿任务不处理资金状态。后台其他功能可正常运行，生产环境仍禁止 Mock 支付。
-以后接入真实支付时，先补齐微信商户及 HTTPS 回调配置，再移除工作流中的入口替换步骤并
-重新构建发布；不要只修改共享环境变量，因为当前发布入口会明确覆盖支付驱动。
+打包时 `start.cjs` 仍作为稳定入口加载 `dist/application.js`，但不再覆盖服务器
+`EnvironmentFile` 中的 `PAYMENT_DRIVER`。未完成商户配置时应保持 `disabled`；配置完成后改为
+`wechat` 并重启服务。私钥、APIv3 密钥和实际公钥 JSON 只保存在服务器共享目录及环境文件中，
+不得提交 Git。付款、退款和支付回调在 `disabled` 状态下均会被拒绝。
 
 两个仓库的 Actions → **Manual Aliyun release** → **Run workflow**，选择 `master`：
 

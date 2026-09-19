@@ -13,6 +13,7 @@ describe("阶段5权益计价", () => {
 
   it("计算满减券和折扣封顶", () => {
     expect(calculateCouponAmount(CouponType.FULL_REDUCTION, 10000, 8000, 1000, 10000)).toBe(1000);
+    expect(calculateCouponAmount(CouponType.NEW_USER, 10000, 8000, 35000, 10000)).toBe(10000);
     expect(calculateCouponAmount(CouponType.FULL_REDUCTION, 7000, 8000, 1000, 10000)).toBe(0);
     expect(calculateCouponAmount(CouponType.DISCOUNT, 10000, 0, 0, 8000, 1500)).toBe(1500);
   });

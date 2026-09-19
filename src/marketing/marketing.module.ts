@@ -42,6 +42,6 @@ import { Product } from "@/product/entities/product.entity";
     MarketingAppController,
   ],
   providers: [MemberLevelService, PointsService, CouponService, OrderBenefitsService],
-  exports: [OrderBenefitsService],
+  exports: [OrderBenefitsService, CouponService],
 })
 export class MarketingModule {}

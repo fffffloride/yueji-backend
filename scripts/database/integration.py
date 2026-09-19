@@ -86,11 +86,11 @@ def main():
             upgraded = Path(temp)/'release'
             shutil.copytree(root, upgraded)
             (upgraded/'migrations').mkdir(exist_ok=True)
-            migration_path = 'migrations/202609160002_probe.sql'
+            migration_path = 'migrations/202609200001_probe.sql'
             payload = b'CREATE TABLE schema_upgrade_probe(id int PRIMARY KEY); INSERT INTO schema_upgrade_probe VALUES(1);'
             (upgraded/migration_path).write_bytes(payload)
             changed = json.loads((upgraded/'manifest.json').read_text())
-            changed['migrations'].append({'id':'202609160002_probe','backwardCompatible':True,
+            changed['migrations'].append({'id':'202609200001_probe','backwardCompatible':True,
                 'files':[{'path':migration_path,'sha256':release.digest(payload)}]})
             (upgraded/'manifest.json').write_text(json.dumps(changed))
             new_root, new_manifest, new_entries = release.load_release(upgraded)
