@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: "check: 检查连接 / build: 仅构建 / deploy: 发布 / rollback: 恢复上一版"
+        description: "check: 检查连接 / diagnose: 读取服务状态 / build: 仅构建 / deploy: 发布 / rollback: 恢复上一版"
         type: choice
-        options: [check, build, deploy, rollback]
+        options: [check, diagnose, build, deploy, rollback]
         default: check
         required: true
 
@@ -72,7 +72,7 @@ jobs:
     if: >-
       always() && !cancelled() && github.ref == 'refs/heads/master' &&
       github.event_name == 'workflow_dispatch' &&
-      (inputs.operation == 'check' || inputs.operation == 'rollback' ||
+      (inputs.operation == 'check' || inputs.operation == 'diagnose' || inputs.operation == 'rollback' ||
        (inputs.operation == 'deploy' && needs.build.result == 'success'))
     environment: production
     runs-on: ubuntu-22.04
@@ -107,6 +107,11 @@ jobs:
             -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$connection/known_hosts"
             -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=4)
           remote="$DEPLOY_USER@$DEPLOY_HOST"
+          if [[ "$OPERATION" == diagnose ]]; then
+            ssh "${ssh_options[@]}" -p "$DEPLOY_PORT" "$remote" \
+              "systemctl --no-pager --full status yueji-backend.service; journalctl --no-pager -o cat -u yueji-backend.service -n 200"
+            exit 0
+          fi
           upload=''
           cleanup() {
             if [[ "$upload" =~ ^/home/yueji-deploy/staging/release\.[A-Za-z0-9]+$ ]]; then
