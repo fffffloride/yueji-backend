@@ -1,5 +1,6 @@
 "use strict";
 
-// Keep the packaged entrypoint stable while allowing the server EnvironmentFile
-// to select disabled/wechat. Production validation still rejects mock payments.
+// Keep older servers safe until their EnvironmentFile explicitly selects WeChat.
+// An explicit disabled/wechat value is preserved; production still rejects mock.
+process.env.PAYMENT_DRIVER ||= "disabled";
 require("./application.js");
