@@ -50,7 +50,7 @@
       "files": [
         {
           "path": "migrations/202609190001_new_user_coupon_type.sql",
-          "sha256": "4b5a7e3657a0b69ab5c0a80275b6e6b44752ad54151f9957ea3d945823f07088"
+          "sha256": "1618a0712b0c41779ac23c5aa0eda45415bae3bcf4064a3e08060325de713b90"
         }
       ]
     }
