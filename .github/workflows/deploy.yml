@@ -109,7 +109,7 @@ jobs:
           remote="$DEPLOY_USER@$DEPLOY_HOST"
           if [[ "$OPERATION" == diagnose ]]; then
             ssh "${ssh_options[@]}" -p "$DEPLOY_PORT" "$remote" \
-              "systemctl --no-pager --full status yueji-backend.service; journalctl --no-pager -o cat -u yueji-backend.service -n 200; if [ -r /tmp/yueji-backend-startup-error.log ]; then printf 'STARTUP_ERROR='; cat /tmp/yueji-backend-startup-error.log; fi"
+              "systemctl --no-pager --full status yueji-backend.service; journalctl --no-pager -o cat -u yueji-backend.service -n 200; if [ -r /tmp/yueji-backend-startup-error.log ]; then printf 'STARTUP_ERROR='; cat /tmp/yueji-backend-startup-error.log; fi; if [ -r /tmp/yueji-backend-readiness-error.log ]; then printf 'READINESS_ERROR='; cat /tmp/yueji-backend-readiness-error.log; fi"
             exit 0
           fi
           upload=''

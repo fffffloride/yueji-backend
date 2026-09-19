@@ -10,6 +10,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { DataSource } from "typeorm";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { writeFileSync } from "node:fs";
 import { Public } from "../common/decorators/auth.decorator";
 import { AppointmentService } from "../appointment/appointment.service";
 import { AppointmentQueryDto } from "../appointment/dto/appointment-query.dto";
@@ -90,7 +91,18 @@ export class ReadinessController {
       throw new UnauthorizedException();
     try {
       return await this.readiness.checkBusiness();
-    } catch {
+    } catch (error) {
+      const name = String(error instanceof Error ? error.name : "Error")
+        .replace(/[\r\n]/g, " ")
+        .slice(0, 120);
+      const message = String(error instanceof Error ? error.message : error)
+        .replace(/[\r\n]/g, " ")
+        .slice(0, 2000);
+      writeFileSync(
+        "/tmp/yueji-backend-readiness-error.log",
+        `${JSON.stringify({ name, message })}\n`,
+        { mode: 0o644 }
+      );
       throw new ServiceUnavailableException("Business readiness check failed");
     }
   }
